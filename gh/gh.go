@@ -1,6 +1,8 @@
 package gh
 
 import (
+	"context"
+
 	"github.com/google/go-github/v71/github"
 	ghc "github.com/k1LoW/go-github-client/v71/factory"
 )
@@ -21,11 +23,22 @@ func NewGitHubClient() (*GitHubClient, error) {
 	}, nil
 }
 
-// // ExampleMethod demonstrates a method that interacts with the GitHub API
-// func (g *GitHubClient) ExampleMethod(ctx context.Context, owner, repo string) (interface{}, error) {
-// 	repoInfo, err := g.client.Repository(ctx, owner, repo)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return repoInfo, nil
-// }
+// ListTeams retrieves all teams in the specified organization with pagination support
+func (g *GitHubClient) ListTeams(ctx context.Context, org string) ([]*github.Team, error) {
+	var allTeams []*github.Team
+	opt := &github.ListOptions{PerPage: 50}
+
+	for {
+		teams, resp, err := g.client.Teams.ListTeams(ctx, org, opt)
+		if err != nil {
+			return nil, err
+		}
+		allTeams = append(allTeams, teams...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	return allTeams, nil
+}
