@@ -14,3 +14,89 @@ func ListTeams(ctx context.Context, g *GitHubClient, repo repository.Repository)
 	}
 	return g.ListTeams(ctx, repo.Owner)
 }
+
+// GetTeamByName retrieves a team by its name.
+func GetTeamByName(ctx context.Context, g *GitHubClient, repo repository.Repository, teamName string) (*github.Team, error) {
+	return g.GetTeamBySlug(ctx, repo.Owner, teamName)
+}
+
+// ListChildTeams is a wrapper function that calls the ListChildTeams API.
+func ListChildTeams(ctx context.Context, g *GitHubClient, repo repository.Repository, parentSlug string) ([]*github.Team, error) {
+	return g.ListChildTeams(ctx, repo.Owner, parentSlug)
+}
+
+type Team struct {
+	Team  *github.Team
+	Child []Team
+}
+
+func (t *Team) Flatten() []*github.Team {
+	var teams []*github.Team
+	if t.Team != nil {
+		teams = append(teams, t.Team)
+	}
+	for _, child := range t.Child {
+		teams = append(teams, child.Flatten()...)
+	}
+	return teams
+}
+
+func TeamByName(ctx context.Context, g *GitHubClient, repo repository.Repository, teamName string, child bool, recursive bool) (Team, error) {
+	var t Team
+	if teamName == "" {
+		return t, nil
+	}
+	if child {
+		teams, err := g.ListChildTeams(ctx, repo.Owner, teamName)
+		if err != nil {
+			return t, err
+		}
+		for _, childTeam := range teams {
+			if childTeam.Slug != nil {
+				if recursive {
+					recursiveTeams, err := TeamByName(ctx, g, repo, *childTeam.Slug, child, recursive)
+					if err != nil {
+						return t, err
+					}
+					t.Child = append(t.Child, recursiveTeams)
+				} else {
+					t.Child = append(t.Child, Team{Team: childTeam})
+				}
+			}
+		}
+	} else {
+		team, err := g.GetTeamBySlug(ctx, repo.Owner, teamName)
+		if err != nil {
+			return t, err
+		}
+		t.Team = team
+		if recursive {
+			teams, err := g.ListChildTeams(ctx, repo.Owner, teamName)
+			if err != nil {
+				return t, err
+			}
+			for _, childTeam := range teams {
+				if childTeam.Slug != nil {
+					recursiveTeams, err := TeamByName(ctx, g, repo, *childTeam.Slug, child, recursive)
+					if err != nil {
+						return t, err
+					}
+					t.Child = append(t.Child, recursiveTeams)
+				}
+			}
+		}
+	}
+	return t, nil
+}
+
+func ListTeamByName(ctx context.Context, g *GitHubClient, repo repository.Repository, teamNames []string, child bool, recursive bool) ([]*github.Team, error) {
+	var teams []*github.Team
+	for _, teamName := range teamNames {
+		team, err := TeamByName(ctx, g, repo, teamName, child, recursive)
+		if err != nil {
+			return nil, err
+		}
+		teams = append(teams, team.Flatten()...)
+	}
+	return teams, nil
+}

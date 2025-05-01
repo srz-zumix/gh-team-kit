@@ -2,6 +2,7 @@ package gh
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/cli/cli/v2/pkg/iostreams"
@@ -109,6 +110,35 @@ func (g *GitHubClient) ListTeamsByRepo(ctx context.Context, org, repo string) ([
 	}
 
 	return allTeams, nil
+}
+
+// ListChildTeams retrieves all child teams of a specified team.
+func (g *GitHubClient) ListChildTeams(ctx context.Context, org string, parentSlug string) ([]*github.Team, error) {
+	var allChildTeams []*github.Team
+	opt := &github.ListOptions{PerPage: 50}
+
+	for {
+		teams, resp, err := g.client.Teams.ListChildTeamsByParentSlug(ctx, org, parentSlug, opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list child teams: %w", err)
+		}
+		allChildTeams = append(allChildTeams, teams...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	return allChildTeams, nil
+}
+
+// GetTeamBySlug retrieves a team by its slug name.
+func (g *GitHubClient) GetTeamBySlug(ctx context.Context, org string, teamSlug string) (*github.Team, error) {
+	team, _, err := g.client.Teams.GetTeamBySlug(ctx, org, teamSlug)
+	if err != nil {
+		return nil, err
+	}
+	return team, nil
 }
 
 func (g *GitHubClient) Write(exporter cmdutil.Exporter, data interface{}) error {
