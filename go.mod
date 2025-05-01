@@ -1,6 +1,6 @@
 module github.com/srz-zumix/gh-team-kit
 
-go 1.23.8
+go 1.24
 
 toolchain go1.24.2
 
@@ -31,7 +31,8 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
-	github.com/fatih/color v1.16.0 // indirect
+	github.com/fatih/color v1.18.0 // indirect
+	github.com/goccy/go-yaml v1.17.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
@@ -55,6 +56,7 @@ require (
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
@@ -74,6 +76,7 @@ require (
 require (
 	github.com/cli/cli/v2 v2.71.2
 	github.com/cli/safeexec v1.0.1 // indirect
+	github.com/ddddddO/gtree v1.11.5
 	github.com/google/go-github/v71 v71.0.0
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/k1LoW/go-github-client/v71 v71.0.17
