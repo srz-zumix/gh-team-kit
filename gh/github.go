@@ -3,6 +3,8 @@ package gh
 import (
 	"context"
 
+	"github.com/cli/cli/v2/pkg/cmdutil"
+	"github.com/cli/cli/v2/pkg/iostreams"
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/google/go-github/v71/github"
 	ghc "github.com/k1LoW/go-github-client/v71/factory"
@@ -10,6 +12,7 @@ import (
 
 type GitHubClient struct {
 	client *github.Client
+	IO     *iostreams.IOStreams
 }
 
 const defaultHost = "github.com"
@@ -40,6 +43,7 @@ func NewGitHubClient() (*GitHubClient, error) {
 
 	return &GitHubClient{
 		client: client,
+		IO:     iostreams.System(),
 	}, nil
 }
 
@@ -52,6 +56,7 @@ func NewGitHubClientWithRepo(repo repository.Repository) (*GitHubClient, error) 
 
 	return &GitHubClient{
 		client: client,
+		IO:     iostreams.System(),
 	}, nil
 }
 
@@ -104,4 +109,8 @@ func (g *GitHubClient) ListTeamsByRepo(ctx context.Context, org, repo string) ([
 	}
 
 	return allTeams, nil
+}
+
+func (g *GitHubClient) Write(exporter cmdutil.Exporter, data interface{}) error {
+	return exporter.Write(g.IO, data)
 }
