@@ -25,6 +25,14 @@ func ListChildTeams(ctx context.Context, g *GitHubClient, repo repository.Reposi
 	return g.ListChildTeams(ctx, repo.Owner, parentSlug)
 }
 
+// CheckTeamPermissions is a wrapper function to check team permissions for a repository.
+func CheckTeamPermissions(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string) (*github.Repository, error) {
+	if teamSlug == "" {
+		return nil, nil
+	}
+	return g.CheckTeamPermissions(ctx, repo.Owner, teamSlug, repo.Name)
+}
+
 type Team struct {
 	Team  *github.Team
 	Child []Team

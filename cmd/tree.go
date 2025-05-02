@@ -18,26 +18,24 @@ type TreeOptions struct {
 func init() {
 	opts := &TreeOptions{}
 
+	var owner string
+	var recursive bool
+
 	var treeCmd = &cobra.Command{
-		Use:   "tree",
+		Use:   "tree [team-slug]",
 		Short: "Displays a team hierarchy in a tree structure",
 		Long:  `Displays a team hierarchy in a tree structure based on the team's slug.`,
 		Args:  cobra.MaximumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			owner, _ := cmd.Flags().GetString("owner")
-			recursive, _ := cmd.Flags().GetBool("recursive")
-
+		RunE: func(cmd *cobra.Command, args []string) error {
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
-				fmt.Printf("Error parsing repository: %v\n", err)
-				return
+				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
 			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
-				fmt.Printf("Error creating GitHub client: %v\n", err)
-				return
+				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
 			var team gh.Team
@@ -46,35 +44,32 @@ func init() {
 				teamSlug := args[0]
 				team, err = gh.TeamByName(ctx, client, repository, teamSlug, false, recursive)
 				if err != nil {
-					fmt.Printf("Error retrieving teams: %v\n", err)
-					return
+					return fmt.Errorf("error retrieving teams: %w", err)
 				}
 			} else {
 				team, err = gh.TeamByOwner(ctx, client, repository, recursive)
 				if err != nil {
-					fmt.Printf("Error retrieving teams: %v\n", err)
-					return
+					return fmt.Errorf("error retrieving teams: %w", err)
 				}
 				root = gtree.NewRoot(repository.Owner)
 			}
 
 			if opts.Exporter != nil {
 				if err := client.Write(opts.Exporter, team); err != nil {
-					fmt.Printf("Error exporting teams: %v\n", err)
-					return
+					return fmt.Errorf("error exporting teams: %w", err)
 				}
-				return
+				return nil
 			}
 
 			if err := gtree.OutputFromRoot(client.IO.Out, GTree(root, team)); err != nil {
-				fmt.Printf("Error outputting tree: %v\n", err)
-				return
+				return fmt.Errorf("error outputting tree: %w", err)
 			}
+			return nil
 		},
 	}
 
-	treeCmd.Flags().StringP("owner", "", "", "The owner of the team")
-	treeCmd.Flags().BoolP("recursive", "r", false, "Retrieve teams recursively")
+	treeCmd.Flags().StringVarP(&owner, "owner", "", "", "The owner of the team")
+	treeCmd.Flags().BoolVarP(&recursive, "recursive", "r", false, "Retrieve teams recursively")
 	cmdutil.AddFormatFlags(treeCmd, &opts.Exporter)
 
 	rootCmd.AddCommand(treeCmd)

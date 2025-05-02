@@ -21,37 +21,33 @@ func NewListCmd() *cobra.Command {
 	var roles []string
 
 	cmd := &cobra.Command{
-		Use:   "list",
+		Use:   "list <team-slug>",
 		Short: "List repositories",
 		Long:  `List all repositories for the specified team in the organization.`,
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			teamSlug := args[0]
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
-				fmt.Printf("Error parsing repository: %v\n", err)
-				return
+				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
 			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
-				fmt.Printf("Error creating GitHub client: %v\n", err)
-				return
+				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
 			repos, err := gh.ListTeamRepos(ctx, client, repository, teamSlug, roles)
 			if err != nil {
-				fmt.Printf("Failed to list team repositories: %v\n", err)
-				return
+				return fmt.Errorf("failed to list team repositories: %w", err)
 			}
 
 			if opts.Exporter != nil {
 				if err := client.Write(opts.Exporter, repos); err != nil {
-					fmt.Printf("Error exporting teams: %v\n", err)
-					return
+					return fmt.Errorf("error exporting teams: %w", err)
 				}
-				return
+				return nil
 			}
 
 			headers := []string{"NAME", "PERMISSION"}
@@ -66,6 +62,7 @@ func NewListCmd() *cobra.Command {
 				table.Append(row)
 			}
 			table.Render()
+			return nil
 		},
 	}
 

@@ -161,6 +161,18 @@ func (g *GitHubClient) ListTeamRepos(ctx context.Context, org string, teamSlug s
 	return allRepos, nil
 }
 
+// CheckTeamPermissions checks the permissions of a team for a specific repository.
+func (g *GitHubClient) CheckTeamPermissions(ctx context.Context, org string, teamSlug string, repo string) (*github.Repository, error) {
+	teamRepo, resp, err := g.client.Teams.IsTeamRepoBySlug(ctx, org, teamSlug, org, repo)
+	if err != nil {
+		if resp.StatusCode == 404 {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return teamRepo, nil
+}
+
 func (g *GitHubClient) Write(exporter cmdutil.Exporter, data interface{}) error {
 	return exporter.Write(g.IO, data)
 }

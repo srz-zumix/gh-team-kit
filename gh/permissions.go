@@ -1,6 +1,8 @@
 package gh
 
-import "github.com/google/go-github/v71/github"
+import (
+	"github.com/google/go-github/v71/github"
+)
 
 var TeamPermissionsList = []string{
 	"admin",

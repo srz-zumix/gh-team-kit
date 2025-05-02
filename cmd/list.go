@@ -16,50 +16,49 @@ type ListOptions struct {
 
 func init() {
 	opts := &ListOptions{}
+	var repo string
+
 	var teamListCmd = &cobra.Command{
-		Use:   "list",
+		Use:   "list [owner]",
 		Short: "List all teams in the organization",
 		Long:  `Retrieve and display a list of all teams in the specified GitHub organization.`,
 		Args:  cobra.MaximumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			repoOption, _ := cmd.Flags().GetString("repo")
+		RunE: func(cmd *cobra.Command, args []string) error {
 			owner := ""
 			if len(args) > 0 {
 				owner = args[0]
 			}
-			repository, err := parser.Repository(parser.RepositoryOwner(owner), parser.RepositoryInput(repoOption))
+			repository, err := parser.Repository(parser.RepositoryOwner(owner), parser.RepositoryInput(repo))
 			if err != nil {
-				fmt.Printf("Error parsing repository: %v\n", err)
-				return
+				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
 			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
-				fmt.Printf("Error creating GitHub client: %v\n", err)
-				return
+				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
 			teams, err := gh.ListTeams(ctx, client, repository)
 			if err != nil {
-				fmt.Printf("Error retrieving teams: %v\n", err)
-				return
+				return fmt.Errorf("error retrieving teams: %w", err)
 			}
 
 			if opts.Exporter != nil {
 				if err := client.Write(opts.Exporter, teams); err != nil {
-					fmt.Printf("Error exporting teams: %v\n", err)
-					return
+					return fmt.Errorf("error exporting teams: %w", err)
 				}
-				return
+				return nil
 			}
+
 			for _, team := range teams {
 				fmt.Printf("%s\n", *team.Name)
 			}
+			return nil
 		},
 	}
 
-	teamListCmd.Flags().StringP("repo", "R", "", "Specify a repository to filter teams")
+	teamListCmd.Flags().StringVarP(&repo, "repo", "R", "", "Specify a repository to filter teams")
 	cmdutil.AddFormatFlags(teamListCmd, &opts.Exporter)
 
 	rootCmd.AddCommand(teamListCmd)
