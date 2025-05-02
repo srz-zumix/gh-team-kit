@@ -18,16 +18,15 @@ type GetOptions struct {
 func init() {
 	opts := &GetOptions{}
 
+	var owner string
+	var child bool
+	var recursive bool
 	var getCmd = &cobra.Command{
 		Use:   "get",
 		Short: "Gets a team using the team's slug",
 		Long:  `Gets a team using the team's slug.`,
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			owner, _ := cmd.Flags().GetString("owner")
-			child, _ := cmd.Flags().GetBool("child")
-			recursive, _ := cmd.Flags().GetBool("recursive")
-
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				fmt.Printf("Error parsing repository: %v\n", err)
@@ -94,9 +93,9 @@ func init() {
 		},
 	}
 
-	getCmd.Flags().StringP("owner", "", "", "The owner of the team")
-	getCmd.Flags().BoolP("child", "c", false, "Retrieve and display the parent team if it exists")
-	getCmd.Flags().BoolP("recursive", "r", false, "Retrieve teams recursively")
+	getCmd.Flags().StringVarP(&owner, "owner", "", "", "The owner of the team")
+	getCmd.Flags().BoolVarP(&child, "child", "c", false, "Retrieve and display the parent team if it exists")
+	getCmd.Flags().BoolVarP(&recursive, "recursive", "r", false, "Retrieve teams recursively")
 	cmdutil.AddFormatFlags(getCmd, &opts.Exporter)
 
 	rootCmd.AddCommand(getCmd)

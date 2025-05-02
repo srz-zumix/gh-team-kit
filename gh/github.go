@@ -141,6 +141,26 @@ func (g *GitHubClient) GetTeamBySlug(ctx context.Context, org string, teamSlug s
 	return team, nil
 }
 
+// ListTeamRepos retrieves all repositories associated with a specific team in the organization.
+func (g *GitHubClient) ListTeamRepos(ctx context.Context, org string, teamSlug string) ([]*github.Repository, error) {
+	var allRepos []*github.Repository
+	opt := &github.ListOptions{PerPage: 50}
+
+	for {
+		repos, resp, err := g.client.Teams.ListTeamReposBySlug(ctx, org, teamSlug, opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list team repositories: %w", err)
+		}
+		allRepos = append(allRepos, repos...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	return allRepos, nil
+}
+
 func (g *GitHubClient) Write(exporter cmdutil.Exporter, data interface{}) error {
 	return exporter.Write(g.IO, data)
 }

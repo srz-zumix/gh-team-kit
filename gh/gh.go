@@ -41,6 +41,27 @@ func (t *Team) Flatten() []*github.Team {
 	return teams
 }
 
+func TeamByOwner(ctx context.Context, g *GitHubClient, repo repository.Repository, recursive bool) (Team, error) {
+	var t Team
+	if repo.Owner == "" {
+		return t, nil
+	}
+	teams, err := g.ListTeams(ctx, repo.Owner)
+	if err != nil {
+		return t, err
+	}
+	for _, team := range teams {
+		if team.Slug != nil && team.Parent == nil {
+			c, err := TeamByName(ctx, g, repo, *team.Slug, false, recursive)
+			if err != nil {
+				return t, err
+			}
+			t.Child = append(t.Child, c)
+		}
+	}
+	return t, nil
+}
+
 func TeamByName(ctx context.Context, g *GitHubClient, repo repository.Repository, teamName string, child bool, recursive bool) (Team, error) {
 	var t Team
 	if teamName == "" {
@@ -99,4 +120,28 @@ func ListTeamByName(ctx context.Context, g *GitHubClient, repo repository.Reposi
 		teams = append(teams, team.Flatten()...)
 	}
 	return teams, nil
+}
+
+func ListTeamRepos(ctx context.Context, g *GitHubClient, repo repository.Repository, teamName string, roles []string) ([]*github.Repository, error) {
+	if teamName == "" {
+		return nil, nil
+	}
+	repos, err := g.ListTeamRepos(ctx, repo.Owner, teamName)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(roles) > 0 {
+		var filteredRepos []*github.Repository
+		for _, r := range repos {
+			for _, role := range roles {
+				if r.Permissions[role] {
+					filteredRepos = append(filteredRepos, r)
+					break
+				}
+			}
+		}
+		return filteredRepos, nil
+	}
+	return repos, nil
 }

@@ -22,15 +22,10 @@ func init() {
 		Use:   "tree",
 		Short: "Displays a team hierarchy in a tree structure",
 		Long:  `Displays a team hierarchy in a tree structure based on the team's slug.`,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			owner, _ := cmd.Flags().GetString("owner")
 			recursive, _ := cmd.Flags().GetBool("recursive")
-			teamSlug := args[0]
-			if teamSlug == "" {
-				fmt.Println("Error: Team slug is required")
-				return
-			}
 
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
@@ -45,10 +40,22 @@ func init() {
 				return
 			}
 
-			team, err := gh.TeamByName(ctx, client, repository, teamSlug, false, recursive)
-			if err != nil {
-				fmt.Printf("Error retrieving teams: %v\n", err)
-				return
+			var team gh.Team
+			var root *gtree.Node
+			if len(args) > 0 {
+				teamSlug := args[0]
+				team, err = gh.TeamByName(ctx, client, repository, teamSlug, false, recursive)
+				if err != nil {
+					fmt.Printf("Error retrieving teams: %v\n", err)
+					return
+				}
+			} else {
+				team, err = gh.TeamByOwner(ctx, client, repository, recursive)
+				if err != nil {
+					fmt.Printf("Error retrieving teams: %v\n", err)
+					return
+				}
+				root = gtree.NewRoot(repository.Owner)
 			}
 
 			if opts.Exporter != nil {
@@ -59,7 +66,7 @@ func init() {
 				return
 			}
 
-			if err := gtree.OutputFromRoot(client.IO.Out, GTree(nil, team)); err != nil {
+			if err := gtree.OutputFromRoot(client.IO.Out, GTree(root, team)); err != nil {
 				fmt.Printf("Error outputting tree: %v\n", err)
 				return
 			}
@@ -75,14 +82,17 @@ func init() {
 
 func GTree(node *gtree.Node, team gh.Team) *gtree.Node {
 	root := node
-	if team.Team == nil {
-		return root
-	}
-	if node == nil {
-		node = gtree.NewRoot(team.Team.GetSlug())
-		root = node
+	if team.Team != nil {
+		if node == nil {
+			node = gtree.NewRoot(team.Team.GetSlug())
+			root = node
+		} else {
+			node = node.Add(team.Team.GetSlug())
+		}
 	} else {
-		node = node.Add(team.Team.GetSlug())
+		if node == nil {
+			return nil
+		}
 	}
 	for _, child := range team.Child {
 		GTree(node, child)
