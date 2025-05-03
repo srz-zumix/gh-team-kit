@@ -249,6 +249,19 @@ func (g *GitHubClient) GetTeamMembership(ctx context.Context, org string, teamSl
 	return membership, nil
 }
 
+// GetOrgMembership retrieves the membership details of a user in the organization.
+func (g *GitHubClient) GetOrgMembership(ctx context.Context, owner string, username string) (*github.Membership, error) {
+	membership, resp, err := g.client.Organizations.GetOrgMembership(ctx, username, owner)
+	if err != nil {
+		if resp != nil && resp.StatusCode == 404 {
+			return nil, nil // User is not a member
+		}
+		return nil, err // Other errors
+	}
+
+	return membership, nil
+}
+
 func (g *GitHubClient) Write(exporter cmdutil.Exporter, data interface{}) error {
 	return exporter.Write(g.IO, data)
 }

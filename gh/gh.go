@@ -2,6 +2,7 @@ package gh
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/google/go-github/v71/github"
@@ -72,7 +73,16 @@ func ListTeamMembers(ctx context.Context, g *GitHubClient, repo repository.Repos
 }
 
 // AddTeamMember is a wrapper function to add or update a team member.
-func AddTeamMember(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, username string, role string) error {
+func AddTeamMember(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, username string, role string, allowNonOrganizationMember bool) error {
+	if !allowNonOrganizationMember {
+		membership, err := g.GetOrgMembership(ctx, repo.Owner, username)
+		if err != nil {
+			return err
+		}
+		if membership == nil {
+			return fmt.Errorf("user '%s' is not a member of the organization '%s'", username, repo.Owner)
+		}
+	}
 	return g.AddTeamMember(ctx, repo.Owner, teamSlug, username, role)
 }
 

@@ -12,6 +12,7 @@ import (
 
 func NewAddCmd() *cobra.Command {
 	var owner string
+	var allowNonOrganizationMember bool
 
 	cmd := &cobra.Command{
 		Use:   "add <team-slug> <username> [role]",
@@ -52,7 +53,7 @@ func NewAddCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			if err := gh.AddTeamMember(ctx, client, repository, teamSlug, username, role); err != nil {
+			if err := gh.AddTeamMember(ctx, client, repository, teamSlug, username, role, allowNonOrganizationMember); err != nil {
 				return fmt.Errorf("failed to add member to team: %w", err)
 			}
 
@@ -62,5 +63,6 @@ func NewAddCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&owner, "owner", "", "", "The owner of the team")
+	cmd.Flags().BoolVarP(&allowNonOrganizationMember, "allow-non-organization-member", "", false, "Allow adding non-organization member to the team")
 	return cmd
 }
