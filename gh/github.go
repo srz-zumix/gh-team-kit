@@ -263,6 +263,15 @@ func (g *GitHubClient) GetOrgMembership(ctx context.Context, owner string, usern
 	return membership, nil
 }
 
+// GetUser retrieves a user by their username.
+func (g *GitHubClient) GetUser(ctx context.Context, username string) (*github.User, error) {
+	user, _, err := g.client.Users.Get(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
 func (g *GitHubClient) Write(exporter cmdutil.Exporter, data interface{}) error {
 	return exporter.Write(g.IO, data)
 }

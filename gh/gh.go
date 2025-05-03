@@ -3,6 +3,7 @@ package gh
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/google/go-github/v71/github"
@@ -80,6 +81,26 @@ func AddTeamMember(ctx context.Context, g *GitHubClient, repo repository.Reposit
 // RemoveTeamMember is a wrapper function to remove a user from a team.
 func RemoveTeamMember(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, username string) error {
 	return g.RemoveTeamMember(ctx, repo.Owner, teamSlug, username)
+}
+
+func UpdateUsers(ctx context.Context, g *GitHubClient, users []*github.User) ([]*github.User, error) {
+	for _, user := range users {
+		userDetails, err := g.GetUser(ctx, *user.Login)
+		if err != nil {
+			return nil, err
+		}
+		if userDetails != nil {
+			userValue := reflect.ValueOf(user).Elem()
+			userDetailsValue := reflect.ValueOf(userDetails).Elem()
+			for i := 0; i < userValue.NumField(); i++ {
+				field := userValue.Field(i)
+				if field.IsZero() {
+					field.Set(userDetailsValue.Field(i))
+				}
+			}
+		}
+	}
+	return users, nil
 }
 
 type Team struct {

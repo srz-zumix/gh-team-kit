@@ -3,8 +3,10 @@ package member
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
+	"github.com/google/go-github/v71/github"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
@@ -20,6 +22,8 @@ func NewListCmd() *cobra.Command {
 	var owner string
 	var roles []string
 	var nameOnly bool
+	var suspended bool
+	var details bool
 
 	cmd := &cobra.Command{
 		Use:   "list <team-slug>",
@@ -28,6 +32,9 @@ func NewListCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			teamSlug := args[0]
+			if suspended {
+				details = true
+			}
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
@@ -42,6 +49,18 @@ func NewListCmd() *cobra.Command {
 			members, err := gh.ListTeamMembers(ctx, client, repository, teamSlug, roles, !nameOnly)
 			if err != nil {
 				return fmt.Errorf("failed to list team members: %w", err)
+			}
+
+			if details {
+				members, err = gh.UpdateUsers(ctx, client, members)
+				if err != nil {
+					return fmt.Errorf("failed to update users: %w", err)
+				}
+				if suspended {
+					members = slices.DeleteFunc(members, func(member *github.User) bool {
+						return member.SuspendedAt == nil
+					})
+				}
 			}
 
 			if opts.Exporter != nil {
@@ -59,6 +78,9 @@ func NewListCmd() *cobra.Command {
 			}
 
 			headers := []string{"USERNAME", "ROLE"}
+			if details {
+				headers = append(headers, "EMAIL", "SUSPENDED")
+			}
 			table := tablewriter.NewWriter(cmd.OutOrStdout())
 			table.SetHeader(headers)
 
@@ -67,7 +89,19 @@ func NewListCmd() *cobra.Command {
 					*member.Login,
 					*member.RoleName,
 				}
-				table.Append(row)
+				if details {
+					if member.Email != nil {
+						row = append(row, *member.Email)
+					} else {
+						row = append(row, "")
+					}
+					if member.SuspendedAt != nil {
+						row = append(row, "Yes")
+					} else {
+						row = append(row, "No")
+					}
+					table.Append(row)
+				}
 			}
 			table.Render()
 			return nil
@@ -76,6 +110,8 @@ func NewListCmd() *cobra.Command {
 
 	cmd.Flags().StringVarP(&owner, "owner", "", "", "The owner of the team")
 	cmd.Flags().BoolVarP(&nameOnly, "name-only", "", false, "Output only member names")
+	cmd.Flags().BoolVarP(&suspended, "suspended", "", false, "Output only suspended members")
+	cmd.Flags().BoolVarP(&details, "details", "", false, "Include detailed information about members")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "", nil, gh.TeamMembershipList, "List of roles to filter members")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

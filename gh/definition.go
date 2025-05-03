@@ -22,11 +22,16 @@ var TeamMembershipList = []string{
 func GetRepositoryPermissions(repo *github.Repository) string {
 	if repo != nil {
 		if repo.Permissions != nil {
-			for _, permission := range TeamPermissionsList {
-				if repo.Permissions[permission] {
-					return permission
-				}
-			}
+			return GetPermissionName(repo.Permissions)
+		}
+	}
+	return "none"
+}
+
+func GetPermissionName(permissions map[string]bool) string {
+	for _, permission := range TeamPermissionsList {
+		if permissions[permission] {
+			return permission
 		}
 	}
 	return "none"
