@@ -33,6 +33,16 @@ func CheckTeamPermissions(ctx context.Context, g *GitHubClient, repo repository.
 	return g.CheckTeamPermissions(ctx, repo.Owner, teamSlug, repo.Name)
 }
 
+// RemoveTeamRepo is a wrapper function to remove a repository from a team.
+func RemoveTeamRepo(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string) error {
+	return g.RemoveTeamRepo(ctx, repo.Owner, teamSlug, repo.Name)
+}
+
+// AddTeamRepo is a wrapper function to add a repository to a team.
+func AddTeamRepo(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, permission string) error {
+	return g.AddTeamRepo(ctx, repo.Owner, teamSlug, repo.Name, permission)
+}
+
 type Team struct {
 	Team  *github.Team
 	Child []Team

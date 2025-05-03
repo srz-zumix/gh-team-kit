@@ -173,6 +173,27 @@ func (g *GitHubClient) CheckTeamPermissions(ctx context.Context, org string, tea
 	return teamRepo, nil
 }
 
+// RemoveTeamRepo removes a repository from a team in the organization.
+func (g *GitHubClient) RemoveTeamRepo(ctx context.Context, org string, teamSlug string, repoName string) error {
+	_, err := g.client.Teams.RemoveTeamRepoBySlug(ctx, org, teamSlug, org, repoName)
+	if err != nil {
+		return fmt.Errorf("failed to remove repository '%s' from team '%s': %w", repoName, teamSlug, err)
+	}
+	return nil
+}
+
+// AddTeamRepo adds a repository to a team in the organization.
+func (g *GitHubClient) AddTeamRepo(ctx context.Context, org string, teamSlug string, repoName string, permission string) error {
+	opt := &github.TeamAddTeamRepoOptions{
+		Permission: permission,
+	}
+	_, err := g.client.Teams.AddTeamRepoBySlug(ctx, org, teamSlug, org, repoName, opt)
+	if err != nil {
+		return fmt.Errorf("failed to add repository '%s' to team '%s': %w", repoName, teamSlug, err)
+	}
+	return nil
+}
+
 func (g *GitHubClient) Write(exporter cmdutil.Exporter, data interface{}) error {
 	return exporter.Write(g.IO, data)
 }
