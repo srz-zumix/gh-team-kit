@@ -14,6 +14,7 @@ func init() {
 
 	// Add subcommands to the member command
 	memberCmd.AddCommand(member.NewAddCmd())
+	memberCmd.AddCommand(member.NewCheckCmd())
 	memberCmd.AddCommand(member.NewRemoveCmd())
 	memberCmd.AddCommand(member.NewListCmd())
 

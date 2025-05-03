@@ -237,9 +237,13 @@ func (g *GitHubClient) ListTeamMembers(ctx context.Context, org string, teamSlug
 }
 
 // GetTeamMembership retrieves the membership details of a user in a specific team.
+// If the user is not a member, it returns nil without an error.
 func (g *GitHubClient) GetTeamMembership(ctx context.Context, org string, teamSlug string, username string) (*github.Membership, error) {
-	membership, _, err := g.client.Teams.GetTeamMembershipBySlug(ctx, org, teamSlug, username)
+	membership, resp, err := g.client.Teams.GetTeamMembershipBySlug(ctx, org, teamSlug, username)
 	if err != nil {
+		if resp != nil && resp.StatusCode == 404 {
+			return nil, nil // User is not a member
+		}
 		return nil, err
 	}
 	return membership, nil
