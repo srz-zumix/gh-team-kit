@@ -2,7 +2,6 @@ package gh
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/cli/cli/v2/pkg/iostreams"
@@ -120,7 +119,7 @@ func (g *GitHubClient) ListChildTeams(ctx context.Context, org string, parentSlu
 	for {
 		teams, resp, err := g.client.Teams.ListChildTeamsByParentSlug(ctx, org, parentSlug, opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list child teams: %w", err)
+			return nil, err
 		}
 		allChildTeams = append(allChildTeams, teams...)
 		if resp.NextPage == 0 {
@@ -235,6 +234,15 @@ func (g *GitHubClient) ListTeamMembers(ctx context.Context, org string, teamSlug
 	}
 
 	return allMembers, nil
+}
+
+// GetTeamMembership retrieves the membership details of a user in a specific team.
+func (g *GitHubClient) GetTeamMembership(ctx context.Context, org string, teamSlug string, username string) (*github.Membership, error) {
+	membership, _, err := g.client.Teams.GetTeamMembershipBySlug(ctx, org, teamSlug, username)
+	if err != nil {
+		return nil, err
+	}
+	return membership, nil
 }
 
 func (g *GitHubClient) Write(exporter cmdutil.Exporter, data interface{}) error {
