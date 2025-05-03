@@ -130,13 +130,27 @@ func ListTeamByName(ctx context.Context, g *GitHubClient, repo repository.Reposi
 	return teams, nil
 }
 
-func ListTeamRepos(ctx context.Context, g *GitHubClient, repo repository.Repository, teamName string, roles []string) ([]*github.Repository, error) {
+func ListTeamRepos(ctx context.Context, g *GitHubClient, repo repository.Repository, teamName string, roles []string, inherit bool) ([]*github.Repository, error) {
 	if teamName == "" {
 		return nil, nil
 	}
 	repos, err := g.ListTeamRepos(ctx, repo.Owner, teamName)
 	if err != nil {
 		return nil, err
+	}
+
+	if !inherit {
+		team, err := g.GetTeamBySlug(ctx, repo.Owner, teamName)
+		if err != nil {
+			return nil, err
+		}
+		if team != nil && team.Parent != nil {
+			parentRepos, err := g.ListTeamRepos(ctx, repo.Owner, *team.Parent.Slug)
+			if err != nil {
+				return nil, err
+			}
+			repos = CompareRepositories(repos, parentRepos).Left()
+		}
 	}
 
 	if len(roles) > 0 {

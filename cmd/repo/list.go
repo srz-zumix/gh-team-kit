@@ -19,6 +19,7 @@ func NewListCmd() *cobra.Command {
 	opts := &ListOptions{}
 	var owner string
 	var roles []string
+	var noInherit bool
 
 	cmd := &cobra.Command{
 		Use:   "list <team-slug>",
@@ -38,7 +39,7 @@ func NewListCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			repos, err := gh.ListTeamRepos(ctx, client, repository, teamSlug, roles)
+			repos, err := gh.ListTeamRepos(ctx, client, repository, teamSlug, roles, !noInherit)
 			if err != nil {
 				return fmt.Errorf("failed to list team repositories: %w", err)
 			}
@@ -55,9 +56,10 @@ func NewListCmd() *cobra.Command {
 			table.SetHeader(headers)
 
 			for _, repo := range repos {
+				permission := gh.GetRepositoryPermissions(repo)
 				row := []string{
 					*repo.FullName,
-					gh.GetRepositoryPermissions(repo),
+					permission,
 				}
 				table.Append(row)
 			}
@@ -68,6 +70,7 @@ func NewListCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVarP(&owner, "owner", "", "", "The owner of the team")
+	f.BoolVar(&noInherit, "no-inherit", false, "Disable inherited permissions")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "", []string{}, gh.TeamPermissionsList, "List of roles to filter repositories")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

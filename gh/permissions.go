@@ -13,12 +13,14 @@ var TeamPermissionsList = []string{
 }
 
 func GetRepositoryPermissions(repo *github.Repository) string {
-	if repo.Permissions != nil {
-		for _, permission := range TeamPermissionsList {
-			if repo.Permissions[permission] {
-				return permission
+	if repo != nil {
+		if repo.Permissions != nil {
+			for _, permission := range TeamPermissionsList {
+				if repo.Permissions[permission] {
+					return permission
+				}
 			}
 		}
 	}
-	return ""
+	return "none"
 }
