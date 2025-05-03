@@ -100,8 +100,8 @@ func NewListCmd() *cobra.Command {
 					} else {
 						row = append(row, "No")
 					}
-					table.Append(row)
 				}
+				table.Append(row)
 			}
 			table.Render()
 			return nil

@@ -58,7 +58,9 @@ func ListTeamMembers(ctx context.Context, g *GitHubClient, repo repository.Repos
 			if err != nil {
 				return nil, err
 			}
-			member.RoleName = membership.Role
+			if membership != nil {
+				member.RoleName = membership.Role
+			}
 		}
 	}
 	return members, nil
@@ -157,6 +159,7 @@ func TeamByName(ctx context.Context, g *GitHubClient, repo repository.Repository
 					if err != nil {
 						return t, err
 					}
+					recursiveTeams.Team = childTeam
 					t.Child = append(t.Child, recursiveTeams)
 				} else {
 					t.Child = append(t.Child, Team{Team: childTeam})
