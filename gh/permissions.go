@@ -12,6 +12,11 @@ var TeamPermissionsList = []string{
 	"pull",
 }
 
+var TeamMembershipList = []string{
+	"member",
+	"maintainer",
+}
+
 func GetRepositoryPermissions(repo *github.Repository) string {
 	if repo != nil {
 		if repo.Permissions != nil {

@@ -149,7 +149,7 @@ func (g *GitHubClient) ListTeamRepos(ctx context.Context, org string, teamSlug s
 	for {
 		repos, resp, err := g.client.Teams.ListTeamReposBySlug(ctx, org, teamSlug, opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list team repositories: %w", err)
+			return nil, err
 		}
 		allRepos = append(allRepos, repos...)
 		if resp.NextPage == 0 {
@@ -177,7 +177,7 @@ func (g *GitHubClient) CheckTeamPermissions(ctx context.Context, org string, tea
 func (g *GitHubClient) RemoveTeamRepo(ctx context.Context, org string, teamSlug string, repoName string) error {
 	_, err := g.client.Teams.RemoveTeamRepoBySlug(ctx, org, teamSlug, org, repoName)
 	if err != nil {
-		return fmt.Errorf("failed to remove repository '%s' from team '%s': %w", repoName, teamSlug, err)
+		return err
 	}
 	return nil
 }
@@ -189,9 +189,52 @@ func (g *GitHubClient) AddTeamRepo(ctx context.Context, org string, teamSlug str
 	}
 	_, err := g.client.Teams.AddTeamRepoBySlug(ctx, org, teamSlug, org, repoName, opt)
 	if err != nil {
-		return fmt.Errorf("failed to add repository '%s' to team '%s': %w", repoName, teamSlug, err)
+		return err
 	}
 	return nil
+}
+
+// AddOrUpdateTeamMembership adds or updates the membership of a user in a team.
+func (g *GitHubClient) AddTeamMember(ctx context.Context, org string, teamSlug string, username string, role string) error {
+	opt := &github.TeamAddTeamMembershipOptions{
+		Role: role,
+	}
+	_, _, err := g.client.Teams.AddTeamMembershipBySlug(ctx, org, teamSlug, username, opt)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// RemoveTeamMember removes a user from a team in the organization.
+func (g *GitHubClient) RemoveTeamMember(ctx context.Context, org string, teamSlug string, username string) error {
+	_, err := g.client.Teams.RemoveTeamMembershipBySlug(ctx, org, teamSlug, username)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ListTeamMembers retrieves all members of a specific team in the organization.
+func (g *GitHubClient) ListTeamMembers(ctx context.Context, org string, teamSlug string) ([]*github.User, error) {
+	var allMembers []*github.User
+	opt := &github.TeamListTeamMembersOptions{
+		ListOptions: github.ListOptions{PerPage: 50},
+	}
+
+	for {
+		members, resp, err := g.client.Teams.ListTeamMembersBySlug(ctx, org, teamSlug, opt)
+		if err != nil {
+			return nil, err
+		}
+		allMembers = append(allMembers, members...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	return allMembers, nil
 }
 
 func (g *GitHubClient) Write(exporter cmdutil.Exporter, data interface{}) error {

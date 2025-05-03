@@ -43,6 +43,21 @@ func AddTeamRepo(ctx context.Context, g *GitHubClient, repo repository.Repositor
 	return g.AddTeamRepo(ctx, repo.Owner, teamSlug, repo.Name, permission)
 }
 
+// ListTeamMembers is a wrapper function to retrieve all members of a specific team.
+func ListTeamMembers(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string) ([]*github.User, error) {
+	return g.ListTeamMembers(ctx, repo.Owner, teamSlug)
+}
+
+// AddTeamMember is a wrapper function to add or update a team member.
+func AddTeamMember(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, username string, role string) error {
+	return g.AddTeamMember(ctx, repo.Owner, teamSlug, username, role)
+}
+
+// RemoveTeamMember is a wrapper function to remove a user from a team.
+func RemoveTeamMember(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, username string) error {
+	return g.RemoveTeamMember(ctx, repo.Owner, teamSlug, username)
+}
+
 type Team struct {
 	Team  *github.Team
 	Child []Team
