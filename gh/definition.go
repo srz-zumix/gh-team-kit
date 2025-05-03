@@ -1,6 +1,8 @@
 package gh
 
 import (
+	"slices"
+
 	"github.com/google/go-github/v71/github"
 )
 
@@ -28,4 +30,17 @@ func GetRepositoryPermissions(repo *github.Repository) string {
 		}
 	}
 	return "none"
+}
+
+func GetMembershipFilter(roles []string) string {
+	matched := 0
+	for _, role := range roles {
+		if slices.Contains(TeamMembershipList, role) {
+			matched++
+		}
+	}
+	if matched == 1 && len(roles) == 1 {
+		return roles[0]
+	}
+	return "all"
 }

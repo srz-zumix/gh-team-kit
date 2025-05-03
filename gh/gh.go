@@ -45,31 +45,22 @@ func AddTeamRepo(ctx context.Context, g *GitHubClient, repo repository.Repositor
 }
 
 // ListTeamMembers retrieves all members of a specific team in the organization and filters them by roles if provided.
-func ListTeamMembers(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, roles []string) ([]*github.User, error) {
-	members, err := g.ListTeamMembers(ctx, repo.Owner, teamSlug)
+func ListTeamMembers(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, roles []string, membership bool) ([]*github.User, error) {
+	members, err := g.ListTeamMembers(ctx, repo.Owner, teamSlug, GetMembershipFilter(roles))
 	if err != nil {
 		return nil, err
 	}
 
-	if len(roles) == 0 {
-		return members, nil
-	}
-
-	filteredMembers := []*github.User{}
-	for _, member := range members {
-		membership, err := g.GetTeamMembership(ctx, repo.Owner, teamSlug, *member.Login)
-		if err != nil {
-			return nil, err
-		}
-		for _, role := range roles {
-			if membership.GetRole() == role {
-				member.RoleName = &role
-				filteredMembers = append(filteredMembers, member)
-				break
+	if membership {
+		for _, member := range members {
+			membership, err := g.GetTeamMembership(ctx, repo.Owner, teamSlug, *member.Login)
+			if err != nil {
+				return nil, err
 			}
+			member.RoleName = membership.Role
 		}
 	}
-	return filteredMembers, nil
+	return members, nil
 }
 
 // AddTeamMember is a wrapper function to add or update a team member.

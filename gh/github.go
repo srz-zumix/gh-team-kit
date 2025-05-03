@@ -215,9 +215,10 @@ func (g *GitHubClient) RemoveTeamMember(ctx context.Context, org string, teamSlu
 }
 
 // ListTeamMembers retrieves all members of a specific team in the organization.
-func (g *GitHubClient) ListTeamMembers(ctx context.Context, org string, teamSlug string) ([]*github.User, error) {
+func (g *GitHubClient) ListTeamMembers(ctx context.Context, org string, teamSlug string, role string) ([]*github.User, error) {
 	var allMembers []*github.User
 	opt := &github.TeamListTeamMembersOptions{
+		Role:        role,
 		ListOptions: github.ListOptions{PerPage: 50},
 	}
 
