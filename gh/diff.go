@@ -1,6 +1,8 @@
 package gh
 
 import (
+	"fmt"
+
 	"github.com/google/go-github/v71/github"
 )
 
@@ -10,8 +12,36 @@ type Diff struct {
 	Right *github.Repository
 }
 
-func (d *Diff) GetDiff() string {
+func (d *Diff) GetFullName() string {
+	if d.Left != nil {
+		return *d.Left.FullName
+	}
+	if d.Right != nil {
+		return *d.Right.FullName
+	}
+	return ""
+}
+
+func (d *Diff) GetDiffLines(leftTeamSlug, rightTeamSlug string) string {
 	var diff string
+	fullName := d.GetFullName()
+	leftPerm := GetRepositoryPermissions(d.Left)
+	rightPerm := GetRepositoryPermissions(d.Right)
+	diff += fmt.Sprintf("diff --gh team-kit repo diff %s %s %s\n", leftTeamSlug, rightTeamSlug, fullName)
+	if d.Left != nil && d.Right != nil {
+		diff += fmt.Sprintf("--- %s %s\n", *d.Left.FullName, leftTeamSlug)
+		diff += fmt.Sprintf("+++ %s %s\n", *d.Right.FullName, rightTeamSlug)
+		diff += fmt.Sprintf("- %s\n", leftPerm)
+		diff += fmt.Sprintf("+ %s\n", rightPerm)
+	} else if d.Left != nil {
+		diff += fmt.Sprintf("--- %s %s\n", *d.Left.FullName, leftTeamSlug)
+		diff += "+++ /dev/null\n"
+		diff += fmt.Sprintf("- %s\n", leftPerm)
+	} else if d.Right != nil {
+		diff += "--- /dev/null\n"
+		diff += fmt.Sprintf("+++ %s %s\n", *d.Right.FullName, rightTeamSlug)
+		diff += fmt.Sprintf("+ %s\n", rightPerm)
+	}
 	return diff
 }
 
@@ -35,6 +65,14 @@ func (d Diffs) Right() []*github.Repository {
 		}
 	}
 	return repos
+}
+
+func (d Diffs) GetDiffLines(leftTeamSlug, rightTeamSlug string) string {
+	var diffLines string
+	for _, diff := range d {
+		diffLines += diff.GetDiffLines(leftTeamSlug, rightTeamSlug)
+	}
+	return diffLines
 }
 
 func findRepository(target *github.Repository, repos []*github.Repository) *github.Repository {
