@@ -80,37 +80,6 @@ func (g *GitHubClient) ListTeams(ctx context.Context, org string) ([]*github.Tea
 	return allTeams, nil
 }
 
-// ListTeamsByRepo retrieves all teams associated with a specific repository in the organization
-func (g *GitHubClient) ListTeamsByRepo(ctx context.Context, org, repo string) ([]*github.Team, error) {
-	var allTeams []*github.Team
-	opt := &github.ListOptions{PerPage: 50}
-
-	for {
-		teams, resp, err := g.client.Teams.ListTeams(ctx, org, opt)
-		if err != nil {
-			return nil, err
-		}
-		for _, team := range teams {
-			repos, _, err := g.client.Teams.ListTeamReposBySlug(ctx, org, team.GetSlug(), opt)
-			if err != nil {
-				return nil, err
-			}
-			for _, r := range repos {
-				if r.GetName() == repo {
-					allTeams = append(allTeams, team)
-					break
-				}
-			}
-		}
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
-	}
-
-	return allTeams, nil
-}
-
 // ListChildTeams retrieves all child teams of a specified team.
 func (g *GitHubClient) ListChildTeams(ctx context.Context, org string, parentSlug string) ([]*github.Team, error) {
 	var allChildTeams []*github.Team
@@ -270,6 +239,26 @@ func (g *GitHubClient) GetUser(ctx context.Context, username string) (*github.Us
 		return nil, err
 	}
 	return user, nil
+}
+
+// ListRepositoryTeams retrieves all teams associated with a specific repository.
+func (g *GitHubClient) ListRepositoryTeams(ctx context.Context, owner string, repo string) ([]*github.Team, error) {
+	var allTeams []*github.Team
+	opt := &github.ListOptions{PerPage: 50}
+
+	for {
+		teams, resp, err := g.client.Repositories.ListTeams(ctx, owner, repo, opt)
+		if err != nil {
+			return nil, err
+		}
+		allTeams = append(allTeams, teams...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	return allTeams, nil
 }
 
 func (g *GitHubClient) Write(exporter cmdutil.Exporter, data interface{}) error {

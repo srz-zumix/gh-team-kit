@@ -6,6 +6,15 @@ import (
 	"github.com/google/go-github/v71/github"
 )
 
+func FindRepository(target *github.Repository, repos []*github.Repository) *github.Repository {
+	for _, r := range repos {
+		if *r.ID == *target.ID {
+			return r
+		}
+	}
+	return nil
+}
+
 // FilterRepositoriesByNames filters a list of repositories by their full names (owner/repo).
 // If the names do not include the owner, the owner is prepended.
 func FilterRepositoriesByNames(repos []*github.Repository, names []string, owner string) []*github.Repository {

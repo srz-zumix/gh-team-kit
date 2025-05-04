@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"slices"
 
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/google/go-github/v71/github"
@@ -12,7 +13,7 @@ import (
 // ListTeams is a wrapper function that uses a Repository object to call either ListTeams or ListTeamsByRepo.
 func ListTeams(ctx context.Context, g *GitHubClient, repo repository.Repository) ([]*github.Team, error) {
 	if repo.Name != "" {
-		return g.ListTeamsByRepo(ctx, repo.Owner, repo.Name)
+		return g.ListRepositoryTeams(ctx, repo.Owner, repo.Name)
 	}
 	return g.ListTeams(ctx, repo.Owner)
 }
@@ -213,6 +214,7 @@ func ListTeamRepos(ctx context.Context, g *GitHubClient, repo repository.Reposit
 	}
 
 	if !inherit {
+		var noInheritRepos []*github.Repository
 		team, err := g.GetTeamBySlug(ctx, repo.Owner, teamName)
 		if err != nil {
 			return nil, err
@@ -222,7 +224,23 @@ func ListTeamRepos(ctx context.Context, g *GitHubClient, repo repository.Reposit
 			if err != nil {
 				return nil, err
 			}
-			repos = CompareRepositories(repos, parentRepos).Left()
+			for _, repo := range repos {
+				d := FindRepository(repo, parentRepos)
+				if CompareRepository(repo, d) != nil {
+					noInheritRepos = append(noInheritRepos, repo)
+				} else {
+					teams, err := g.ListRepositoryTeams(ctx, *repo.Owner.Login, *repo.Name)
+					if err != nil {
+						return nil, err
+					}
+					if slices.ContainsFunc(teams, func(t *github.Team) bool {
+						return *t.Slug == teamName
+					}) {
+						noInheritRepos = append(noInheritRepos, repo)
+					}
+				}
+			}
+			repos = noInheritRepos
 		}
 	}
 
@@ -239,4 +257,9 @@ func ListTeamRepos(ctx context.Context, g *GitHubClient, repo repository.Reposit
 		return filteredRepos, nil
 	}
 	return repos, nil
+}
+
+// ListRepositoryTeams is a wrapper for the GitHubClient's ListRepositoryTeams method.
+func ListRepositoryTeams(ctx context.Context, g *GitHubClient, repo repository.Repository) ([]*github.Team, error) {
+	return g.ListRepositoryTeams(ctx, repo.Owner, repo.Name)
 }

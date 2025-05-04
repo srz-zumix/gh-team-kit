@@ -12,6 +12,16 @@ type Diff struct {
 	Right *github.Repository
 }
 
+func (d *Diff) GetName() string {
+	if d.Left != nil {
+		return *d.Left.Name
+	}
+	if d.Right != nil {
+		return *d.Right.Name
+	}
+	return ""
+}
+
 func (d *Diff) GetFullName() string {
 	if d.Left != nil {
 		return *d.Left.FullName
@@ -75,15 +85,6 @@ func (d Diffs) GetDiffLines(leftTeamSlug, rightTeamSlug string) string {
 	return diffLines
 }
 
-func findRepository(target *github.Repository, repos []*github.Repository) *github.Repository {
-	for _, r := range repos {
-		if *r.ID == *target.ID {
-			return r
-		}
-	}
-	return nil
-}
-
 func CompareRepository(left, right *github.Repository) *Diff {
 	if GetRepositoryPermissions(left) == GetRepositoryPermissions(right) {
 		return nil
@@ -98,7 +99,7 @@ func CompareRepository(left, right *github.Repository) *Diff {
 func CompareRepositories(left, right []*github.Repository) Diffs {
 	var diffs []Diff
 	for _, l := range left {
-		r := findRepository(l, right)
+		r := FindRepository(l, right)
 		diff := CompareRepository(l, r)
 		if diff != nil {
 			diffs = append(diffs, *diff)
