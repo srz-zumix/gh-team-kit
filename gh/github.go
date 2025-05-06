@@ -130,8 +130,8 @@ func (g *GitHubClient) ListTeamRepos(ctx context.Context, org string, teamSlug s
 }
 
 // CheckTeamPermissions checks the permissions of a team for a specific repository.
-func (g *GitHubClient) CheckTeamPermissions(ctx context.Context, org string, teamSlug string, repo string) (*github.Repository, error) {
-	teamRepo, resp, err := g.client.Teams.IsTeamRepoBySlug(ctx, org, teamSlug, org, repo)
+func (g *GitHubClient) CheckTeamPermissions(ctx context.Context, org string, teamSlug string, owner string, repo string) (*github.Repository, error) {
+	teamRepo, resp, err := g.client.Teams.IsTeamRepoBySlug(ctx, org, teamSlug, owner, repo)
 	if err != nil {
 		if resp.StatusCode == 404 {
 			return nil, nil
@@ -142,8 +142,8 @@ func (g *GitHubClient) CheckTeamPermissions(ctx context.Context, org string, tea
 }
 
 // RemoveTeamRepo removes a repository from a team in the organization.
-func (g *GitHubClient) RemoveTeamRepo(ctx context.Context, org string, teamSlug string, repoName string) error {
-	_, err := g.client.Teams.RemoveTeamRepoBySlug(ctx, org, teamSlug, org, repoName)
+func (g *GitHubClient) RemoveTeamRepo(ctx context.Context, org string, teamSlug string, owner string, repoName string) error {
+	_, err := g.client.Teams.RemoveTeamRepoBySlug(ctx, org, teamSlug, owner, repoName)
 	if err != nil {
 		return err
 	}
@@ -151,11 +151,11 @@ func (g *GitHubClient) RemoveTeamRepo(ctx context.Context, org string, teamSlug 
 }
 
 // AddTeamRepo adds a repository to a team in the organization.
-func (g *GitHubClient) AddTeamRepo(ctx context.Context, org string, teamSlug string, repoName string, permission string) error {
+func (g *GitHubClient) AddTeamRepo(ctx context.Context, org string, teamSlug string, owner string, repoName string, permission string) error {
 	opt := &github.TeamAddTeamRepoOptions{
 		Permission: permission,
 	}
-	_, err := g.client.Teams.AddTeamRepoBySlug(ctx, org, teamSlug, org, repoName, opt)
+	_, err := g.client.Teams.AddTeamRepoBySlug(ctx, org, teamSlug, owner, repoName, opt)
 	if err != nil {
 		return err
 	}

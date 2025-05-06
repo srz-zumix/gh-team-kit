@@ -18,6 +18,7 @@ func init() {
 	repoCmd.AddCommand(repo.NewAddCmd())
 	repoCmd.AddCommand(repo.NewRemoveCmd())
 	repoCmd.AddCommand(repo.NewDiffCmd())
+	repoCmd.AddCommand(repo.NewCopyCmd())
 
 	// Add repoCmd as a subcommand of rootCmd
 	rootCmd.AddCommand(repoCmd)

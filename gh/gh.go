@@ -33,17 +33,17 @@ func CheckTeamPermissions(ctx context.Context, g *GitHubClient, repo repository.
 	if teamSlug == "" {
 		return nil, nil
 	}
-	return g.CheckTeamPermissions(ctx, repo.Owner, teamSlug, repo.Name)
+	return g.CheckTeamPermissions(ctx, repo.Owner, teamSlug, repo.Owner, repo.Name)
 }
 
 // RemoveTeamRepo is a wrapper function to remove a repository from a team.
 func RemoveTeamRepo(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string) error {
-	return g.RemoveTeamRepo(ctx, repo.Owner, teamSlug, repo.Name)
+	return g.RemoveTeamRepo(ctx, repo.Owner, teamSlug, repo.Owner, repo.Name)
 }
 
 // AddTeamRepo is a wrapper function to add a repository to a team.
 func AddTeamRepo(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, permission string) error {
-	return g.AddTeamRepo(ctx, repo.Owner, teamSlug, repo.Name, permission)
+	return g.AddTeamRepo(ctx, repo.Owner, teamSlug, repo.Owner, repo.Name, permission)
 }
 
 // ListTeamMembers retrieves all members of a specific team in the organization and filters them by roles if provided.
