@@ -17,9 +17,10 @@ type SyncOptions struct {
 func NewSyncCmd() *cobra.Command {
 	opts := &SyncOptions{}
 	var repo string
+	var dryRun bool
 
 	cmd := &cobra.Command{
-		Use:   "sync <dst...>",
+		Use:   "sync <dst-repository...>",
 		Short: "Sync teams and permissions to multiple destination repos",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -40,6 +41,11 @@ func NewSyncCmd() *cobra.Command {
 					return fmt.Errorf("error parsing destination repository: %w", err)
 				}
 
+				if dryRun {
+					fmt.Printf("[DRY RUN] Would sync teams and permissions from %s to %s\n", repo, dstArg)
+					continue
+				}
+
 				if err := gh.SyncRepoTeamsAndPermissions(ctx, client, repository, dstRepository); err != nil {
 					return fmt.Errorf("failed to sync teams and permissions to %s: %w", dstArg, err)
 				}
@@ -51,6 +57,7 @@ func NewSyncCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
+	cmd.Flags().BoolVarP(&dryRun, "dry-run", "n", false, "Simulate the sync operation without making any changes")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

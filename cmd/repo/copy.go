@@ -18,9 +18,10 @@ func NewCopyCmd() *cobra.Command {
 	opts := &CopyOptions{}
 	var repo string
 	var force bool
+	var dryRun bool
 
 	cmd := &cobra.Command{
-		Use:   "copy <dst...>",
+		Use:   "copy <dst-repository...>",
 		Short: "Copy teams and permissions to multiple destination repos",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -41,6 +42,11 @@ func NewCopyCmd() *cobra.Command {
 					return fmt.Errorf("error parsing destination repository: %w", err)
 				}
 
+				if dryRun {
+					fmt.Printf("[DRY RUN] Would copy teams and permissions from %s to %s\n", repo, dstArg)
+					continue
+				}
+
 				if err := gh.CopyRepoTeamsAndPermissions(ctx, client, repository, dstRepository, force); err != nil {
 					return fmt.Errorf("failed to copy teams and permissions to %s: %w", dstArg, err)
 				}
@@ -53,6 +59,7 @@ func NewCopyCmd() *cobra.Command {
 
 	cmd.Flags().StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
 	cmd.Flags().BoolVarP(&force, "force", "f", false, "Force overwrite existing permissions if they exist")
+	cmd.Flags().BoolVarP(&dryRun, "dry-run", "n", false, "Simulate the copy operation without making any changes")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

@@ -1,4 +1,4 @@
-package repo
+package cmd
 
 import (
 	"context"
@@ -110,4 +110,8 @@ func colorizeDiff(diff string) string {
 		}
 	}
 	return result
+}
+
+func init() {
+	rootCmd.AddCommand(NewDiffCmd())
 }
