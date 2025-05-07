@@ -3,10 +3,8 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
@@ -61,12 +59,8 @@ func NewDiffCmd() *cobra.Command {
 			}
 
 			// Parse repositories from arguments
-			var repositories []string
 			if len(args) > 2 {
-				repositories = args[2:]
-			}
-
-			if len(repositories) > 0 {
+				repositories := args[2:]
 				repos1 = gh.FilterRepositoriesByNames(repos1, repositories, repository.Owner)
 				repos2 = gh.FilterRepositoriesByNames(repos2, repositories, repository.Owner)
 			}
@@ -81,7 +75,7 @@ func NewDiffCmd() *cobra.Command {
 			}
 
 			if opts.Color {
-				fmt.Printf("%s", colorizeDiff(differences.GetDiffLines(teamSlug1, teamSlug2)))
+				fmt.Printf("%s", parser.ColorizeDiff(differences.GetDiffLines(teamSlug1, teamSlug2)))
 			} else {
 				fmt.Printf("%s", differences.GetDiffLines(teamSlug1, teamSlug2))
 			}
@@ -96,20 +90,6 @@ func NewDiffCmd() *cobra.Command {
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd
-}
-
-func colorizeDiff(diff string) string {
-	var result string
-	for _, line := range strings.Split(diff, "\n") {
-		if strings.HasPrefix(line, "+ ") {
-			result += color.GreenString(line) + "\n"
-		} else if strings.HasPrefix(line, "- ") {
-			result += color.RedString(line) + "\n"
-		} else {
-			result += line + "\n"
-		}
-	}
-	return result
 }
 
 func init() {

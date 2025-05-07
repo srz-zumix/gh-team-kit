@@ -263,3 +263,24 @@ func ListTeamRepos(ctx context.Context, g *GitHubClient, repo repository.Reposit
 func ListRepositoryTeams(ctx context.Context, g *GitHubClient, repo repository.Repository) ([]*github.Team, error) {
 	return g.ListRepositoryTeams(ctx, repo.Owner, repo.Name)
 }
+
+// GetRepositoryTeamsPermissions retrieves the team permissions for a specific repository.
+func (g *GitHubClient) GetRepositoryTeamsPermissions(ctx context.Context, repo repository.Repository) (map[string]string, error) {
+	teamPermissions := make(map[string]string)
+
+	// List all teams associated with the repository
+	teams, err := g.ListRepositoryTeams(ctx, repo.Owner, repo.Name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list teams for repository %s/%s: %w", repo.Owner, repo.Name, err)
+	}
+
+	// Fetch permissions for each team
+	for _, team := range teams {
+		permission := team.Permission
+		if permission != nil {
+			teamPermissions[team.GetSlug()] = *permission
+		}
+	}
+
+	return teamPermissions, nil
+}

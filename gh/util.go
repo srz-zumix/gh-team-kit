@@ -3,6 +3,8 @@ package gh
 import (
 	"strings"
 
+	"slices"
+
 	"github.com/google/go-github/v71/github"
 )
 
@@ -35,4 +37,16 @@ func FilterRepositoriesByNames(repos []*github.Repository, names []string, owner
 	}
 
 	return filteredRepos
+}
+
+// FilterTeamByNames filters a list of teams by their slugs.
+func FilterTeamByNames(teams []*github.Team, slugs []string) []*github.Team {
+	var filteredTeams []*github.Team
+	for _, team := range teams {
+		teamSlug := team.GetSlug()
+		if slices.Contains(slugs, teamSlug) {
+			filteredTeams = append(filteredTeams, team)
+		}
+	}
+	return filteredTeams
 }
