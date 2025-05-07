@@ -312,3 +312,8 @@ func CreateTeam(ctx context.Context, g *GitHubClient, repo repository.Repository
 
 	return g.CreateTeam(ctx, repo.Owner, newTeam)
 }
+
+// DeleteTeam deletes a team by its slug in the specified repository.
+func DeleteTeam(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string) error {
+	return g.DeleteTeamBySlug(ctx, repo.Owner, teamSlug)
+}

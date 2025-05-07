@@ -270,6 +270,15 @@ func (g *GitHubClient) CreateTeam(ctx context.Context, org string, team *github.
 	return createdTeam, nil
 }
 
+// DeleteTeamBySlug deletes a team by its slug in the specified organization.
+func (g *GitHubClient) DeleteTeamBySlug(ctx context.Context, org string, teamSlug string) error {
+	_, err := g.client.Teams.DeleteTeamBySlug(ctx, org, teamSlug)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (g *GitHubClient) Write(exporter cmdutil.Exporter, data any) error {
 	return exporter.Write(g.IO, data)
 }

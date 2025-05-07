@@ -7,10 +7,7 @@
 * オプションは基本的に変数で受け取ります
 * RunE で処理を実装します
 * Args で引数の検証をします
-* --dryrun オプションの短縮形は -n です
 * gh/gh.go のラッパー関数を呼び出し、cmd package では github package を import しなくても良い設計にします
-* --owner オプションは parser.RepositoryOwner(owner) を使います。オプションがない場合は parser.RepositoryOwner(owner) の使用を削除します。
-* --repo オプションは parser.RepositoryInput(repo) を使います。オプションがない場合は parser.RepositoryInput(repo) の使用を削除します。
 
 ## gh package
 
