@@ -7,7 +7,7 @@ import (
 	"github.com/cli/cli/v2/pkg/iostreams"
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/google/go-github/v71/github"
-	ghc "github.com/k1LoW/go-github-client/v71/factory"
+	"github.com/k1LoW/go-github-client/v71/factory"
 )
 
 type GitHubClient struct {
@@ -18,8 +18,8 @@ type GitHubClient struct {
 const defaultHost = "github.com"
 const defaultV3Endpoint = "https://api.github.com"
 
-func RepositoryOption(repo repository.Repository) ghc.Option {
-	return func(c *ghc.Config) error {
+func RepositoryOption(repo repository.Repository) factory.Option {
+	return func(c *factory.Config) error {
 		host := repo.Host
 		if host != "" {
 			if host == defaultHost {
@@ -36,7 +36,7 @@ func RepositoryOption(repo repository.Repository) ghc.Option {
 
 // NewGitHubClient creates a new GitHubClient instance using k1LoW/go-github-client
 func NewGitHubClient() (*GitHubClient, error) {
-	client, err := ghc.NewGithubClient()
+	client, err := factory.NewGithubClient()
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func NewGitHubClient() (*GitHubClient, error) {
 
 // NewGitHubClientWithRepo creates a new GitHubClient instance with a specified go-gh Repository.
 func NewGitHubClientWithRepo(repo repository.Repository) (*GitHubClient, error) {
-	client, err := ghc.NewGithubClient(RepositoryOption(repo))
+	client, err := factory.NewGithubClient(RepositoryOption(repo))
 	if err != nil {
 		return nil, err
 	}
@@ -261,6 +261,15 @@ func (g *GitHubClient) ListRepositoryTeams(ctx context.Context, owner string, re
 	return allTeams, nil
 }
 
-func (g *GitHubClient) Write(exporter cmdutil.Exporter, data interface{}) error {
+// CreateTeam creates a new team in the specified organization.
+func (g *GitHubClient) CreateTeam(ctx context.Context, org string, team *github.NewTeam) (*github.Team, error) {
+	createdTeam, _, err := g.client.Teams.CreateTeam(ctx, org, *team)
+	if err != nil {
+		return nil, err
+	}
+	return createdTeam, nil
+}
+
+func (g *GitHubClient) Write(exporter cmdutil.Exporter, data any) error {
 	return exporter.Write(g.IO, data)
 }

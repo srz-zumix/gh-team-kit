@@ -284,3 +284,31 @@ func (g *GitHubClient) GetRepositoryTeamsPermissions(ctx context.Context, repo r
 
 	return teamPermissions, nil
 }
+
+// CreateTeam creates a new team in the specified organization.
+func CreateTeam(ctx context.Context, g *GitHubClient, repo repository.Repository, name string, description string, privacy string, enableNotification bool, parentTeamSlug string) (*github.Team, error) {
+	newTeam := &github.NewTeam{
+		Name:         name,
+		Description:  &description,
+		Privacy:      &privacy,
+		ParentTeamID: nil, // ParentTeamSlug will be handled differently
+	}
+
+	if parentTeamSlug != "" {
+		parentTeam, err := g.GetTeamBySlug(ctx, repo.Owner, parentTeamSlug)
+		if err != nil {
+			return nil, err
+		}
+		if parentTeam != nil && parentTeam.ID != nil {
+			newTeam.ParentTeamID = parentTeam.ID
+		}
+	}
+
+	notificationSetting := "notifications_disabled"
+	if enableNotification {
+		notificationSetting = "notifications_enabled"
+	}
+	newTeam.NotificationSetting = &notificationSetting
+
+	return g.CreateTeam(ctx, repo.Owner, newTeam)
+}
