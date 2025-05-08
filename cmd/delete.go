@@ -51,7 +51,7 @@ func NewDeleteCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Specify the organization owner (optional)")
+	f.StringVar(&owner, "owner", "", "Specify the organization owner")
 
 	return cmd
 }

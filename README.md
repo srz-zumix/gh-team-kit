@@ -108,8 +108,24 @@ gh team-kit member remove <team-slug> <username>
 gh team-kit repo remove <team-slug>
 ```
 
+### Rename an existing team
+
+```sh
+gh team-kit rename <team-slug> <new-name>
+```
+
+Rename an existing team in the specified organization to a new name.
+
 ### Sync teams and permissions to multiple destination repos
 
 ```sh
 gh team-kit repo sync <dst-repository...>
 ```
+
+### Update a team
+
+```sh
+gh team-kit update <team-slug> --description <new-description> --parent <parent-team-slug>
+```
+
+Update the details of an existing team.

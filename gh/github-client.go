@@ -60,7 +60,7 @@ func NewGitHubClientWithRepo(repo repository.Repository) (*GitHubClient, error) 
 	}, nil
 }
 
-// ListTeams retrieves all teams in the specified organization with pagination support
+// ListTeams retrieves all teams in the specified organization with pagination support.
 func (g *GitHubClient) ListTeams(ctx context.Context, org string) ([]*github.Team, error) {
 	var allTeams []*github.Team
 	opt := &github.ListOptions{PerPage: 50}
@@ -290,6 +290,15 @@ func (g *GitHubClient) DeleteTeamBySlug(ctx context.Context, org string, teamSlu
 		return err
 	}
 	return nil
+}
+
+// UpdateTeam updates the details of a team in the specified repository.
+func (g *GitHubClient) UpdateTeam(ctx context.Context, owner string, teamSlug string, team *github.NewTeam, removeParent bool) (*github.Team, error) {
+	editedTeam, _, err := g.client.Teams.EditTeamBySlug(ctx, owner, teamSlug, *team, removeParent)
+	if err != nil {
+		return nil, err
+	}
+	return editedTeam, nil
 }
 
 func (g *GitHubClient) Write(exporter cmdutil.Exporter, data any) error {

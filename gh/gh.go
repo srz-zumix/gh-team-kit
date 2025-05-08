@@ -331,3 +331,47 @@ func CreateTeam(ctx context.Context, g *GitHubClient, repo repository.Repository
 func DeleteTeam(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string) error {
 	return g.DeleteTeamBySlug(ctx, repo.Owner, teamSlug)
 }
+
+// UpdateTeam updates the details of a team in the specified repository.
+func UpdateTeam(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, name *string, description *string, privacy *string, enableNotification *bool, parentTeamSlug *string) (*github.Team, error) {
+	team := &github.NewTeam{
+		Name:         teamSlug,
+		Description:  description,
+		Privacy:      privacy,
+		ParentTeamID: nil, // ParentTeamSlug will be handled differently
+	}
+
+	if name != nil {
+		team.Name = *name
+	}
+	if enableNotification != nil {
+		notificationSetting := "notifications_disabled"
+		if *enableNotification {
+			notificationSetting = "notifications_enabled"
+		}
+		team.NotificationSetting = &notificationSetting
+	}
+
+	removeParent := false
+	if parentTeamSlug != nil {
+		if *parentTeamSlug != "" {
+			parentTeam, err := g.GetTeamBySlug(ctx, repo.Owner, *parentTeamSlug)
+			if err != nil {
+				return nil, err
+			}
+			if parentTeam != nil && parentTeam.ID != nil {
+				team.ParentTeamID = parentTeam.ID
+			}
+		} else {
+			// If parentTeamSlug is empty, remove the parent association
+			removeParent = true
+		}
+	}
+
+	return g.UpdateTeam(ctx, repo.Owner, teamSlug, team, removeParent)
+}
+
+// RenameTeam renames a team by its slug in the specified repository.
+func RenameTeam(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, newName string) (*github.Team, error) {
+	return UpdateTeam(ctx, g, repo, teamSlug, &newName, nil, nil, nil, nil)
+}

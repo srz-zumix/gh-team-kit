@@ -12,7 +12,6 @@ func init() {
 		Long:  `Manage team repositories with various subcommands, such as adding, removing, and syncing repositories.`,
 	}
 
-	// Add subcommand of repoCmd
 	repoCmd.AddCommand(repo.NewAddCmd())
 	repoCmd.AddCommand(repo.NewCheckCmd())
 	repoCmd.AddCommand(repo.NewCopyCmd())

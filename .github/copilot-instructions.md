@@ -13,8 +13,8 @@
 
 ## gh package
 
-* gh/github.go では API 呼び出しのエラーはフォーマットせずそのまま返します
-* gh/gh.go には github.go の関数のラッパーを記述します
+* gh/github-client.go では API 呼び出しのエラーはフォーマットせずそのまま返します
+* gh/gh.go には github-client.go の関数のラッパーを記述します
   * owner/repo などの string は使わず repository.Repository 型を引数に取ります
 
 ## README.md

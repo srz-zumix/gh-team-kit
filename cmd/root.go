@@ -10,7 +10,8 @@ import (
 	"github.com/srz-zumix/gh-team-kit/version"
 )
 
-// rootCmd represents the base command when called without any subcommands
+// rootCmd represents the base command for the CLI application.
+// It serves as the entry point for all subcommands.
 var rootCmd = &cobra.Command{
 	Use:     "gh-team-kit",
 	Short:   "Team-related operations extensions for GitHub CLI",

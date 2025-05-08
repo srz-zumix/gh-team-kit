@@ -20,7 +20,7 @@ func NewCreateCmd() *cobra.Command {
 	var disableNotification bool
 	var owner string
 	var parentTeamSlug string
-	var secret bool
+	var privacy string
 
 	cmd := &cobra.Command{
 		Use:   "create <name>",
@@ -29,11 +29,6 @@ func NewCreateCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
-
-			privacy := "closed"
-			if secret {
-				privacy = "secret"
-			}
 
 			ctx := context.Background()
 
@@ -76,9 +71,9 @@ func NewCreateCmd() *cobra.Command {
 	f := cmd.Flags()
 	f.BoolVar(&disableNotification, "disable-notification", false, "Disable notifications for the team")
 	f.StringVarP(&description, "description", "d", "", "Description of the team")
-	f.StringVar(&owner, "owner", "", "Specify the organization owner (optional)")
+	f.StringVar(&owner, "owner", "", "Specify the organization owner")
 	f.StringVarP(&parentTeamSlug, "parent", "p", "", "Slug of the parent team")
-	f.BoolVar(&secret, "secret", false, "Set the team as secret")
+	cmdutil.StringEnumFlag(cmd, &privacy, "privacy", "", "closed", []string{"closed", "secret"}, "Privacy level of the team")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

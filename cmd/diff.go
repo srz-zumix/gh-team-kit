@@ -58,7 +58,6 @@ func NewDiffCmd() *cobra.Command {
 				return fmt.Errorf("error fetching repositories for team %s: %w", teamSlug2, err)
 			}
 
-			// Parse repositories from arguments
 			if len(args) > 2 {
 				repositories := args[2:]
 				repos1 = gh.FilterRepositoriesByNames(repos1, repositories, repository.Owner)
