@@ -48,6 +48,15 @@ func NewCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create GitHub client: %w", err)
 			}
 
+			// Check if the team already exists
+			exists, err := gh.IsExistsTeam(ctx, client, repository, name)
+			if err != nil {
+				return fmt.Errorf("failed to check if team exists: %w", err)
+			}
+			if exists {
+				return fmt.Errorf("team '%s' already exists", name)
+			}
+
 			team, err := gh.CreateTeam(ctx, client, repository, name, description, privacy, !disableNotification, parentTeamSlug)
 			if err != nil {
 				return fmt.Errorf("failed to create team: %w", err)

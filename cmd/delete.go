@@ -33,6 +33,15 @@ func NewDeleteCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			// Check if the team exists
+			exists, err := gh.IsExistsTeam(ctx, client, repository, team)
+			if err != nil {
+				return fmt.Errorf("error checking team existence: %w", err)
+			}
+			if !exists {
+				return fmt.Errorf("team '%s' does not exist", team)
+			}
+
 			if err := gh.DeleteTeam(ctx, client, repository, team); err != nil {
 				return fmt.Errorf("failed to delete team: %w", err)
 			}

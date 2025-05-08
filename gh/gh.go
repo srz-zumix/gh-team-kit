@@ -18,9 +18,23 @@ func ListTeams(ctx context.Context, g *GitHubClient, repo repository.Repository)
 	return g.ListTeams(ctx, repo.Owner)
 }
 
-// GetTeamByName retrieves a team by its name.
-func GetTeamByName(ctx context.Context, g *GitHubClient, repo repository.Repository, teamName string) (*github.Team, error) {
-	return g.GetTeamBySlug(ctx, repo.Owner, teamName)
+// GetTeamBySlug retrieves a team by its name.
+func GetTeamBySlug(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string) (*github.Team, error) {
+	return g.GetTeamBySlug(ctx, repo.Owner, teamSlug)
+}
+
+// FindTeamBySlug retrieves a team by its name.
+func FindTeamBySlug(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string) (*github.Team, error) {
+	return g.FindTeamBySlug(ctx, repo.Owner, teamSlug)
+}
+
+// IsExistsTeam checks if a team exists by its slug.
+func IsExistsTeam(ctx context.Context, client *GitHubClient, repository repository.Repository, teamSlug string) (bool, error) {
+	t, err := FindTeamBySlug(ctx, client, repository, teamSlug)
+	if err != nil {
+		return false, err
+	}
+	return t != nil, nil
 }
 
 // ListChildTeams is a wrapper function that calls the ListChildTeams API.

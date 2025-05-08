@@ -109,6 +109,19 @@ func (g *GitHubClient) GetTeamBySlug(ctx context.Context, org string, teamSlug s
 	return team, nil
 }
 
+// FindTeamBySlug retrieves a team by its slug name.
+// If the team is not found, it returns nil without an error.
+func (g *GitHubClient) FindTeamBySlug(ctx context.Context, org string, teamSlug string) (*github.Team, error) {
+	t, resp, err := g.client.Teams.GetTeamBySlug(ctx, org, teamSlug)
+	if err != nil {
+		if resp != nil && resp.StatusCode == 404 {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return t, nil
+}
+
 // ListTeamRepos retrieves all repositories associated with a specific team in the organization.
 func (g *GitHubClient) ListTeamRepos(ctx context.Context, org string, teamSlug string) ([]*github.Repository, error) {
 	var allRepos []*github.Repository
