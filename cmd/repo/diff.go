@@ -1,0 +1,95 @@
+package repo
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/cli/cli/v2/pkg/cmdutil"
+	"github.com/spf13/cobra"
+	"github.com/srz-zumix/gh-team-kit/gh"
+	"github.com/srz-zumix/gh-team-kit/parser"
+)
+
+type DiffOptions struct {
+	Exporter cmdutil.Exporter
+	Color    bool
+}
+
+var colorFlag string
+
+func NewDiffCmd() *cobra.Command {
+	opts := &DiffOptions{}
+
+	cmd := &cobra.Command{
+		Use:   "diff <repo1> <repo2> [team-slug...]",
+		Short: "Compare team permissions between two repositories",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			repo1 := args[0]
+			repo2 := args[1]
+
+			repo1Parsed, err := parser.Repository(parser.RepositoryInput(repo1))
+			if err != nil {
+				return fmt.Errorf("error parsing repository 1: %w", err)
+			}
+
+			repo2Parsed, err := parser.Repository(parser.RepositoryInput(repo2))
+			if err != nil {
+				return fmt.Errorf("error parsing repository 2: %w", err)
+			}
+
+			client, err := gh.NewGitHubClientWithRepo(repo1Parsed)
+			if err != nil {
+				return fmt.Errorf("error creating GitHub client: %w", err)
+			}
+
+			if colorFlag == "always" || (colorFlag == "auto" && client.IO.ColorEnabled()) {
+				opts.Color = true
+			} else {
+				opts.Color = false
+			}
+
+			ctx := context.Background()
+
+			teams1, err := gh.ListRepositoryTeams(ctx, client, repo1Parsed)
+			if err != nil {
+				return fmt.Errorf("failed to fetch teams for %s: %w", repo1, err)
+			}
+
+			teams2, err := gh.ListRepositoryTeams(ctx, client, repo2Parsed)
+			if err != nil {
+				return fmt.Errorf("failed to fetch teams for %s: %w", repo2, err)
+			}
+
+			if len(args) > 2 {
+				slugs := args[2:]
+				teams1 = gh.FilterTeamByNames(teams1, slugs)
+				teams2 = gh.FilterTeamByNames(teams2, slugs)
+			}
+
+			differences, err := gh.CompareTeamsPermissions(teams1, teams2)
+			if err != nil {
+				return fmt.Errorf("error comparing team permissions: %w", err)
+			}
+
+			if opts.Exporter != nil {
+				if err := client.Write(opts.Exporter, differences); err != nil {
+					return fmt.Errorf("error exporting differences: %w", err)
+				}
+				return nil
+			}
+
+			if opts.Color {
+				fmt.Printf("%s", parser.ColorizeDiff(differences.GetDiffLines(repo1Parsed, repo2Parsed)))
+			} else {
+				fmt.Printf("%s", differences.GetDiffLines(repo1Parsed, repo2Parsed))
+			}
+			return nil
+		},
+	}
+
+	cmdutil.StringEnumFlag(cmd, &colorFlag, "color", "", "auto", []string{"always", "never", "auto"}, "Use color in diff output")
+	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
+
+	return cmd
+}

@@ -1,0 +1,38 @@
+name: Release drafter
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  # write permission is required to create a github release
+  contents: write
+  # write permission is required for autolabeler
+  # otherwise, read permission is required at least
+  pull-requests: write
+  # for update_docker_image
+  packages: write
+
+jobs:
+  draft_release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6.1.0
+        id: release-drafter
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish_release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    outputs:
+      tag_name: ${{ steps.release-drafter.outputs.tag_name }}
+    steps:
+      - uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6.1.0
+        id: release-drafter
+        with:
+          publish: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

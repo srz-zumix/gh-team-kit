@@ -1,0 +1,19 @@
+name: release
+on:
+  push:
+    tags:
+      - "v*"
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cli/gh-extension-precompile@ee3e4e5b371bbd6dc7f816dc0742e86de6c64085 # v1.6.0
+        with:
+          generate_attestations: true
+          go_version_file: go.mod
