@@ -58,8 +58,8 @@ func init() {
 		},
 	}
 
-	teamListCmd.Flags().StringVarP(&repo, "repo", "R", "", "Specify a repository to filter teams")
 	cmdutil.AddFormatFlags(teamListCmd, &opts.Exporter)
+	teamListCmd.Flags().StringVarP(&repo, "repo", "R", "", "Specify a repository to filter teams")
 
 	rootCmd.AddCommand(teamListCmd)
 }

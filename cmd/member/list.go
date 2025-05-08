@@ -19,11 +19,11 @@ type ListOptions struct {
 
 func NewListCmd() *cobra.Command {
 	opts := &ListOptions{}
+	var details bool
+	var nameOnly bool
 	var owner string
 	var roles []string
-	var nameOnly bool
 	var suspended bool
-	var details bool
 
 	cmd := &cobra.Command{
 		Use:   "list <team-slug>",
@@ -108,10 +108,10 @@ func NewListCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&owner, "owner", "", "", "The owner of the team")
-	cmd.Flags().BoolVarP(&nameOnly, "name-only", "", false, "Output only member names")
-	cmd.Flags().BoolVarP(&suspended, "suspended", "", false, "Output only suspended members")
 	cmd.Flags().BoolVarP(&details, "details", "", false, "Include detailed information about members")
+	cmd.Flags().BoolVarP(&nameOnly, "name-only", "", false, "Output only member names")
+	cmd.Flags().StringVarP(&owner, "owner", "", "", "The owner of the team")
+	cmd.Flags().BoolVarP(&suspended, "suspended", "", false, "Output only suspended members")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "", nil, gh.TeamMembershipList, "List of roles to filter members")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

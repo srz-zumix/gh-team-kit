@@ -11,8 +11,8 @@ import (
 )
 
 func NewAddCmd() *cobra.Command {
-	var owner string
 	var allowNonOrganizationMember bool
+	var owner string
 
 	cmd := &cobra.Command{
 		Use:   "add <team-slug> <username> [role]",
@@ -62,7 +62,7 @@ func NewAddCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&owner, "owner", "", "", "The owner of the team")
 	cmd.Flags().BoolVarP(&allowNonOrganizationMember, "allow-non-organization-member", "", false, "Allow adding non-organization member to the team")
+	cmd.Flags().StringVarP(&owner, "owner", "", "", "The owner of the team")
 	return cmd
 }
