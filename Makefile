@@ -15,5 +15,8 @@ install-released:
 
 build:
 	go build -o gh-team-kit
+
+test: ## run tests
+	go test -v ./...
 	
 clean:

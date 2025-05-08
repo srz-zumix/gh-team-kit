@@ -72,7 +72,7 @@ func NewListCmd() *cobra.Command {
 
 			if nameOnly {
 				for _, member := range members {
-					fmt.Fprintln(cmd.OutOrStdout(), *member.Login)
+					fmt.Println(*member.Login)
 				}
 				return nil
 			}
