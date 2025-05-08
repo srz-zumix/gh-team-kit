@@ -5,10 +5,9 @@ import (
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
+	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
-
-	"github.com/spf13/cobra"
 )
 
 type CreateOptions struct {
@@ -18,10 +17,10 @@ type CreateOptions struct {
 func NewCreateCmd() *cobra.Command {
 	opts := &CreateOptions{}
 	var description string
-	var parentTeamSlug string
 	var disableNotification bool
-	var secret bool
 	var owner string
+	var parentTeamSlug string
+	var secret bool
 
 	cmd := &cobra.Command{
 		Use:   "create <name>",
@@ -75,11 +74,11 @@ func NewCreateCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVarP(&description, "description", "d", "", "Description of the team")
-	f.StringVarP(&parentTeamSlug, "parent", "p", "", "Slug of the parent team")
 	f.BoolVar(&disableNotification, "disable-notification", false, "Disable notifications for the team")
-	f.BoolVar(&secret, "secret", false, "Set the team as secret")
+	f.StringVarP(&description, "description", "d", "", "Description of the team")
 	f.StringVar(&owner, "owner", "", "Specify the organization owner (optional)")
+	f.StringVarP(&parentTeamSlug, "parent", "p", "", "Slug of the parent team")
+	f.BoolVar(&secret, "secret", false, "Set the team as secret")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

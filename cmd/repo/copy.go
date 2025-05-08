@@ -16,9 +16,9 @@ type CopyOptions struct {
 
 func NewCopyCmd() *cobra.Command {
 	opts := &CopyOptions{}
-	var repo string
-	var force bool
 	var dryRun bool
+	var force bool
+	var repo string
 
 	cmd := &cobra.Command{
 		Use:   "copy <dst-repository...>",
@@ -57,9 +57,9 @@ func NewCopyCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
-	cmd.Flags().BoolVarP(&force, "force", "f", false, "Force overwrite existing permissions if they exist")
 	cmd.Flags().BoolVarP(&dryRun, "dry-run", "n", false, "Simulate the copy operation without making any changes")
+	cmd.Flags().BoolVarP(&force, "force", "f", false, "Force overwrite existing permissions if they exist")
+	cmd.Flags().StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

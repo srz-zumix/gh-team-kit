@@ -69,8 +69,8 @@ func NewCheckCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
 	cmd.Flags().BoolVar(&exitCode, "exit-code", false, "Exit with a status code based on the result")
+	cmd.Flags().StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

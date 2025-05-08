@@ -90,6 +90,12 @@ gh team-kit repo check <team-slug>
 gh team-kit diff <team-slug1> <team-slug2> [repository...]
 ```
 
+### Compare team permissions between two repositories
+
+```sh
+gh team-kit repo diff <repo1> <repo2> [team-slug...]
+```
+
 ### Copy teams and permissions to multiple destination repos
 
 ```sh

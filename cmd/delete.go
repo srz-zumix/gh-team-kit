@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
-
-	"github.com/spf13/cobra"
 )
 
 func NewDeleteCmd() *cobra.Command {

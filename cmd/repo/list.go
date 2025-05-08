@@ -17,9 +17,9 @@ type ListOptions struct {
 
 func NewListCmd() *cobra.Command {
 	opts := &ListOptions{}
+	var noInherit bool
 	var owner string
 	var roles []string
-	var noInherit bool
 
 	cmd := &cobra.Command{
 		Use:   "list <team-slug>",
@@ -69,8 +69,8 @@ func NewListCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVarP(&owner, "owner", "", "", "The owner of the team")
 	f.BoolVar(&noInherit, "no-inherit", false, "Disable inherited permissions")
+	f.StringVarP(&owner, "owner", "", "", "The owner of the team")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "", []string{}, gh.TeamPermissionsList, "List of roles to filter repositories")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

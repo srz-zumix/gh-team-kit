@@ -13,12 +13,12 @@ func init() {
 	}
 
 	// Add subcommand of repoCmd
-	repoCmd.AddCommand(repo.NewListCmd())
-	repoCmd.AddCommand(repo.NewCheckCmd())
 	repoCmd.AddCommand(repo.NewAddCmd())
-	repoCmd.AddCommand(repo.NewRemoveCmd())
-	repoCmd.AddCommand(repo.NewDiffCmd())
+	repoCmd.AddCommand(repo.NewCheckCmd())
 	repoCmd.AddCommand(repo.NewCopyCmd())
+	repoCmd.AddCommand(repo.NewDiffCmd())
+	repoCmd.AddCommand(repo.NewListCmd())
+	repoCmd.AddCommand(repo.NewRemoveCmd())
 	repoCmd.AddCommand(repo.NewSyncCmd())
 
 	// Add repoCmd as a subcommand of rootCmd
