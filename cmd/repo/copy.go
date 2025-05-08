@@ -16,7 +16,6 @@ type CopyOptions struct {
 
 func NewCopyCmd() *cobra.Command {
 	opts := &CopyOptions{}
-	var dryRun bool
 	var force bool
 	var repo string
 
@@ -42,11 +41,6 @@ func NewCopyCmd() *cobra.Command {
 					return fmt.Errorf("error parsing destination repository: %w", err)
 				}
 
-				if dryRun {
-					fmt.Printf("[DRY RUN] Would copy teams and permissions from %s to %s\n", repo, dstArg)
-					continue
-				}
-
 				if err := gh.CopyRepoTeamsAndPermissions(ctx, client, repository, dstRepository, force); err != nil {
 					return fmt.Errorf("failed to copy teams and permissions to %s: %w", dstArg, err)
 				}
@@ -57,7 +51,6 @@ func NewCopyCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVarP(&dryRun, "dry-run", "n", false, "Simulate the copy operation without making any changes")
 	cmd.Flags().BoolVarP(&force, "force", "f", false, "Force overwrite existing permissions if they exist")
 	cmd.Flags().StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)

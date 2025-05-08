@@ -13,9 +13,9 @@ func NewDeleteCmd() *cobra.Command {
 	var owner string
 
 	cmd := &cobra.Command{
-		Use:   "delete <team>",
+		Use:   "delete <team-slug>",
 		Short: "Delete a team",
-		Long:  `Delete a specified team from the organization.`,
+		Long:  `Delete a specified team from the organization. Ensure that the team is no longer needed as this action is irreversible.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			team := args[0]

@@ -9,7 +9,7 @@ func init() {
 	memberCmd := &cobra.Command{
 		Use:   "member",
 		Short: "Manage team members",
-		Long:  `Manage team members, including adding, removing, and listing members of a team.`,
+		Long:  `Manage team members, including adding, removing, and listing members of a team. Examples include adding a new member to a team or removing an existing member.`,
 	}
 
 	// Add subcommands to the member command

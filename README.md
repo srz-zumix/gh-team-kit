@@ -57,13 +57,13 @@ gh team-kit repo copy <dst-repository...>
 ### Create a new team
 
 ```sh
-gh team-kit create <name> --description <description> --parent <parent-team-slug> --disable-notification --secret --owner <owner>
+gh team-kit create <name> --description <description> --parent <parent-team-slug>
 ```
 
 ### Delete a team
 
 ```sh
-gh team-kit delete <team>
+gh team-kit delete <team-slug>
 ```
 
 ### Display a team hierarchy in a tree structure

@@ -21,7 +21,7 @@ func init() {
 	var teamListCmd = &cobra.Command{
 		Use:   "list [owner]",
 		Short: "List all teams in the organization",
-		Long:  `Retrieve and display a list of all teams in the specified GitHub organization.`,
+		Long:  `Retrieve and display a list of all teams in the specified organization. You can optionally filter the results by repository.`,
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			owner := ""
