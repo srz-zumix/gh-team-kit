@@ -1,64 +1,10 @@
-package gh
+package client
 
 import (
 	"context"
 
-	"github.com/cli/cli/v2/pkg/cmdutil"
-	"github.com/cli/cli/v2/pkg/iostreams"
-	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/google/go-github/v71/github"
-	"github.com/k1LoW/go-github-client/v71/factory"
 )
-
-type GitHubClient struct {
-	client *github.Client
-	IO     *iostreams.IOStreams
-}
-
-const defaultHost = "github.com"
-const defaultV3Endpoint = "https://api.github.com"
-
-func RepositoryOption(repo repository.Repository) factory.Option {
-	return func(c *factory.Config) error {
-		host := repo.Host
-		if host != "" {
-			if host == defaultHost {
-				c.Endpoint = defaultV3Endpoint
-			} else {
-				c.Endpoint = "https://" + host + "/api/v3"
-			}
-		}
-		c.Owner = repo.Owner
-		c.Repo = repo.Name
-		return nil
-	}
-}
-
-// NewGitHubClient creates a new GitHubClient instance using k1LoW/go-github-client
-func NewGitHubClient() (*GitHubClient, error) {
-	client, err := factory.NewGithubClient()
-	if err != nil {
-		return nil, err
-	}
-
-	return &GitHubClient{
-		client: client,
-		IO:     iostreams.System(),
-	}, nil
-}
-
-// NewGitHubClientWithRepo creates a new GitHubClient instance with a specified go-gh Repository.
-func NewGitHubClientWithRepo(repo repository.Repository) (*GitHubClient, error) {
-	client, err := factory.NewGithubClient(RepositoryOption(repo))
-	if err != nil {
-		return nil, err
-	}
-
-	return &GitHubClient{
-		client: client,
-		IO:     iostreams.System(),
-	}, nil
-}
 
 // ListTeams retrieves all teams in the specified organization with pagination support.
 func (g *GitHubClient) ListTeams(ctx context.Context, org string) ([]*github.Team, error) {
@@ -176,15 +122,15 @@ func (g *GitHubClient) AddTeamRepo(ctx context.Context, org string, teamSlug str
 }
 
 // AddOrUpdateTeamMembership adds or updates the membership of a user in a team.
-func (g *GitHubClient) AddTeamMember(ctx context.Context, org string, teamSlug string, username string, role string) error {
+func (g *GitHubClient) AddOrUpdateTeamMembership(ctx context.Context, org string, teamSlug string, username string, role string) (*github.Membership, error) {
 	opt := &github.TeamAddTeamMembershipOptions{
 		Role: role,
 	}
-	_, _, err := g.client.Teams.AddTeamMembershipBySlug(ctx, org, teamSlug, username, opt)
+	membership, _, err := g.client.Teams.AddTeamMembershipBySlug(ctx, org, teamSlug, username, opt)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return membership, nil
 }
 
 // RemoveTeamMember removes a user from a team in the organization.
@@ -220,8 +166,17 @@ func (g *GitHubClient) ListTeamMembers(ctx context.Context, org string, teamSlug
 }
 
 // GetTeamMembership retrieves the membership details of a user in a specific team.
-// If the user is not a member, it returns nil without an error.
 func (g *GitHubClient) GetTeamMembership(ctx context.Context, org string, teamSlug string, username string) (*github.Membership, error) {
+	membership, _, err := g.client.Teams.GetTeamMembershipBySlug(ctx, org, teamSlug, username)
+	if err != nil {
+		return nil, err
+	}
+	return membership, nil
+}
+
+// FindTeamMembership retrieves the membership details of a user in a specific team.
+// If the user is not a member, it returns nil without an error.
+func (g *GitHubClient) FindTeamMembership(ctx context.Context, org string, teamSlug string, username string) (*github.Membership, error) {
 	membership, resp, err := g.client.Teams.GetTeamMembershipBySlug(ctx, org, teamSlug, username)
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
@@ -230,100 +185,4 @@ func (g *GitHubClient) GetTeamMembership(ctx context.Context, org string, teamSl
 		return nil, err
 	}
 	return membership, nil
-}
-
-// ListOrgMembers retrieves all members of the specified organization.
-func (g *GitHubClient) ListOrgMembers(ctx context.Context, org string, role string) ([]*github.User, error) {
-	var allMembers []*github.User
-	opt := &github.ListMembersOptions{
-		Role:        role,
-		ListOptions: github.ListOptions{PerPage: 50},
-	}
-
-	for {
-		members, resp, err := g.client.Organizations.ListMembers(ctx, org, opt)
-		if err != nil {
-			return nil, err
-		}
-		allMembers = append(allMembers, members...)
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
-	}
-
-	return allMembers, nil
-}
-
-// GetOrgMembership retrieves the membership details of a user in the organization.
-func (g *GitHubClient) GetOrgMembership(ctx context.Context, owner string, username string) (*github.Membership, error) {
-	membership, resp, err := g.client.Organizations.GetOrgMembership(ctx, username, owner)
-	if err != nil {
-		if resp != nil && resp.StatusCode == 404 {
-			return nil, nil // User is not a member
-		}
-		return nil, err // Other errors
-	}
-
-	return membership, nil
-}
-
-// GetUser retrieves a user by their username.
-func (g *GitHubClient) GetUser(ctx context.Context, username string) (*github.User, error) {
-	user, _, err := g.client.Users.Get(ctx, username)
-	if err != nil {
-		return nil, err
-	}
-	return user, nil
-}
-
-// ListRepositoryTeams retrieves all teams associated with a specific repository.
-func (g *GitHubClient) ListRepositoryTeams(ctx context.Context, owner string, repo string) ([]*github.Team, error) {
-	var allTeams []*github.Team
-	opt := &github.ListOptions{PerPage: 50}
-
-	for {
-		teams, resp, err := g.client.Repositories.ListTeams(ctx, owner, repo, opt)
-		if err != nil {
-			return nil, err
-		}
-		allTeams = append(allTeams, teams...)
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
-	}
-
-	return allTeams, nil
-}
-
-// CreateTeam creates a new team in the specified organization.
-func (g *GitHubClient) CreateTeam(ctx context.Context, org string, team *github.NewTeam) (*github.Team, error) {
-	createdTeam, _, err := g.client.Teams.CreateTeam(ctx, org, *team)
-	if err != nil {
-		return nil, err
-	}
-	return createdTeam, nil
-}
-
-// DeleteTeamBySlug deletes a team by its slug in the specified organization.
-func (g *GitHubClient) DeleteTeamBySlug(ctx context.Context, org string, teamSlug string) error {
-	_, err := g.client.Teams.DeleteTeamBySlug(ctx, org, teamSlug)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// UpdateTeam updates the details of a team in the specified repository.
-func (g *GitHubClient) UpdateTeam(ctx context.Context, owner string, teamSlug string, team *github.NewTeam, removeParent bool) (*github.Team, error) {
-	editedTeam, _, err := g.client.Teams.EditTeamBySlug(ctx, owner, teamSlug, *team, removeParent)
-	if err != nil {
-		return nil, err
-	}
-	return editedTeam, nil
-}
-
-func (g *GitHubClient) Write(exporter cmdutil.Exporter, data any) error {
-	return exporter.Write(g.IO, data)
 }

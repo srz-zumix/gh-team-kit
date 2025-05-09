@@ -13,7 +13,10 @@ func init() {
 	}
 
 	// Add subcommands to the user command
+	userCmd.AddCommand(user.NewAddCmd())
+	userCmd.AddCommand(user.NewCheckCmd())
 	userCmd.AddCommand(user.NewListCmd())
+	userCmd.AddCommand(user.NewRemoveCmd())
 
 	rootCmd.AddCommand(userCmd)
 }
