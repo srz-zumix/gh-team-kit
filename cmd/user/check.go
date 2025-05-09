@@ -18,6 +18,7 @@ func NewCheckCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "check <username>",
 		Short: "Check the role of a user in the organization",
+		Long:  `Check the role of a specified user in the organization. If the user is not a member, it will return 'none'.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()

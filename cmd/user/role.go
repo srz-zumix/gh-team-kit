@@ -26,12 +26,11 @@ func NewRoleCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "role <username> <role>",
 		Short: "Change the role of a user in an organization",
+		Long:  `Change the role of a specified user in the specified organization.`,
 		Args: func(cmd *cobra.Command, args []string) error {
-			// Validate the number of arguments
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
 				return err
 			}
-			// Validate the role argument
 			role := args[1]
 			if slices.Contains(gh.OrgMembershipList, role) {
 				return nil
@@ -42,26 +41,22 @@ func NewRoleCmd() *cobra.Command {
 			username := args[0]
 			role := args[1]
 
-			// Parse the repository owner
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
-			// Create a GitHub client
 			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			// Update the user's role in the organization
 			user, err := gh.UpdateOrgMemberRole(ctx, client, repository, username, role)
 			if err != nil {
 				return fmt.Errorf("error updating user role: %w", err)
 			}
 
-			// Export the result if an exporter is provided
 			if opts.Exporter != nil {
 				if err := client.Write(opts.Exporter, user); err != nil {
 					return fmt.Errorf("error exporting user: %w", err)

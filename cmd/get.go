@@ -25,7 +25,7 @@ func init() {
 	var getCmd = &cobra.Command{
 		Use:   "get [team-slug...]",
 		Short: "Gets a team using the team's slug",
-		Long:  `Gets a team using the team's slug.`,
+		Long:  `Retrieve and display a team using the team's slug.`,
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))

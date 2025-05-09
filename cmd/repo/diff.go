@@ -26,6 +26,7 @@ func NewDiffCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "diff <repo1> <repo2> [team-slug...]",
 		Short: "Compare team permissions between two repositories",
+		Long:  `Compare team permissions between two repositories. The repositories can be specified by their full name (owner/repo) or just the repo name if the owner is provided as a flag.`,
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repo1 := args[0]

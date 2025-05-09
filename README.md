@@ -28,13 +28,29 @@ gh team-kit repo add <team-slug> <permission>
 
 Add a specified repository to the specified team in the organization.
 
+### Add a user to the organization
+
+```sh
+gh team-kit user add <username>
+```
+
+Add a specified user to the organization.
+
+### Change the role of a user in a team
+
+```sh
+gh team-kit member role <team-slug> <username> <role>
+```
+
+Change the role of a specified user in the specified team. Valid roles are: `member`, `maintainer`.
+
 ### Check if a user is a member of a team
 
 ```sh
 gh team-kit member check <team-slug> <username>
 ```
 
-Check whether a user is a member of the specified team in the organization.
+Check if a user is a member of a team.
 
 ### Check team permissions for a repository
 
@@ -42,7 +58,15 @@ Check whether a user is a member of the specified team in the organization.
 gh team-kit repo check <team-slug>
 ```
 
-Check whether a team has admin, push, maintain, triage, pull, or none permission for a repository.
+Checks whether a team has admin, push, maintain, triage, pull, or none permission for a repository.
+
+### Check the role of a user in the organization
+
+```sh
+gh team-kit user check <username>
+```
+
+Check the role of a specified user in the organization.
 
 ### Compare repositories between two teams
 
@@ -108,6 +132,14 @@ gh team-kit list [owner]
 
 Retrieve and display a list of all teams in the specified organization. You can optionally filter the results by repository.
 
+### List all users in the organization
+
+```sh
+gh team-kit user list
+```
+
+Retrieve and display a list of all users in the organization.
+
 ### List members of a team
 
 ```sh
@@ -147,6 +179,14 @@ gh team-kit repo remove <team-slug>
 ```
 
 Remove a specified repository from the specified team in the organization.
+
+### Remove a user from the organization
+
+```sh
+gh team-kit user remove <username>
+```
+
+Remove a specified user from the organization.
 
 ### Rename an existing team
 

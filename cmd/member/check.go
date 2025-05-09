@@ -16,6 +16,7 @@ func NewCheckCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "check <team-slug> <username>",
 		Short: "Check if a user is a member of a team",
+		Long:  `Check if a specified user is a member of the specified team in the organization.`,
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			teamSlug := args[0]

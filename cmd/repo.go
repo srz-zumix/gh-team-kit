@@ -9,7 +9,7 @@ func init() {
 	var repoCmd = &cobra.Command{
 		Use:   "repo",
 		Short: "Manage team repositories",
-		Long:  `Manage team repositories with various subcommands, such as adding, removing, and syncing repositories.`,
+		Long:  `Manage team repositories in the organization.`,
 	}
 
 	repoCmd.AddCommand(repo.NewAddCmd())
@@ -20,6 +20,5 @@ func init() {
 	repoCmd.AddCommand(repo.NewRemoveCmd())
 	repoCmd.AddCommand(repo.NewSyncCmd())
 
-	// Add repoCmd as a subcommand of rootCmd
 	rootCmd.AddCommand(repoCmd)
 }

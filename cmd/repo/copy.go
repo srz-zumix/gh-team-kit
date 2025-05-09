@@ -22,6 +22,7 @@ func NewCopyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "copy <dst-repository...>",
 		Short: "Copy teams and permissions to multiple destination repos",
+		Long:  `Copy teams and permissions from the source repository to multiple destination repositories.`,
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repository, err := parser.Repository(parser.RepositoryInput(repo))

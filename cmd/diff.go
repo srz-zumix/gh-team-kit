@@ -25,7 +25,6 @@ func NewDiffCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "diff <team-slug1> <team-slug2> [repository...]",
 		Short: "Compare repositories between two teams",
-		Long:  `The diff command compares the repositories associated with two teams and displays the differences.`,
 		Args:  cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			teamSlug1 := args[0]

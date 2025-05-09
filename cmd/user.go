@@ -9,7 +9,7 @@ func init() {
 	userCmd := &cobra.Command{
 		Use:   "user",
 		Short: "Manage users",
-		Long:  `Manage users, including listing and managing organization members. Examples include listing all users in an organization or filtering by role.`,
+		Long:  `Manage users in the organization.`,
 	}
 
 	// Add subcommands to the user command

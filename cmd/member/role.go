@@ -16,7 +16,6 @@ type RoleOptions struct {
 	Exporter cmdutil.Exporter
 }
 
-// NewRoleCmd creates a new role command
 func NewRoleCmd() *cobra.Command {
 	opts := &RoleOptions{}
 	var owner string
@@ -24,6 +23,7 @@ func NewRoleCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "role <team-slug> <username> <role>",
 		Short: "Change the role of a user in a team",
+		Long:  `Change the role of a specified user in the specified team in the organization.`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(3)(cmd, args); err != nil {
 				return err
