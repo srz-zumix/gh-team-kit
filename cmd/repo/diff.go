@@ -31,6 +31,10 @@ func NewDiffCmd() *cobra.Command {
 			repo1 := args[0]
 			repo2 := args[1]
 
+			if exitCode {
+				cmd.SilenceUsage = true
+			}
+
 			if !strings.Contains(repo1, "/") {
 				repo1 = fmt.Sprintf("%s/%s", owner, repo1)
 			}
@@ -94,6 +98,12 @@ func NewDiffCmd() *cobra.Command {
 			} else {
 				fmt.Printf("%s", differences.GetDiffLines(repo1Parsed, repo2Parsed))
 			}
+
+			if exitCode && len(differences) > 0 {
+				cmd.SilenceErrors = true
+				return fmt.Errorf("differences found between the repositories")
+			}
+
 			return nil
 		},
 	}

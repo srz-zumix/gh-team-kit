@@ -1,4 +1,4 @@
-package member
+package user
 
 import (
 	"context"
@@ -13,19 +13,19 @@ import (
 	"github.com/srz-zumix/gh-team-kit/parser"
 )
 
-type OrgListOptions struct {
+type ListOptions struct {
 	Exporter cmdutil.Exporter
 }
 
-func NewOrgCmd() *cobra.Command {
-	opts := &OrgListOptions{}
+func NewListCmd() *cobra.Command {
+	opts := &ListOptions{}
 	var details bool
 	var nameOnly bool
 	var roles []string
 	var suspended bool
 
 	cmd := &cobra.Command{
-		Use:   "org [owner]",
+		Use:   "list [owner]",
 		Short: "List organization members",
 		Long:  `List all members of the specified organization with optional role filtering`,
 		Args:  cobra.MaximumNArgs(1),

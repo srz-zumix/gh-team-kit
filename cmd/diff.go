@@ -31,6 +31,10 @@ func NewDiffCmd() *cobra.Command {
 			teamSlug1 := args[0]
 			teamSlug2 := args[1]
 
+			if exitCode {
+				cmd.SilenceUsage = true
+			}
+
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository owner: %w", err)
@@ -78,6 +82,11 @@ func NewDiffCmd() *cobra.Command {
 				fmt.Printf("%s", parser.ColorizeDiff(differences.GetDiffLines(teamSlug1, teamSlug2)))
 			} else {
 				fmt.Printf("%s", differences.GetDiffLines(teamSlug1, teamSlug2))
+			}
+
+			if exitCode && len(differences) > 0 {
+				cmd.SilenceErrors = true
+				return fmt.Errorf("differences found between the teams")
 			}
 
 			return nil
