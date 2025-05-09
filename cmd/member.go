@@ -16,6 +16,7 @@ func init() {
 	memberCmd.AddCommand(member.NewAddCmd())
 	memberCmd.AddCommand(member.NewCheckCmd())
 	memberCmd.AddCommand(member.NewListCmd())
+	memberCmd.AddCommand(member.NewOrgCmd())
 	memberCmd.AddCommand(member.NewRemoveCmd())
 
 	rootCmd.AddCommand(memberCmd)

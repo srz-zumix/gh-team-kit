@@ -232,6 +232,29 @@ func (g *GitHubClient) GetTeamMembership(ctx context.Context, org string, teamSl
 	return membership, nil
 }
 
+// ListOrgMembers retrieves all members of the specified organization.
+func (g *GitHubClient) ListOrgMembers(ctx context.Context, org string, role string) ([]*github.User, error) {
+	var allMembers []*github.User
+	opt := &github.ListMembersOptions{
+		Role:        role,
+		ListOptions: github.ListOptions{PerPage: 50},
+	}
+
+	for {
+		members, resp, err := g.client.Organizations.ListMembers(ctx, org, opt)
+		if err != nil {
+			return nil, err
+		}
+		allMembers = append(allMembers, members...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	return allMembers, nil
+}
+
 // GetOrgMembership retrieves the membership details of a user in the organization.
 func (g *GitHubClient) GetOrgMembership(ctx context.Context, owner string, username string) (*github.Membership, error) {
 	membership, resp, err := g.client.Organizations.GetOrgMembership(ctx, username, owner)

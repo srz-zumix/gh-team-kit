@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
@@ -19,6 +20,8 @@ var colorFlag string
 
 func NewDiffCmd() *cobra.Command {
 	opts := &DiffOptions{}
+	var exitCode bool
+	var owner string
 
 	cmd := &cobra.Command{
 		Use:   "diff <repo1> <repo2> [team-slug...]",
@@ -27,6 +30,13 @@ func NewDiffCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repo1 := args[0]
 			repo2 := args[1]
+
+			if !strings.Contains(repo1, "/") {
+				repo1 = fmt.Sprintf("%s/%s", owner, repo1)
+			}
+			if !strings.Contains(repo2, "/") {
+				repo2 = fmt.Sprintf("%s/%s", owner, repo2)
+			}
 
 			repo1Parsed, err := parser.Repository(parser.RepositoryInput(repo1))
 			if err != nil {
@@ -88,7 +98,10 @@ func NewDiffCmd() *cobra.Command {
 		},
 	}
 
+	f := cmd.Flags()
 	cmdutil.StringEnumFlag(cmd, &colorFlag, "color", "", "auto", []string{"always", "never", "auto"}, "Use color in diff output")
+	cmd.Flags().BoolVar(&exitCode, "exit-code", false, "Return exit code 1 if there are differences")
+	f.StringVarP(&owner, "owner", "", "", "The owner of the repositories")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

@@ -62,7 +62,7 @@ func AddTeamRepo(ctx context.Context, g *GitHubClient, repo repository.Repositor
 
 // ListTeamMembers retrieves all members of a specific team in the organization and filters them by roles if provided.
 func ListTeamMembers(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, roles []string, membership bool) ([]*github.User, error) {
-	members, err := g.ListTeamMembers(ctx, repo.Owner, teamSlug, GetMembershipFilter(roles))
+	members, err := g.ListTeamMembers(ctx, repo.Owner, teamSlug, GetTeamMembershipFilter(roles))
 	if err != nil {
 		return nil, err
 	}
@@ -374,4 +374,26 @@ func UpdateTeam(ctx context.Context, g *GitHubClient, repo repository.Repository
 // RenameTeam renames a team by its slug in the specified repository.
 func RenameTeam(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, newName string) (*github.Team, error) {
 	return UpdateTeam(ctx, g, repo, teamSlug, &newName, nil, nil, nil, nil)
+}
+
+// ListOrgMembers wraps the GitHubClient's ListOrgMembers function.
+func ListOrgMembers(ctx context.Context, g *GitHubClient, repo repository.Repository, roles []string, membership bool) ([]*github.User, error) {
+	roleFilter := GetOrgMembershipFilter(roles)
+	members, err := g.ListOrgMembers(ctx, repo.Owner, roleFilter)
+	if err != nil {
+		return nil, err
+	}
+
+	if membership {
+		for _, member := range members {
+			membership, err := g.GetOrgMembership(ctx, repo.Owner, *member.Login)
+			if err != nil {
+				return nil, err
+			}
+			if membership != nil {
+				member.RoleName = membership.Role
+			}
+		}
+	}
+	return members, nil
 }

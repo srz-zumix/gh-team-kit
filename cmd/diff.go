@@ -19,6 +19,7 @@ var colorFlag string
 
 func NewDiffCmd() *cobra.Command {
 	opts := &DiffOptions{}
+	var exitCode bool
 	var owner string
 
 	cmd := &cobra.Command{
@@ -85,6 +86,7 @@ func NewDiffCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	cmdutil.StringEnumFlag(cmd, &colorFlag, "color", "", "auto", []string{"always", "never", "auto"}, "Use color in diff output")
+	cmd.Flags().BoolVar(&exitCode, "exit-code", false, "Return exit code 1 if there are differences")
 	f.StringVarP(&owner, "owner", "", "", "The owner of the team")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

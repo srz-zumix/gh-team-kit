@@ -19,6 +19,11 @@ var TeamMembershipList = []string{
 	"maintainer",
 }
 
+var OrgMembershipList = []string{
+	"member",
+	"admin",
+}
+
 func GetRepositoryPermissions(repo *github.Repository) string {
 	if repo != nil {
 		if repo.Permissions != nil {
@@ -37,10 +42,23 @@ func GetPermissionName(permissions map[string]bool) string {
 	return "none"
 }
 
-func GetMembershipFilter(roles []string) string {
+func GetTeamMembershipFilter(roles []string) string {
 	matched := 0
 	for _, role := range roles {
 		if slices.Contains(TeamMembershipList, role) {
+			matched++
+		}
+	}
+	if matched == 1 && len(roles) == 1 {
+		return roles[0]
+	}
+	return "all"
+}
+
+func GetOrgMembershipFilter(roles []string) string {
+	matched := 0
+	for _, role := range roles {
+		if slices.Contains(OrgMembershipList, role) {
 			matched++
 		}
 	}
