@@ -19,10 +19,11 @@ func NewMoveCmd() *cobra.Command {
 	var owner string
 
 	cmd := &cobra.Command{
-		Use:   "move <team-slug> [new-parent-slug]",
-		Short: "Change the parent of an existing team",
-		Long:  `Change the parent of an existing team in the specified organization to a new parent team. if no new parent is specified, the team will be moved to the root level.`,
-		Args:  cobra.RangeArgs(1, 2),
+		Use:     "move <team-slug> [new-parent-slug]",
+		Short:   "Change the parent of an existing team",
+		Long:    `Change the parent of an existing team in the specified organization to a new parent team. if no new parent is specified, the team will be moved to the root level.`,
+		Aliases: []string{"mv"},
+		Args:    cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			teamSlug := args[0]
 			newParent := ""

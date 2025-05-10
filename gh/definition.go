@@ -24,6 +24,11 @@ var OrgMembershipList = []string{
 	"admin",
 }
 
+var UserRepositoryTypeList = []string{
+	"owner",
+	"member",
+}
+
 func GetRepositoryPermissions(repo *github.Repository) string {
 	if repo != nil {
 		if repo.Permissions != nil {
@@ -64,6 +69,19 @@ func GetOrgMembershipFilter(roles []string) string {
 	}
 	if matched == 1 && len(roles) == 1 {
 		return roles[0]
+	}
+	return "all"
+}
+
+func GetUserRepositoryTypeFilter(types []string) string {
+	matched := 0
+	for _, role := range types {
+		if slices.Contains(UserRepositoryTypeList, role) {
+			matched++
+		}
+	}
+	if matched == 1 && len(types) == 1 {
+		return types[0]
 	}
 	return "all"
 }

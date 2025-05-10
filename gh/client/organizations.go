@@ -33,6 +33,7 @@ func (g *GitHubClient) ListOrgMembers(ctx context.Context, org string, role stri
 func (g *GitHubClient) GetOrgMembership(ctx context.Context, owner string, username string) (*github.Membership, error) {
 	membership, _, err := g.client.Organizations.GetOrgMembership(ctx, username, owner)
 	if err != nil {
+		return nil, err
 	}
 
 	return membership, nil

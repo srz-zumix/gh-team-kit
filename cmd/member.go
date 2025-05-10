@@ -17,6 +17,7 @@ func init() {
 	memberCmd.AddCommand(member.NewCheckCmd())
 	memberCmd.AddCommand(member.NewListCmd())
 	memberCmd.AddCommand(member.NewRemoveCmd())
+	memberCmd.AddCommand(member.NewRoleCmd())
 
 	rootCmd.AddCommand(memberCmd)
 }

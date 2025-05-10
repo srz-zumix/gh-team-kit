@@ -40,7 +40,7 @@ func ListTeamMembers(ctx context.Context, g *GitHubClient, repo repository.Repos
 }
 
 // AddTeamMember is a wrapper function to add or update a team member.
-func AddTeamMember(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, username string, role string, allowNonOrganizationMember bool) (*github.User, error) {
+func AddTeamMember(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, username string, role string, allowNonOrganizationMember bool) (*github.Membership, error) {
 	if !allowNonOrganizationMember {
 		membership, err := g.FindOrgMembership(ctx, repo.Owner, username)
 		if err != nil {
@@ -50,15 +50,10 @@ func AddTeamMember(ctx context.Context, g *GitHubClient, repo repository.Reposit
 			return nil, fmt.Errorf("user '%s' is not a member of the organization '%s'", username, repo.Owner)
 		}
 	}
-	membership, err := g.AddOrUpdateTeamMembership(ctx, repo.Owner, teamSlug, username, role)
-	if err != nil {
-		return nil, fmt.Errorf("failed to add '%s' to team '%s': %w", username, teamSlug, err)
-	}
-	membership.User.RoleName = membership.Role
-	return membership.User, nil
+	return g.AddOrUpdateTeamMembership(ctx, repo.Owner, teamSlug, username, role)
 }
 
-func UpdateTeamMemberRole(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, username string, role string) (*github.User, error) {
+func UpdateTeamMemberRole(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, username string, role string) (*github.Membership, error) {
 	membership, err := g.FindTeamMembership(ctx, repo.Owner, teamSlug, username)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find membership for '%s' in team '%s': %w", username, teamSlug, err)
@@ -66,12 +61,7 @@ func UpdateTeamMemberRole(ctx context.Context, g *GitHubClient, repo repository.
 	if membership == nil {
 		return nil, fmt.Errorf("user '%s' is not a member of team '%s'", username, teamSlug)
 	}
-	membership, err = g.AddOrUpdateTeamMembership(ctx, repo.Owner, teamSlug, username, role)
-	if err != nil {
-		return nil, fmt.Errorf("failed to update '%s' role in team '%s': %w", username, teamSlug, err)
-	}
-	membership.User.RoleName = membership.Role
-	return membership.User, nil
+	return g.AddOrUpdateTeamMembership(ctx, repo.Owner, teamSlug, username, role)
 }
 
 // RemoveTeamMember is a wrapper function to remove a user from a team.

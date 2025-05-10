@@ -50,19 +50,31 @@ func NewRoleCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			user, err := gh.UpdateTeamMemberRole(ctx, client, repository, teamSlug, username, role)
+			membership, err := gh.UpdateTeamMemberRole(ctx, client, repository, teamSlug, username, role)
 			if err != nil {
 				return fmt.Errorf("error updating team member role: %w", err)
 			}
 
 			if opts.Exporter != nil {
-				if err := client.Write(opts.Exporter, user); err != nil {
-					return fmt.Errorf("error exporting user: %w", err)
+				if err := client.Write(opts.Exporter, membership); err != nil {
+					return fmt.Errorf("error exporting membership: %w", err)
 				}
 				return nil
 			}
 
-			fmt.Printf("Successfully updated user '%s' role to '%s' in team '%s'.\n", *user.Login, *user.RoleName, teamSlug)
+			if *membership.Role == "maintainer" && role != "maintainer" {
+				orgMembership, err := gh.GetOrgMembership(ctx, client, repository, username)
+				if err != nil {
+					return fmt.Errorf("error getting organization membership: %w", err)
+				}
+				if orgMembership != nil && *orgMembership.Role == "admin" {
+					fmt.Print("Warning: This action has no effect on organization owners.\n")
+				} else {
+					return fmt.Errorf("failed to change role for user '%s' in team '%s'", username, teamSlug)
+				}
+			}
+
+			fmt.Printf("Successfully updated user '%s' role to '%s' in team '%s'.\n", username, *membership.Role, teamSlug)
 			return nil
 		},
 	}

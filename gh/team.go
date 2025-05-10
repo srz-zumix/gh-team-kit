@@ -125,6 +125,15 @@ func ListChildTeams(ctx context.Context, g *GitHubClient, repo repository.Reposi
 	return g.ListChildTeams(ctx, repo.Owner, parentSlug)
 }
 
+// HasChildTeams checks if a team has child teams.
+func HasChildTeams(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string) (bool, error) {
+	childTeams, err := ListChildTeams(ctx, g, repo, teamSlug)
+	if err != nil {
+		return false, err
+	}
+	return len(childTeams) > 0, nil
+}
+
 // RemoveTeamRepo is a wrapper function to remove a repository from a team.
 func RemoveTeamRepo(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string) error {
 	return g.RemoveTeamRepo(ctx, repo.Owner, teamSlug, repo.Owner, repo.Name)

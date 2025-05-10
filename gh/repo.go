@@ -70,3 +70,11 @@ func ListTeamRepos(ctx context.Context, g *GitHubClient, repo repository.Reposit
 	}
 	return repos, nil
 }
+
+// ListUserRepositories is a wrapper function to retrieve all repositories associated with a specific user.
+func ListUserRepositories(ctx context.Context, g *GitHubClient, username string, types []string) ([]*github.Repository, error) {
+	if username == "" {
+		return nil, nil
+	}
+	return g.ListUserRepositories(ctx, username, GetUserRepositoryTypeFilter(types))
+}

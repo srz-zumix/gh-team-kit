@@ -13,10 +13,11 @@ func NewRemoveCmd() *cobra.Command {
 	var repo string
 
 	cmd := &cobra.Command{
-		Use:   "remove <team-slug>",
-		Short: "Remove a repository from a team",
-		Long:  `Remove a specified repository from the specified team in the organization.`,
-		Args:  cobra.ExactArgs(1),
+		Use:     "remove <team-slug>",
+		Short:   "Remove a repository from a team",
+		Long:    `Remove a specified repository from the specified team in the organization.`,
+		Aliases: []string{"rm"},
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			teamSlug := args[0]
 			repository, err := parser.Repository(parser.RepositoryInput(repo))

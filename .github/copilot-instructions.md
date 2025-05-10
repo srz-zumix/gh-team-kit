@@ -9,7 +9,8 @@
 * オプションは基本的に変数で受け取ります
 * RunE で処理を実装します
 * Args で引数の検証をします
-* gh/gh.go のラッパー関数を呼び出し、cmd package では github package を import しなくても良い設計にします
+* gh/*.go のラッパー関数を呼び出し、cmd package では github package を import しなくても良い設計にします
+* エラーの場合はどういう操作をしようとしてエラーになったかメッセージに含めるようにしてください
 
 ## gh package
 
@@ -33,3 +34,7 @@
 
 コマンドの Long の説明
 -->
+
+## コーディング規約
+
+* fmt.Errorf: error strings should not end with punctuation or newlines (ST1005) go-staticcheck

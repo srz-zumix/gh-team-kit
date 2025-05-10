@@ -39,19 +39,19 @@ func NewAddCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			user, err := gh.AddTeamMember(ctx, client, repository, teamSlug, username, role, allowNonOrganizationMember)
+			membership, err := gh.AddTeamMember(ctx, client, repository, teamSlug, username, role, allowNonOrganizationMember)
 			if err != nil {
 				return fmt.Errorf("failed to add member to team: %w", err)
 			}
 
 			if opts.Exporter != nil {
-				if err := client.Write(opts.Exporter, user); err != nil {
-					return fmt.Errorf("error exporting user: %w", err)
+				if err := client.Write(opts.Exporter, membership); err != nil {
+					return fmt.Errorf("error exporting membership: %w", err)
 				}
 				return nil
 			}
 
-			fmt.Printf("Successfully added user '%s' to team '%s' with role '%s'.\n", *user.Login, teamSlug, *user.RoleName)
+			fmt.Printf("Successfully added user '%s' to team '%s' with role '%s'.\n", username, teamSlug, *membership.Role)
 			return nil
 		},
 	}
