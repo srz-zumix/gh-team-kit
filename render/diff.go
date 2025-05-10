@@ -1,7 +1,6 @@
 package render
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/repository"
@@ -47,6 +46,8 @@ func (r *Renderer) RenderDiff(diff any, left, right any) {
 	}
 
 	diffLines := getDiffLines(diff, left, right)
-	coloredDiff := colorizeDiff(diffLines)
-	defer fmt.Fprint(r.IO.Out, coloredDiff)
+	if r.Color {
+		diffLines = colorizeDiff(diffLines)
+	}
+	r.WriteLine(diffLines)
 }

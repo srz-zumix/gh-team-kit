@@ -2,10 +2,16 @@ package render
 
 import "fmt"
 
-func (r *Renderer) RenderExportedData(data any) {
+func (r *Renderer) renderExportedData(data any) error {
 	if r.exporter == nil {
-		defer fmt.Fprintln(r.IO.ErrOut, "No exporter available")
-		return
+		return fmt.Errorf("no exporter available")
 	}
-	defer r.exporter.Write(r.IO, data)
+	return r.exporter.Write(r.IO, data)
+}
+
+func (r *Renderer) RenderExportedData(data any) {
+	err := r.renderExportedData(data)
+	if err != nil {
+		fmt.Fprintf(r.IO.ErrOut, "Error rendering exported data: %v\n", err)
+	}
 }

@@ -14,7 +14,7 @@ func (r *Renderer) RenderTeam(teams []*github.Team) {
 	}
 
 	if len(teams) == 0 {
-		defer fmt.Fprintln(r.IO.Out, "No teams")
+		r.WriteLine("no teams found")
 		return
 	}
 

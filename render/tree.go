@@ -1,6 +1,8 @@
 package render
 
 import (
+	"fmt"
+
 	"github.com/ddddddO/gtree"
 	"github.com/srz-zumix/gh-team-kit/gh"
 )
@@ -38,5 +40,8 @@ func (r *Renderer) RenderTeamTree(rootName string, team gh.Team) {
 	}
 
 	root := teamTree(teamRootTree(rootName, team), team)
-	defer gtree.OutputFromRoot(r.IO.Out, root)
+	err := gtree.OutputFromRoot(r.IO.Out, root)
+	if err != nil {
+		fmt.Fprintf(r.IO.ErrOut, "Error rendering team tree: %v\n", err)
+	}
 }

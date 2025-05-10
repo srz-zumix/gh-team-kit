@@ -1,7 +1,6 @@
 package render
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/google/go-github/v71/github"
@@ -43,5 +42,5 @@ func (r *Renderer) RenderNames(items any) {
 		return
 	}
 
-	defer fmt.Fprintln(r.IO.Out, strings.Join(names, "\n"))
+	r.WriteLine(strings.Join(names, "\n"))
 }

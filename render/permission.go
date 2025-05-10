@@ -1,8 +1,6 @@
 package render
 
 import (
-	"fmt"
-
 	"github.com/google/go-github/v71/github"
 	"github.com/srz-zumix/gh-team-kit/gh"
 )
@@ -30,5 +28,5 @@ func (r *Renderer) RenderPermission(v any) {
 		return
 	}
 
-	defer fmt.Fprintln(r.IO.Out, gh.GetPermissionName(permissions))
+	r.WriteLine(gh.GetPermissionName(permissions))
 }
