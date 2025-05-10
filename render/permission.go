@@ -15,6 +15,8 @@ func getPermissions(v any) map[string]bool {
 		return v.Permissions
 	case *github.User:
 		return v.Permissions
+	case *github.RepositoryPermissionLevel:
+		return v.User.Permissions
 	default:
 		return nil
 	}
@@ -28,5 +30,5 @@ func (r *Renderer) RenderPermission(v any) {
 		return
 	}
 
-	fmt.Fprintf(r.IO.Out, "%s\n", gh.GetPermissionName(permissions))
+	defer fmt.Fprintln(r.IO.Out, gh.GetPermissionName(permissions))
 }

@@ -1,9 +1,11 @@
 package render
 
+import "fmt"
+
 func (r *Renderer) RenderExportedData(data any) {
 	if r.exporter == nil {
-		r.IO.ErrOut.Write([]byte("No exporter available\n"))
+		defer fmt.Fprintln(r.IO.ErrOut, "No exporter available")
 		return
 	}
-	r.exporter.Write(r.IO, data)
+	defer r.exporter.Write(r.IO, data)
 }

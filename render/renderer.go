@@ -19,11 +19,12 @@ func NewRenderer(ex cmdutil.Exporter) *Renderer {
 }
 
 func (r *Renderer) SetColor(colorFlag string) {
-	if colorFlag == "always" {
+	switch colorFlag {
+	case "always":
 		r.Color = true
-	} else if colorFlag == "never" {
+	case "never":
 		r.Color = false
-	} else {
+	default:
 		r.Color = r.IO.ColorEnabled()
 	}
 }

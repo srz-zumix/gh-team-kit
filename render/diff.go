@@ -48,5 +48,5 @@ func (r *Renderer) RenderDiff(diff any, left, right any) {
 
 	diffLines := getDiffLines(diff, left, right)
 	coloredDiff := colorizeDiff(diffLines)
-	fmt.Fprint(r.IO.Out, coloredDiff)
+	defer fmt.Fprint(r.IO.Out, coloredDiff)
 }

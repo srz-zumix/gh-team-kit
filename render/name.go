@@ -2,6 +2,7 @@ package render
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/google/go-github/v71/github"
 )
@@ -34,14 +35,13 @@ func getNames(items any) []string {
 func (r *Renderer) RenderNames(items any) {
 	names := getNames(items)
 	if r.exporter != nil {
-		r.exporter.Write(r.IO, names)
+		r.RenderExportedData(names)
 		return
 	}
 
 	if names == nil {
 		return
 	}
-	for _, name := range names {
-		fmt.Fprintln(r.IO.Out, name)
-	}
+
+	defer fmt.Fprintln(r.IO.Out, strings.Join(names, "\n"))
 }

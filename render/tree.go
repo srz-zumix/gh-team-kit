@@ -38,5 +38,5 @@ func (r *Renderer) RenderTeamTree(rootName string, team gh.Team) {
 	}
 
 	root := teamTree(teamRootTree(rootName, team), team)
-	gtree.OutputFromRoot(r.IO.Out, root)
+	defer gtree.OutputFromRoot(r.IO.Out, root)
 }
