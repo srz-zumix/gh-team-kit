@@ -110,3 +110,8 @@ func ListRepositoryCollaborators(ctx context.Context, g *GitHubClient, repo repo
 	}
 	return collaborators, nil
 }
+
+// GetRepositoryPermission retrieves the permission level of a user for a specific repository.
+func GetRepositoryPermission(ctx context.Context, g *GitHubClient, repo repository.Repository, username string) (*github.RepositoryPermissionLevel, error) {
+	return g.GetRepositoryPermission(ctx, repo.Owner, repo.Name, username)
+}
