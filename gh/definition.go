@@ -91,7 +91,7 @@ func (opt *RespositorySearchOptions) GetFilterString() string {
 	if opt != nil {
 		matched := 0
 		for _, role := range opt.Visibility {
-			if slices.Contains(RepoSearchTypeList, role) {
+			if slices.Contains(RepoVisibilityList, role) {
 				matched++
 			}
 		}
@@ -107,6 +107,43 @@ func (opt *RespositorySearchOptions) GetFilterString() string {
 		}
 	}
 	return "all"
+}
+
+func (opt *RespositorySearchOptions) Filter(repos []*github.Repository) []*github.Repository {
+	if opt == nil {
+		return repos
+	}
+	var filteredRepos []*github.Repository
+	for _, repo := range repos {
+		if opt.Fork != nil {
+			if *opt.Fork != *repo.Fork {
+				continue
+			}
+		}
+		if opt.Archived != nil {
+			if *opt.Archived != *repo.Archived {
+				continue
+			}
+		}
+		if opt.Mirror != nil {
+			hasMirror := repo.MirrorURL != nil && *repo.MirrorURL != ""
+			if *opt.Mirror != hasMirror {
+				continue
+			}
+		}
+		if opt.Template != nil {
+			if *opt.Template != *repo.IsTemplate {
+				continue
+			}
+		}
+		if opt.Visibility != nil {
+			if !slices.Contains(opt.Visibility, *repo.Visibility) {
+				continue
+			}
+		}
+		filteredRepos = append(filteredRepos, repo)
+	}
+	return filteredRepos
 }
 
 func GetRepositoryPermissions(repo *github.Repository) string {
@@ -125,6 +162,48 @@ func GetPermissionName(permissions map[string]bool) string {
 		}
 	}
 	return "none"
+}
+
+type PermissionInterface interface {
+	GetPermissions() map[string]bool
+}
+
+func HasPermission(obj PermissionInterface, roles []string) bool {
+	if obj != nil {
+		permissions := obj.GetPermissions()
+		for _, role := range roles {
+			if permissions[role] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func FilterByRepositoryPermissions(repos []*github.Repository, permissions []string) []*github.Repository {
+	if len(permissions) > 0 {
+		var filtered []*github.Repository
+		for _, r := range repos {
+			if HasPermission(r, permissions) {
+				filtered = append(filtered, r)
+			}
+		}
+		return filtered
+	}
+	return repos
+}
+
+func FilterByUserPermissions(repos []*github.User, permissions []string) []*github.User {
+	if len(permissions) > 0 {
+		var filtered []*github.User
+		for _, r := range repos {
+			if HasPermission(r, permissions) {
+				filtered = append(filtered, r)
+			}
+		}
+		return filtered
+	}
+	return repos
 }
 
 func GetTeamMembershipFilter(roles []string) string {

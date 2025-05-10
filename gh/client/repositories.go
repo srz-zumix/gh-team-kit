@@ -79,3 +79,9 @@ func (g *GitHubClient) GetRepositoryPermission(ctx context.Context, owner string
 	}
 	return permission, nil
 }
+
+// RemoveRepositoryCollaborator removes a collaborator from a specific repository.
+func (g *GitHubClient) RemoveRepositoryCollaborator(ctx context.Context, owner string, repo string, username string) error {
+	_, err := g.client.Repositories.RemoveCollaborator(ctx, owner, repo, username)
+	return err
+}

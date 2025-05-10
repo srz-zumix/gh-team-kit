@@ -23,6 +23,7 @@ func NewListCmd() *cobra.Command {
 	var repo string
 	var suspended bool
 	var affiliations []string
+	var excludeOrgAdmin bool
 
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -69,6 +70,13 @@ func NewListCmd() *cobra.Command {
 				}
 			}
 
+			if excludeOrgAdmin {
+				collaborators, err = gh.ExcludeOrganizationAdmins(ctx, client, repository, collaborators)
+				if err != nil {
+					return fmt.Errorf("failed to exclude organization admins: %w", err)
+				}
+			}
+
 			headers := []string{"USERNAME", "PERMISSION"}
 			if details {
 				headers = append(headers, "EMAIL", "SUSPENDED")
@@ -101,12 +109,14 @@ func NewListCmd() *cobra.Command {
 		},
 	}
 
+	f := cmd.Flags()
 	cmdutil.StringSliceEnumFlag(cmd, &affiliations, "affiliation", "a", nil, gh.CollaboratorAffiliationList, "List of affiliations to filter users")
-	cmd.Flags().BoolVarP(&details, "details", "d", false, "Include detailed information about members")
-	cmd.Flags().StringVarP(&repo, "repo", "R", "", "Repository in the format 'owner/name'")
-	cmd.Flags().BoolVarP(&nameOnly, "name-only", "", false, "Output only collaborator names")
+	f.BoolVarP(&excludeOrgAdmin, "exclude-org-admin", "", false, "Exclude organization administrators from the list")
+	f.BoolVarP(&details, "details", "d", false, "Include detailed information about members")
+	f.StringVarP(&repo, "repo", "R", "", "Repository in the format 'owner/name'")
+	f.BoolVarP(&nameOnly, "name-only", "", false, "Output only collaborator names")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.PermissionsList, "List of permissions to filter users")
-	cmd.Flags().BoolVarP(&suspended, "suspended", "", false, "Output only suspended members")
+	f.BoolVarP(&suspended, "suspended", "", false, "Output only suspended members")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

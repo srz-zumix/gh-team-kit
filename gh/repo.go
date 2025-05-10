@@ -57,37 +57,38 @@ func ListTeamRepos(ctx context.Context, g *GitHubClient, repo repository.Reposit
 		}
 	}
 
-	if len(roles) > 0 {
-		var filteredRepos []*github.Repository
-		for _, r := range repos {
-			for _, role := range roles {
-				if r.Permissions[role] {
-					filteredRepos = append(filteredRepos, r)
-					break
-				}
-			}
-		}
-		return filteredRepos, nil
-	}
-	return repos, nil
+	return FilterByRepositoryPermissions(repos, roles), nil
 }
 
-func ListUserAccessableRepositories(ctx context.Context, g *GitHubClient, repo repository.Repository, username string, permissions []string, opt *RespositorySearchOptions) ([]*github.Repository, error) {
+func ListUserAccessableRepositories(ctx context.Context, g *GitHubClient, repo repository.Repository, username string, roles []string, opt *RespositorySearchOptions) ([]*github.Repository, error) {
 	if username == "" {
 		return nil, nil
 	}
 
-	repos, err := g.ListOrganizationRepositories(ctx, repo.Owner, "all")
+	repos, err := g.ListOrganizationRepositories(ctx, repo.Owner, opt.GetFilterString())
 	if err != nil {
 		return nil, err
 	}
 
-	// var filteredRepos []*github.Repository
-	// for _, r := range repos {
-	// 	if r.RoleName == nil {
-	// 	}
-	// }
-	return repos, nil
+	repos = opt.Filter(repos)
+
+	var filteredRepos []*github.Repository
+	for _, r := range repos {
+		permissions, err := g.GetRepositoryPermission(ctx, *r.Owner.Login, *r.Name, username)
+		if err != nil {
+			return nil, err
+		}
+		if permissions == nil || *permissions.Permission == "none" {
+			continue
+		}
+
+		if len(roles) == 0 || HasPermission(permissions.User, roles) {
+			r.RoleName = permissions.RoleName
+			r.Permissions = permissions.User.Permissions
+			filteredRepos = append(filteredRepos, r)
+		}
+	}
+	return filteredRepos, nil
 }
 
 // ListRepositoryCollaborators retrieves all collaborators for a specific repository.
@@ -96,19 +97,13 @@ func ListRepositoryCollaborators(ctx context.Context, g *GitHubClient, repo repo
 	if err != nil {
 		return nil, fmt.Errorf("failed to list collaborators for repository %s/%s: %w", repo.Owner, repo.Name, err)
 	}
-	if len(roles) > 0 {
-		var filteredCollaborators []*github.User
-		for _, c := range collaborators {
-			for _, role := range roles {
-				if c.Permissions[role] {
-					filteredCollaborators = append(filteredCollaborators, c)
-					break
-				}
-			}
-		}
-		return filteredCollaborators, nil
-	}
-	return collaborators, nil
+
+	return FilterByUserPermissions(collaborators, roles), nil
+}
+
+// RemoveRepositoryCollaborator removes a collaborator from a specific repository.
+func RemoveRepositoryCollaborator(ctx context.Context, g *GitHubClient, repo repository.Repository, username string) error {
+	return g.RemoveRepositoryCollaborator(ctx, repo.Owner, repo.Name, username)
 }
 
 // GetRepositoryPermission retrieves the permission level of a user for a specific repository.

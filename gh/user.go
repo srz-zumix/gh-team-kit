@@ -3,7 +3,9 @@ package gh
 import (
 	"context"
 	"reflect"
+	"slices"
 
+	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/google/go-github/v71/github"
 )
 
@@ -35,4 +37,21 @@ func CollectSuspendedUsers(users []*github.User) []*github.User {
 		}
 	}
 	return suspendedUsers
+}
+
+func ExcludeOrganizationAdmins(ctx context.Context, g *GitHubClient, repo repository.Repository, users []*github.User) ([]*github.User, error) {
+	admins, err := ListOrgMembers(ctx, g, repo, []string{"admin"}, false)
+	if err != nil {
+		return nil, err
+	}
+	var filteredUsers []*github.User
+	for _, user := range users {
+		if slices.ContainsFunc(admins, func(admin *github.User) bool {
+			return *admin.ID == *user.ID
+		}) {
+			continue
+		}
+		filteredUsers = append(filteredUsers, user)
+	}
+	return filteredUsers, nil
 }

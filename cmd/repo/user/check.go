@@ -4,13 +4,19 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
 )
 
+type CheckOptions struct {
+	Exporter cmdutil.Exporter
+}
+
 // NewCheckCmd creates a new `user check` command
 func NewCheckCmd() *cobra.Command {
+	opts := &CheckOptions{}
 	var exitCode bool
 	var repo string
 
@@ -42,6 +48,13 @@ func NewCheckCmd() *cobra.Command {
 				return fmt.Errorf("error checking repository permission for user '%s': %w", username, err)
 			}
 
+			if opts.Exporter != nil {
+				if err := client.Write(opts.Exporter, permission); err != nil {
+					return fmt.Errorf("error exporting team permission: %w", err)
+				}
+				return nil
+			}
+
 			if permission != nil {
 				fmt.Printf("%s\n", *permission.Permission)
 			} else {
@@ -58,6 +71,7 @@ func NewCheckCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&exitCode, "exit-code", false, "Return an exit code of 1 if the user has no permissions")
 	cmd.Flags().StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
+	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd
 }
