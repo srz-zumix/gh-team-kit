@@ -7,13 +7,13 @@ import (
 	"github.com/google/go-github/v71/github"
 )
 
-// Diff represents the diff between two repositories.
-type Diff struct {
+// RepositoryPermissionsDiff represents the diff between two repositories.
+type RepositoryPermissionsDiff struct {
 	Left  *github.Repository
 	Right *github.Repository
 }
 
-func (d *Diff) GetName() string {
+func (d *RepositoryPermissionsDiff) GetName() string {
 	if d.Left != nil {
 		return *d.Left.Name
 	}
@@ -23,7 +23,7 @@ func (d *Diff) GetName() string {
 	return ""
 }
 
-func (d *Diff) GetFullName() string {
+func (d *RepositoryPermissionsDiff) GetFullName() string {
 	if d.Left != nil {
 		return *d.Left.FullName
 	}
@@ -33,7 +33,7 @@ func (d *Diff) GetFullName() string {
 	return ""
 }
 
-func (d *Diff) GetDiffLines(leftTeamSlug, rightTeamSlug string) string {
+func (d *RepositoryPermissionsDiff) GetDiffLines(leftTeamSlug, rightTeamSlug string) string {
 	var diff string
 	fullName := d.GetFullName()
 	leftPerm := GetRepositoryPermissions(d.Left)
@@ -56,9 +56,9 @@ func (d *Diff) GetDiffLines(leftTeamSlug, rightTeamSlug string) string {
 	return diff
 }
 
-type Diffs []Diff
+type RepositoryPermissionsDiffs []RepositoryPermissionsDiff
 
-func (d Diffs) Left() []*github.Repository {
+func (d RepositoryPermissionsDiffs) Left() []*github.Repository {
 	var repos []*github.Repository
 	for _, diff := range d {
 		if diff.Left != nil {
@@ -68,7 +68,7 @@ func (d Diffs) Left() []*github.Repository {
 	return repos
 }
 
-func (d Diffs) Right() []*github.Repository {
+func (d RepositoryPermissionsDiffs) Right() []*github.Repository {
 	var repos []*github.Repository
 	for _, diff := range d {
 		if diff.Right != nil {
@@ -78,7 +78,7 @@ func (d Diffs) Right() []*github.Repository {
 	return repos
 }
 
-func (d Diffs) GetDiffLines(leftTeamSlug, rightTeamSlug string) string {
+func (d RepositoryPermissionsDiffs) GetDiffLines(leftTeamSlug, rightTeamSlug string) string {
 	var diffLines string
 	for _, diff := range d {
 		diffLines += diff.GetDiffLines(leftTeamSlug, rightTeamSlug)
@@ -86,19 +86,19 @@ func (d Diffs) GetDiffLines(leftTeamSlug, rightTeamSlug string) string {
 	return diffLines
 }
 
-func CompareRepository(left, right *github.Repository) *Diff {
+func CompareRepository(left, right *github.Repository) *RepositoryPermissionsDiff {
 	if GetRepositoryPermissions(left) == GetRepositoryPermissions(right) {
 		return nil
 	}
-	diff := Diff{
+	diff := RepositoryPermissionsDiff{
 		Left:  left,
 		Right: right,
 	}
 	return &diff
 }
 
-func CompareRepositories(left, right []*github.Repository) Diffs {
-	var diffs []Diff
+func CompareRepositories(left, right []*github.Repository) RepositoryPermissionsDiffs {
+	var diffs RepositoryPermissionsDiffs
 	rightMap := make(map[string]*github.Repository)
 
 	// Map right repositories by their name
@@ -123,7 +123,7 @@ func CompareRepositories(left, right []*github.Repository) Diffs {
 
 	// Add remaining repositories in rightMap as differences
 	for _, r := range rightMap {
-		diffs = append(diffs, Diff{
+		diffs = append(diffs, RepositoryPermissionsDiff{
 			Left:  nil,
 			Right: r,
 		})

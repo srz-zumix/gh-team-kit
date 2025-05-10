@@ -5,19 +5,23 @@ import (
 	"github.com/srz-zumix/gh-team-kit/cmd/member"
 )
 
-func init() {
-	memberCmd := &cobra.Command{
+func NewMemberCmd() *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "member",
 		Short: "Manage team members",
 		Long:  `Manage team members with various subcommands, such as adding, removing, and listing members.`,
 	}
 
 	// Add subcommands to the member command
-	memberCmd.AddCommand(member.NewAddCmd())
-	memberCmd.AddCommand(member.NewCheckCmd())
-	memberCmd.AddCommand(member.NewListCmd())
-	memberCmd.AddCommand(member.NewRemoveCmd())
-	memberCmd.AddCommand(member.NewRoleCmd())
+	cmd.AddCommand(member.NewAddCmd())
+	cmd.AddCommand(member.NewCheckCmd())
+	cmd.AddCommand(member.NewListCmd())
+	cmd.AddCommand(member.NewRemoveCmd())
+	cmd.AddCommand(member.NewRoleCmd())
 
-	rootCmd.AddCommand(memberCmd)
+	return cmd
+}
+
+func init() {
+	rootCmd.AddCommand(NewMemberCmd())
 }

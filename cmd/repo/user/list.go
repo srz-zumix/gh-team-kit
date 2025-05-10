@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
+	"github.com/srz-zumix/gh-team-kit/render"
 )
 
 type ListOptions struct {
@@ -46,17 +46,9 @@ func NewListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list collaborators for repository %s: %w", repo, err)
 			}
 
-			if opts.Exporter != nil {
-				if err := client.Write(opts.Exporter, collaborators); err != nil {
-					return fmt.Errorf("error exporting collaborators: %w", err)
-				}
-				return nil
-			}
-
+			renderer := render.NewRenderer(opts.Exporter)
 			if nameOnly {
-				for _, collaborator := range collaborators {
-					fmt.Println(collaborator.Login)
-				}
+				renderer.RenderNames(collaborators)
 				return nil
 			}
 
@@ -77,34 +69,11 @@ func NewListCmd() *cobra.Command {
 				}
 			}
 
-			headers := []string{"USERNAME", "PERMISSION"}
 			if details {
-				headers = append(headers, "EMAIL", "SUSPENDED")
+				renderer.RenderUserDetails(collaborators)
+			} else {
+				renderer.RenderUser(collaborators)
 			}
-			table := tablewriter.NewWriter(cmd.OutOrStdout())
-			table.SetHeader(headers)
-
-			for _, collaborator := range collaborators {
-				row := []string{
-					*collaborator.Login,
-					gh.GetPermissionName(collaborator.Permissions),
-				}
-				if details {
-					if collaborator.Email != nil {
-						row = append(row, *collaborator.Email)
-					} else {
-						row = append(row, "")
-					}
-					if collaborator.SuspendedAt != nil {
-						row = append(row, "Yes")
-					} else {
-						row = append(row, "No")
-					}
-				}
-				table.Append(row)
-			}
-			table.Render()
-
 			return nil
 		},
 	}

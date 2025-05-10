@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
+	"github.com/srz-zumix/gh-team-kit/render"
 )
 
 type CheckOptions struct {
@@ -48,21 +49,12 @@ func NewCheckCmd() *cobra.Command {
 				return fmt.Errorf("error checking repository permission for user '%s': %w", username, err)
 			}
 
-			if opts.Exporter != nil {
-				if err := client.Write(opts.Exporter, permission); err != nil {
-					return fmt.Errorf("error exporting team permission: %w", err)
-				}
-				return nil
-			}
+			renderer := render.NewRenderer(opts.Exporter)
+			renderer.RenderPermission(permission)
 
-			if permission != nil {
-				fmt.Printf("%s\n", *permission.Permission)
-			} else {
-				fmt.Printf("none\n")
-				if exitCode {
-					cmd.SilenceErrors = true
-					return fmt.Errorf("user '%s' has no permissions for the repository", username)
-				}
+			if permission != nil && exitCode {
+				cmd.SilenceErrors = true
+				return fmt.Errorf("user '%s' has no permissions for the repository", username)
 			}
 
 			return nil

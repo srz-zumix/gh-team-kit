@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
+	"github.com/srz-zumix/gh-team-kit/render"
 )
 
 type AddOptions struct {
@@ -44,10 +45,9 @@ func NewAddCmd() *cobra.Command {
 				return fmt.Errorf("failed to add member to team: %w", err)
 			}
 
+			renderer := render.NewRenderer(opts.Exporter)
 			if opts.Exporter != nil {
-				if err := client.Write(opts.Exporter, membership); err != nil {
-					return fmt.Errorf("error exporting membership: %w", err)
-				}
+				renderer.RenderExportedData(membership)
 				return nil
 			}
 

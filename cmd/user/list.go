@@ -7,10 +7,10 @@ import (
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/google/go-github/v71/github"
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
+	"github.com/srz-zumix/gh-team-kit/render"
 )
 
 type ListOptions struct {
@@ -54,6 +54,12 @@ func NewListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list organization members: %w", err)
 			}
 
+			renderer := render.NewRenderer(opts.Exporter)
+			if nameOnly {
+				renderer.RenderNames(members)
+				return nil
+			}
+
 			if details {
 				members, err = gh.UpdateUsers(ctx, client, members)
 				if err != nil {
@@ -66,47 +72,11 @@ func NewListCmd() *cobra.Command {
 				}
 			}
 
-			if opts.Exporter != nil {
-				if err := client.Write(opts.Exporter, members); err != nil {
-					return fmt.Errorf("error exporting organization members: %w", err)
-				}
-				return nil
-			}
-
-			if nameOnly {
-				for _, member := range members {
-					fmt.Println(*member.Login)
-				}
-				return nil
-			}
-
-			headers := []string{"USERNAME", "ROLE"}
 			if details {
-				headers = append(headers, "EMAIL", "SUSPENDED")
+				renderer.RenderUserDetails(members)
+			} else {
+				renderer.RenderUser(members)
 			}
-			table := tablewriter.NewWriter(cmd.OutOrStdout())
-			table.SetHeader(headers)
-
-			for _, member := range members {
-				row := []string{
-					*member.Login,
-					*member.RoleName,
-				}
-				if details {
-					if member.Email != nil {
-						row = append(row, *member.Email)
-					} else {
-						row = append(row, "")
-					}
-					if member.SuspendedAt != nil {
-						row = append(row, "Yes")
-					} else {
-						row = append(row, "No")
-					}
-				}
-				table.Append(row)
-			}
-			table.Render()
 			return nil
 		},
 	}

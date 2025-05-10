@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
+	"github.com/srz-zumix/gh-team-kit/render"
 )
 
 type ListOptions struct {
@@ -17,6 +17,7 @@ type ListOptions struct {
 
 func NewListCmd() *cobra.Command {
 	opts := &ListOptions{}
+	var nameOnly bool
 	var noInherit bool
 	var owner string
 	var roles []string
@@ -44,31 +45,18 @@ func NewListCmd() *cobra.Command {
 				return fmt.Errorf("failed to list team repositories: %w", err)
 			}
 
-			if opts.Exporter != nil {
-				if err := client.Write(opts.Exporter, repos); err != nil {
-					return fmt.Errorf("error exporting teams: %w", err)
-				}
-				return nil
+			renderer := render.NewRenderer(opts.Exporter)
+			if nameOnly {
+				renderer.RenderNames(repos)
+			} else {
+				renderer.RenderRepository(repos)
 			}
-
-			headers := []string{"NAME", "PERMISSION"}
-			table := tablewriter.NewWriter(cmd.OutOrStdout())
-			table.SetHeader(headers)
-
-			for _, repo := range repos {
-				permission := gh.GetRepositoryPermissions(repo)
-				row := []string{
-					*repo.FullName,
-					permission,
-				}
-				table.Append(row)
-			}
-			table.Render()
 			return nil
 		},
 	}
 
 	f := cmd.Flags()
+	f.BoolVarP(&nameOnly, "name-only", "", false, "Output only repository names")
 	f.BoolVar(&noInherit, "no-inherit", false, "Disable inherited permissions")
 	f.StringVarP(&owner, "owner", "", "", "The owner of the team")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.PermissionsList, "List of permissions to filter repositories")

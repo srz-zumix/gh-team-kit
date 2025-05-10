@@ -5,20 +5,24 @@ import (
 	"github.com/srz-zumix/gh-team-kit/cmd/user"
 )
 
-func init() {
-	userCmd := &cobra.Command{
+func NewUserCmd() *cobra.Command {
+	cmd := &cobra.Command{
 		Use:   "user",
 		Short: "Manage users",
 		Long:  `Manage users in the organization.`,
 	}
 
 	// Add subcommands to the user command
-	userCmd.AddCommand(user.NewAddCmd())
-	userCmd.AddCommand(user.NewCheckCmd())
-	userCmd.AddCommand(user.NewListCmd())
-	userCmd.AddCommand(user.NewRemoveCmd())
-	userCmd.AddCommand(user.NewRepoCmd())
-	userCmd.AddCommand(user.NewRoleCmd())
+	cmd.AddCommand(user.NewAddCmd())
+	cmd.AddCommand(user.NewCheckCmd())
+	cmd.AddCommand(user.NewListCmd())
+	cmd.AddCommand(user.NewRemoveCmd())
+	cmd.AddCommand(user.NewRepoCmd())
+	cmd.AddCommand(user.NewRoleCmd())
 
-	rootCmd.AddCommand(userCmd)
+	return cmd
+}
+
+func init() {
+	rootCmd.AddCommand(NewUserCmd())
 }

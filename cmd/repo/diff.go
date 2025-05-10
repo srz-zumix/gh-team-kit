@@ -9,11 +9,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
+	"github.com/srz-zumix/gh-team-kit/render"
 )
 
 type DiffOptions struct {
 	Exporter cmdutil.Exporter
-	Color    bool
 }
 
 var colorFlag string
@@ -58,12 +58,6 @@ func NewDiffCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			if colorFlag == "always" || (colorFlag == "auto" && client.IO.ColorEnabled()) {
-				opts.Color = true
-			} else {
-				opts.Color = false
-			}
-
 			ctx := context.Background()
 
 			teams1, err := gh.ListRepositoryTeams(ctx, client, repo1Parsed)
@@ -87,18 +81,9 @@ func NewDiffCmd() *cobra.Command {
 				return fmt.Errorf("error comparing team permissions: %w", err)
 			}
 
-			if opts.Exporter != nil {
-				if err := client.Write(opts.Exporter, differences); err != nil {
-					return fmt.Errorf("error exporting differences: %w", err)
-				}
-				return nil
-			}
-
-			if opts.Color {
-				fmt.Printf("%s", parser.ColorizeDiff(differences.GetDiffLines(repo1Parsed, repo2Parsed)))
-			} else {
-				fmt.Printf("%s", differences.GetDiffLines(repo1Parsed, repo2Parsed))
-			}
+			renderer := render.NewRenderer(opts.Exporter)
+			renderer.SetColor(colorFlag)
+			renderer.RenderDiff(differences, repo1Parsed, repo2Parsed)
 
 			if exitCode && len(differences) > 0 {
 				cmd.SilenceErrors = true

@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
+	"github.com/srz-zumix/gh-team-kit/render"
 )
 
 type RepoOptions struct {
@@ -98,34 +98,12 @@ func NewRepoCmd() *cobra.Command {
 				return fmt.Errorf("failed to list repositories for user '%s': %w", username, err)
 			}
 
-			if opts.Exporter != nil {
-				if err := client.Write(opts.Exporter, repos); err != nil {
-					return fmt.Errorf("failed to export repositories: %w", err)
-				}
-				return nil
-			}
-
+			renderer := render.NewRenderer(opts.Exporter)
 			if nameOnly {
-				for _, repo := range repos {
-					fmt.Println(repo.GetName())
-				}
-				return nil
+				renderer.RenderNames(repos)
+			} else {
+				renderer.RenderRepository(repos)
 			}
-
-			headers := []string{"NAME", "PERMISSION", "VISIBILITY"}
-			table := tablewriter.NewWriter(cmd.OutOrStdout())
-			table.SetHeader(headers)
-
-			for _, repo := range repos {
-				permission := gh.GetRepositoryPermissions(repo)
-				row := []string{
-					*repo.FullName,
-					permission,
-					*repo.Visibility,
-				}
-				table.Append(row)
-			}
-			table.Render()
 			return nil
 		},
 	}

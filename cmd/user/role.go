@@ -11,6 +11,7 @@ import (
 
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
+	"github.com/srz-zumix/gh-team-kit/render"
 )
 
 // RoleOptions holds options for the role command
@@ -57,10 +58,9 @@ func NewRoleCmd() *cobra.Command {
 				return fmt.Errorf("error updating user role: %w", err)
 			}
 
+			renderer := render.NewRenderer(opts.Exporter)
 			if opts.Exporter != nil {
-				if err := client.Write(opts.Exporter, user); err != nil {
-					return fmt.Errorf("error exporting user: %w", err)
-				}
+				renderer.RenderExportedData(user)
 				return nil
 			}
 
