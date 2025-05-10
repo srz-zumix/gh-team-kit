@@ -26,18 +26,13 @@ func (g *GitHubClient) ListRepositoryTeams(ctx context.Context, owner string, re
 	return allTeams, nil
 }
 
-// ListUserRepositories retrieves all repositories associated with a specific user.
-func (g *GitHubClient) ListUserRepositories(ctx context.Context, username string, repoType string) ([]*github.Repository, error) {
+// ListOrganizationRepositories retrieves all repositories for a specific organization.
+func (g *GitHubClient) ListOrganizationRepositories(ctx context.Context, org string, repoType string) ([]*github.Repository, error) {
 	var allRepos []*github.Repository
-	opt := &github.RepositoryListByUserOptions{
-		Type: repoType,
-		ListOptions: github.ListOptions{
-			PerPage: 50,
-		},
-	}
+	opt := &github.RepositoryListByOrgOptions{Type: repoType, ListOptions: github.ListOptions{PerPage: 50}}
 
 	for {
-		repos, resp, err := g.client.Repositories.ListByUser(ctx, username, opt)
+		repos, resp, err := g.client.Repositories.ListByOrg(ctx, org, opt)
 		if err != nil {
 			return nil, err
 		}
@@ -49,4 +44,29 @@ func (g *GitHubClient) ListUserRepositories(ctx context.Context, username string
 	}
 
 	return allRepos, nil
+}
+
+// ListRepositoryCollaborators retrieves all collaborators for a specific repository.
+func (g *GitHubClient) ListRepositoryCollaborators(ctx context.Context, owner string, repo string, affiliation string) ([]*github.User, error) {
+	var allCollaborators []*github.User
+	opt := &github.ListCollaboratorsOptions{
+		Affiliation: affiliation,
+		ListOptions: github.ListOptions{
+			PerPage: 50,
+		},
+	}
+
+	for {
+		collaborators, resp, err := g.client.Repositories.ListCollaborators(ctx, owner, repo, opt)
+		if err != nil {
+			return nil, err
+		}
+		allCollaborators = append(allCollaborators, collaborators...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	return allCollaborators, nil
 }

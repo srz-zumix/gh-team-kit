@@ -33,7 +33,11 @@ func NewRemoveCmd() *cobra.Command {
 				return fmt.Errorf("failed to create GitHub client: %w", err)
 			}
 
-			return gh.RemoveOrgMember(ctx, client, repository, username)
+			if err = gh.RemoveOrgMember(ctx, client, repository, username); err != nil {
+				return fmt.Errorf("failed to remove organization membership: %w", err)
+			}
+			fmt.Printf("Successfully removed user '%s' from the organization.\n", username)
+			return nil
 		},
 	}
 

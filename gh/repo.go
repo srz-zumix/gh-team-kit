@@ -2,6 +2,7 @@ package gh
 
 import (
 	"context"
+	"fmt"
 	"slices"
 
 	"github.com/cli/go-gh/v2/pkg/repository"
@@ -71,10 +72,41 @@ func ListTeamRepos(ctx context.Context, g *GitHubClient, repo repository.Reposit
 	return repos, nil
 }
 
-// ListUserRepositories is a wrapper function to retrieve all repositories associated with a specific user.
-func ListUserRepositories(ctx context.Context, g *GitHubClient, username string, types []string) ([]*github.Repository, error) {
+func ListUserAccessableRepositories(ctx context.Context, g *GitHubClient, repo repository.Repository, username string, permissions []string, opt *RespositorySearchOptions) ([]*github.Repository, error) {
 	if username == "" {
 		return nil, nil
 	}
-	return g.ListUserRepositories(ctx, username, GetUserRepositoryTypeFilter(types))
+
+	repos, err := g.ListOrganizationRepositories(ctx, repo.Owner, "all")
+	if err != nil {
+		return nil, err
+	}
+
+	// var filteredRepos []*github.Repository
+	// for _, r := range repos {
+	// 	if r.RoleName == nil {
+	// 	}
+	// }
+	return repos, nil
+}
+
+// ListRepositoryCollaborators retrieves all collaborators for a specific repository.
+func ListRepositoryCollaborators(ctx context.Context, g *GitHubClient, repo repository.Repository, affiliations []string, roles []string) ([]*github.User, error) {
+	collaborators, err := g.ListRepositoryCollaborators(ctx, repo.Owner, repo.Name, GetCollaboratorAffiliationsFilter(affiliations))
+	if err != nil {
+		return nil, fmt.Errorf("failed to list collaborators for repository %s/%s: %w", repo.Owner, repo.Name, err)
+	}
+	if len(roles) > 0 {
+		var filteredCollaborators []*github.User
+		for _, c := range collaborators {
+			for _, role := range roles {
+				if c.Permissions[role] {
+					filteredCollaborators = append(filteredCollaborators, c)
+					break
+				}
+			}
+		}
+		return filteredCollaborators, nil
+	}
+	return collaborators, nil
 }

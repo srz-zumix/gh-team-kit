@@ -23,6 +23,3 @@ func Execute() {
 		os.Exit(1)
 	}
 }
-
-func init() {
-}

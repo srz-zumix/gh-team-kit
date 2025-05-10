@@ -23,12 +23,12 @@ func NewAddCmd() *cobra.Command {
 				return err
 			}
 			permission := args[1]
-			for _, valid := range gh.TeamPermissionsList {
+			for _, valid := range gh.PermissionsList {
 				if permission == valid {
 					return nil
 				}
 			}
-			return fmt.Errorf("invalid permission '%s', valid permissions are: {%s}", permission, strings.Join(gh.TeamPermissionsList, "|"))
+			return fmt.Errorf("invalid permission '%s', valid permissions are: {%s}", permission, strings.Join(gh.PermissionsList, "|"))
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			teamSlug := args[0]

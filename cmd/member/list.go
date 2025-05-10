@@ -3,10 +3,8 @@ package member
 import (
 	"context"
 	"fmt"
-	"slices"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
-	"github.com/google/go-github/v71/github"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
@@ -57,9 +55,7 @@ func NewListCmd() *cobra.Command {
 					return fmt.Errorf("failed to update users: %w", err)
 				}
 				if suspended {
-					members = slices.DeleteFunc(members, func(member *github.User) bool {
-						return member.SuspendedAt == nil
-					})
+					members = gh.CollectSuspendedUsers(members)
 				}
 			}
 
@@ -108,11 +104,11 @@ func NewListCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVarP(&details, "details", "", false, "Include detailed information about members")
+	cmd.Flags().BoolVarP(&details, "details", "d", false, "Include detailed information about members")
 	cmd.Flags().BoolVarP(&nameOnly, "name-only", "", false, "Output only member names")
 	cmd.Flags().StringVarP(&owner, "owner", "", "", "The owner of the team")
 	cmd.Flags().BoolVarP(&suspended, "suspended", "", false, "Output only suspended members")
-	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "", nil, gh.TeamMembershipList, "List of roles to filter members")
+	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.TeamMembershipList, "List of roles to filter members")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

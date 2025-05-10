@@ -6,11 +6,17 @@
 
 ## cmd
 
+* 新しいコマンドを作成する場合は他のコマンドの実装を参照し、書き方など踏襲してください
 * オプションは基本的に変数で受け取ります
 * RunE で処理を実装します
 * Args で引数の検証をします
 * gh/*.go のラッパー関数を呼び出し、cmd package では github package を import しなくても良い設計にします
 * エラーの場合はどういう操作をしようとしてエラーになったかメッセージに含めるようにしてください
+* cmd/root.go は変更してはいけません
+* cmd/**/*.go のサブコマンドは cobra.Command を return する関数を定義し、その中でコマンド実装してください
+  * コマンドの登録は親コマンドの .go ファイルで行います
+  * 関数名は New<コマンド名>Cmd としてください。例えば list コマンドであれば NewListCmd 、add コマンドであれば NewAddCmd となります
+* owner もしくは repo オプションはオプショナルです。文字列が空の場合の処理は不要です
 
 ## gh package
 
@@ -38,3 +44,4 @@
 ## コーディング規約
 
 * fmt.Errorf: error strings should not end with punctuation or newlines (ST1005) go-staticcheck
+* ローカルパッケージは github.com/srz-zumix/gh-team-kit/<path/to/dir> で import

@@ -19,6 +19,7 @@ func init() {
 	repoCmd.AddCommand(repo.NewListCmd())
 	repoCmd.AddCommand(repo.NewRemoveCmd())
 	repoCmd.AddCommand(repo.NewSyncCmd())
+	repoCmd.AddCommand(repo.NewUserCmd())
 
 	rootCmd.AddCommand(repoCmd)
 }

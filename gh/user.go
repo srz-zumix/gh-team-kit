@@ -26,3 +26,13 @@ func UpdateUsers(ctx context.Context, g *GitHubClient, users []*github.User) ([]
 	}
 	return users, nil
 }
+
+func CollectSuspendedUsers(users []*github.User) []*github.User {
+	var suspendedUsers []*github.User
+	for _, user := range users {
+		if user.SuspendedAt != nil {
+			suspendedUsers = append(suspendedUsers, user)
+		}
+	}
+	return suspendedUsers
+}
