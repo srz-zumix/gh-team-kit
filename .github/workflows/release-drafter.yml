@@ -36,3 +36,9 @@ jobs:
           publish: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update_release:
+    needs: publish_release
+    uses: ./.github/workflows/release.yml
+    with:
+      ref: ${{ needs.publish_release.outputs.tag_name }}
