@@ -83,7 +83,7 @@ func NewListCmd() *cobra.Command {
 			if details {
 				renderer.RenderUserDetails(collaborators)
 			} else {
-				renderer.RenderUser(collaborators)
+				renderer.RenderUserWithRole(collaborators)
 			}
 			return nil
 		},

@@ -13,6 +13,7 @@ import (
 
 type SetsOptions struct {
 	Exporter cmdutil.Exporter
+	Sets     gh.SetsOperationFunc
 }
 
 // NewSetsCmd creates the `member sets` command
@@ -25,19 +26,20 @@ func NewSetsCmd() *cobra.Command {
 	var suspended, noSuspended bool
 
 	cmd := &cobra.Command{
-		Use:   "sets <team-slug1> <+|*|-> <team-slug2>",
+		Use:   "sets <[owner]/team-slug1> <|,&,-,^> <[owner]/team-slug2>",
 		Short: "Perform set operations on two teams' members",
 		Args:  cobra.ExactArgs(3),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			operation := args[1]
-			if operation != "+" && operation != "*" && operation != "-" {
-				return fmt.Errorf("invalid operation: %s, must be one of +, *, -", operation)
+			sets, err := gh.GetSetsOperationFunc(operation)
+			if err != nil {
+				return err
 			}
+			opts.Sets = sets
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			team1 := args[0]
-			operation := args[1]
 			team2 := args[2]
 
 			if suspended || noSuspended {
@@ -47,7 +49,24 @@ func NewSetsCmd() *cobra.Command {
 				return fmt.Errorf("both 'suspended' and 'no-suspended' options cannot be true at the same time")
 			}
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			// Use TeamSlugWithOwner to parse team1 and team2
+			repo1, teamSlug1 := parser.TeamSlugWithOwner(owner, team1)
+			repo2, teamSlug2 := parser.TeamSlugWithOwner(owner, team2)
+
+			owners := []string{
+				owner,
+				repo1.Owner,
+				repo2.Owner,
+			}
+			repository, err := parser.Repository(parser.RepositoryOwners(owners))
+
+			if repo1.Owner == "" {
+				repo1.Owner = repository.Owner
+			}
+			if repo2.Owner == "" {
+				repo2.Owner = repository.Owner
+			}
+
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -58,21 +77,19 @@ func NewSetsCmd() *cobra.Command {
 				return fmt.Errorf("failed to create GitHub client: %w", err)
 			}
 
-			members1, err := gh.ListTeamMembers(ctx, client, repository, team1, roles, !nameOnly)
+			// Fetch members for team1 and team2 using the correct teamSlug
+			members1, err := gh.ListTeamMembers(ctx, client, repo1, teamSlug1, roles, !nameOnly)
 			if err != nil {
-				return fmt.Errorf("failed to list members of team %s: %w", team1, err)
+				return fmt.Errorf("failed to list members of team1 '%s': %w", team1, err)
 			}
 
-			members2, err := gh.ListTeamMembers(ctx, client, repository, team2, roles, !nameOnly)
+			members2, err := gh.ListTeamMembers(ctx, client, repo2, teamSlug2, roles, !nameOnly)
 			if err != nil {
-				return fmt.Errorf("failed to list members of team %s: %w", team2, err)
+				return fmt.Errorf("failed to list members of team2 '%s': %w", team2, err)
 			}
 
 			// Perform the set operation using PerformSetOperation
-			result, err := gh.PerformSetOperation(members1, members2, operation)
-			if err != nil {
-				return fmt.Errorf("failed to perform set operation '%s' on teams '%s' and '%s': %w", operation, team1, team2, err)
-			}
+			result := opts.Sets(members1, members2)
 
 			if details {
 				result, err = gh.UpdateUsers(ctx, client, result)
@@ -94,7 +111,7 @@ func NewSetsCmd() *cobra.Command {
 			} else if details {
 				renderer.RenderUserDetails(result)
 			} else {
-				renderer.RenderUser(result)
+				renderer.RenderUser(result, []string{"USERNAME"})
 			}
 
 			return nil

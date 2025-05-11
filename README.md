@@ -196,6 +196,14 @@ gh team-kit move <team-slug> [new-parent-slug]
 
 Change the parent of an existing team in the specified organization to a new parent team. If no new parent is specified, the team will be moved to the root level.
 
+### Perform set operations on two teams members
+
+```sh
+gh team-kit member sets <[owner]/team-slug1> <|,&,-,^> <[owner]/team-slug2>
+```
+
+Perform set operations on the members of two teams. The operation can be union (`|`), intersection (`&`), difference (`-`), or symmetric difference (`^`).
+
 ### Remove a member from a team
 
 ```sh
