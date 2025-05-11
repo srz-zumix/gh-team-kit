@@ -11,8 +11,9 @@ permissions:
   # write permission is required for autolabeler
   # otherwise, read permission is required at least
   pull-requests: write
-  # for update_docker_image
-  packages: write
+  # for release workflow
+  id-token: write
+  attestations: write
 
 jobs:
   draft_release:
