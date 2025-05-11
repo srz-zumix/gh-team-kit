@@ -12,6 +12,6 @@ func (r *Renderer) renderExportedData(data any) error {
 func (r *Renderer) RenderExportedData(data any) {
 	err := r.renderExportedData(data)
 	if err != nil {
-		fmt.Fprintf(r.IO.ErrOut, "Error rendering exported data: %v\n", err)
+		r.WriteError(err)
 	}
 }

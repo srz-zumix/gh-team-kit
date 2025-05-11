@@ -34,8 +34,12 @@ func (r *Renderer) SetColor(colorFlag string) {
 func (r *Renderer) WriteLine(line string) {
 	_, err := fmt.Fprintln(r.IO.Out, line)
 	if err != nil {
-		fmt.Fprintf(r.IO.ErrOut, "%v\n", err)
+		r.WriteError(err)
 	}
+}
+
+func (r *Renderer) WriteError(err error) {
+	fmt.Fprintf(r.IO.ErrOut, "%v\n", err) // nolint
 }
 
 func ToString(v any) string {
