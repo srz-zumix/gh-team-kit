@@ -186,7 +186,7 @@ Retrieve and display a list of repositories that a specified user has access to,
 gh team-kit repo user list
 ```
 
-List all users with access to a specified repository, including their roles and permissions.
+List all collaborators for the specified repository. You can filter the results by affiliation and role.
 
 ### Move a team to a new parent
 

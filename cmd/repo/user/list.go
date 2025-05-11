@@ -27,7 +27,8 @@ func NewListCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List direct repository collaborators",
+		Short: "List repository collaborators",
+		Long:  `List all collaborators for the specified repository. You can filter the results by affiliation and role.`,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repository, err := parser.Repository(parser.RepositoryInput(repo))
