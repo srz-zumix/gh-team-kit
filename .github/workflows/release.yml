@@ -23,5 +23,5 @@ jobs:
         with:
           generate_attestations: true
           go_version_file: go.mod
-          release_tag: ${{ inputs.ref || github.ref}}
+          release_tag: ${{ inputs.ref || github.ref }}
 
