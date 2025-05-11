@@ -3,10 +3,8 @@ package user
 import (
 	"context"
 	"fmt"
-	"slices"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
-	"github.com/google/go-github/v71/github"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
@@ -22,7 +20,7 @@ func NewListCmd() *cobra.Command {
 	var details bool
 	var nameOnly bool
 	var roles []string
-	var suspended bool
+	var suspended, noSuspended bool
 
 	cmd := &cobra.Command{
 		Use:   "list [owner]",
@@ -35,8 +33,11 @@ func NewListCmd() *cobra.Command {
 				owner = args[0]
 			}
 
-			if suspended {
+			if suspended || noSuspended {
 				details = true
+			}
+			if suspended && noSuspended {
+				return fmt.Errorf("both 'suspended' and 'no-suspended' options cannot be true at the same time")
 			}
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
@@ -66,9 +67,10 @@ func NewListCmd() *cobra.Command {
 					return fmt.Errorf("failed to update users: %w", err)
 				}
 				if suspended {
-					members = slices.DeleteFunc(members, func(member *github.User) bool {
-						return member.SuspendedAt == nil
-					})
+					members = gh.CollectSuspendedUsers(members)
+				}
+				if noSuspended {
+					members = gh.ExcludeSuspendedUsers(members)
 				}
 			}
 
@@ -84,6 +86,7 @@ func NewListCmd() *cobra.Command {
 	cmd.Flags().BoolVarP(&details, "details", "", false, "Include detailed information about members")
 	cmd.Flags().BoolVarP(&nameOnly, "name-only", "", false, "Output only member names")
 	cmd.Flags().BoolVarP(&suspended, "suspended", "", false, "Output only suspended members")
+	cmd.Flags().BoolVarP(&noSuspended, "no-suspended", "", false, "Exclude suspended members")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.OrgMembershipList, "List of roles to filter members")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

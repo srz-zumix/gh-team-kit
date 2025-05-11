@@ -21,7 +21,7 @@ func NewListCmd() *cobra.Command {
 	var nameOnly bool
 	var roles []string
 	var repo string
-	var suspended bool
+	var suspended, noSuspended bool
 	var affiliations []string
 	var excludeOrgAdmin bool
 
@@ -31,6 +31,13 @@ func NewListCmd() *cobra.Command {
 		Long:  `List all collaborators for the specified repository. You can filter the results by affiliation and role.`,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if suspended || noSuspended {
+				details = true
+			}
+			if suspended && noSuspended {
+				return fmt.Errorf("both 'suspended' and 'no-suspended' options cannot be true at the same time")
+			}
+
 			repository, err := parser.Repository(parser.RepositoryInput(repo))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
@@ -61,6 +68,9 @@ func NewListCmd() *cobra.Command {
 				if suspended {
 					collaborators = gh.CollectSuspendedUsers(collaborators)
 				}
+				if noSuspended {
+					collaborators = gh.ExcludeSuspendedUsers(collaborators)
+				}
 			}
 
 			if excludeOrgAdmin {
@@ -87,6 +97,7 @@ func NewListCmd() *cobra.Command {
 	f.BoolVarP(&nameOnly, "name-only", "", false, "Output only collaborator names")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.PermissionsList, "List of permissions to filter users")
 	f.BoolVarP(&suspended, "suspended", "", false, "Output only suspended members")
+	f.BoolVarP(&noSuspended, "no-suspended", "", false, "Exclude suspended members")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd
