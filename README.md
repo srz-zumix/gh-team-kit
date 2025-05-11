@@ -10,6 +10,19 @@ To install the tool, you can use the following command:
 gh extension install srz-zumix/gh-team-kit
 ```
 
+## Commands Overview
+
+The following commands are available in `gh-team-kit`. Each command is designed to help manage GitHub teams, repositories, and users efficiently.
+
+- **Team Management**: Create, update, delete, move, and display team hierarchies.
+- **Member Management**: Add, remove, check, and modify roles of team members.
+- **Repository Management**: Add, remove, list, and compare repositories associated with teams.
+- **User Management**: Add, remove, list, and check users in the organization or repositories.
+- **Permission Management**: Check and synchronize permissions for teams and users across repositories.
+- **Comparison Tools**: Compare teams, repositories, and permissions to identify differences.
+
+Refer to the specific command sections below for detailed usage and examples.
+
 ## Usage
 
 ### Add a member to a team

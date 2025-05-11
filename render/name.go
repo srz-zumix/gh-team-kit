@@ -26,6 +26,12 @@ func getNames(items any) []string {
 			names[i] = *item.Login
 		}
 		return names
+	case []*github.CustomOrgRoles:
+		names := make([]string, len(v))
+		for i, item := range v {
+			names[i] = *item.Name
+		}
+		return names
 	default:
 		return nil
 	}

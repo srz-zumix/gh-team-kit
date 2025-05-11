@@ -97,3 +97,75 @@ func (g *GitHubClient) UpdateTeam(ctx context.Context, owner string, teamSlug st
 	}
 	return editedTeam, nil
 }
+
+// ListOrgTeams retrieves all teams assigned to an organization.
+func (g *GitHubClient) ListOrgTeams(ctx context.Context, org string) ([]*github.Team, error) {
+	var allTeams []*github.Team
+	opt := &github.ListOptions{PerPage: 50}
+
+	for {
+		teams, resp, err := g.client.Teams.ListTeams(ctx, org, opt)
+		if err != nil {
+			return nil, err
+		}
+		allTeams = append(allTeams, teams...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	return allTeams, nil
+}
+
+// ListTeamsAssignedToOrgRole retrieves teams assigned to a specific organization role by roleID.
+func (g *GitHubClient) ListTeamsAssignedToOrgRole(ctx context.Context, org string, roleID int64) ([]*github.Team, error) {
+	var allTeams []*github.Team
+	opt := &github.ListOptions{PerPage: 50}
+
+	for {
+		teams, resp, err := g.client.Organizations.ListTeamsAssignedToOrgRole(ctx, org, roleID, opt)
+		if err != nil {
+			return nil, err
+		}
+		allTeams = append(allTeams, teams...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	return allTeams, nil
+}
+
+// ListUsersAssignedToOrgRole retrieves users assigned to a specific organization role.
+func (g *GitHubClient) ListUsersAssignedToOrgRole(ctx context.Context, org string, roleID int64) ([]*github.User, error) {
+	var allUsers []*github.User
+	opt := &github.ListOptions{
+		PerPage: 50,
+	}
+
+	for {
+		users, resp, err := g.client.Organizations.ListUsersAssignedToOrgRole(ctx, org, roleID, opt)
+		if err != nil {
+			return nil, err
+		}
+		allUsers = append(allUsers, users...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	return allUsers, nil
+}
+
+// ListOrgRoles retrieves all custom roles available in the specified organization.
+func (g *GitHubClient) ListOrgRoles(ctx context.Context, org string) (*github.OrganizationCustomRoles, error) {
+	roles, _, err := g.client.Organizations.ListRoles(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+
+	return roles, nil
+}

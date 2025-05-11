@@ -1,6 +1,8 @@
 package render
 
 import (
+	"strings"
+
 	"github.com/google/go-github/v71/github"
 	"github.com/olekukonko/tablewriter"
 )
@@ -28,6 +30,19 @@ func NewUserFieldGetters() *userFiledGetters {
 			"URL": func(user *github.User) string {
 				return ToString(user.HTMLURL)
 			},
+			"NAME": func(user *github.User) string {
+				return ToString(user.Name)
+			},
+			"TEAM": func(user *github.User) string {
+				if user.InheritedFrom == nil {
+					return ""
+				}
+				names := make([]string, len(user.InheritedFrom))
+				for i, team := range user.InheritedFrom {
+					names[i] = ToString(team.Slug)
+				}
+				return strings.Join(names, ", ")
+			},
 		},
 	}
 }
@@ -39,7 +54,7 @@ func (u *userFiledGetters) GetField(user *github.User, field string) string {
 	return ""
 }
 
-func (r *Renderer) RenderUser(users []*github.User, headers []string) {
+func (r *Renderer) RenderUsers(users []*github.User, headers []string) {
 	if r.exporter != nil {
 		r.RenderExportedData(users)
 		return
@@ -61,10 +76,10 @@ func (r *Renderer) RenderUser(users []*github.User, headers []string) {
 
 func (r *Renderer) RenderUserWithRole(users []*github.User) {
 	headers := []string{"USERNAME", "ROLE"}
-	r.RenderUser(users, headers)
+	r.RenderUsers(users, headers)
 }
 
 func (r *Renderer) RenderUserDetails(users []*github.User) {
 	headers := []string{"USERNAME", "ROLE", "EMAIL", "SUSPENDED"}
-	r.RenderUser(users, headers)
+	r.RenderUsers(users, headers)
 }
