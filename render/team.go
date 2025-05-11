@@ -7,7 +7,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-func (r *Renderer) RenderTeam(teams []*github.Team) {
+func (r *Renderer) RenderTeams(teams []*github.Team) {
 	if r.exporter != nil {
 		r.RenderExportedData(teams)
 		return

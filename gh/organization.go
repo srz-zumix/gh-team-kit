@@ -70,3 +70,54 @@ func UpdateOrgMemberRole(ctx context.Context, g *GitHubClient, repo repository.R
 	membership.User.RoleName = membership.Role
 	return membership.User, nil
 }
+
+// ListTeamsAssignedToRole retrieves teams assigned to a specific organization role.
+func ListTeamsAssignedToRole(ctx context.Context, g *GitHubClient, repo repository.Repository, role string) ([]*github.Team, error) {
+	roleID, err := GetRoleIDByName(ctx, g, repo, role)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get role ID for role '%s' in organization '%s': %w", role, repo.Owner, err)
+	}
+	teams, err := g.ListTeamsAssignedToOrgRole(ctx, repo.Owner, *roleID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list teams for role '%s' in organization '%s': %w", role, repo.Owner, err)
+	}
+	return teams, nil
+}
+
+// ListRoles retrieves all roles available in the specified organization.
+func ListOrgRoles(ctx context.Context, g *GitHubClient, repo repository.Repository) ([]*github.CustomOrgRoles, error) {
+	roles, err := g.ListOrgRoles(ctx, repo.Owner)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list roles in organization '%s': %w", repo.Owner, err)
+	}
+	return roles.CustomRepoRoles, nil
+}
+
+// GetRoleIDByName retrieves the RoleID for a given Role name in the specified organization.
+func GetRoleIDByName(ctx context.Context, g *GitHubClient, repo repository.Repository, roleName string) (*int64, error) {
+	roles, err := ListOrgRoles(ctx, g, repo)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve roles in organization '%s': %w", repo.Owner, err)
+	}
+
+	for _, role := range roles {
+		if *role.Name == roleName {
+			return role.ID, nil
+		}
+	}
+
+	return nil, fmt.Errorf("role '%s' not found in organization '%s'", roleName, repo.Owner)
+}
+
+// ListUsersAssignedToOrgRole retrieves users assigned to a specific organization role.
+func ListUsersAssignedToOrgRole(ctx context.Context, g *GitHubClient, repo repository.Repository, role string) ([]*github.User, error) {
+	roleID, err := GetRoleIDByName(ctx, g, repo, role)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get role ID for role '%s' in organization '%s': %w", role, repo.Owner, err)
+	}
+	users, err := g.ListUsersAssignedToOrgRole(ctx, repo.Owner, *roleID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list users for role '%s' in organization '%s': %w", role, repo.Owner, err)
+	}
+	return users, nil
+}

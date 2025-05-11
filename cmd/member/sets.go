@@ -28,6 +28,7 @@ func NewSetsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sets <[owner]/team-slug1> <|,&,-,^> <[owner]/team-slug2>",
 		Short: "Perform set operations on two teams' members",
+		Long:  `Perform set operations on the members of two teams. The operation can be union, intersection, difference, or symmetric difference.`,
 		Args:  cobra.ExactArgs(3),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			operation := args[1]
@@ -111,7 +112,7 @@ func NewSetsCmd() *cobra.Command {
 			} else if details {
 				renderer.RenderUserDetails(result)
 			} else {
-				renderer.RenderUser(result, []string{"USERNAME"})
+				renderer.RenderUsers(result, []string{"USERNAME"})
 			}
 
 			return nil

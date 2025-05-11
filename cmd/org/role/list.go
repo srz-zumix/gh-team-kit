@@ -1,4 +1,4 @@
-package cmd
+package role
 
 import (
 	"context"
@@ -18,19 +18,19 @@ type ListOptions struct {
 func NewListCmd() *cobra.Command {
 	opts := &ListOptions{}
 	var nameOnly bool
-	var repo string
 
-	var cmd = &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "list [owner]",
-		Short: "List all teams in the organization",
-		Long:  `Retrieve and display a list of all teams in the specified organization. You can optionally filter the results by repository.`,
+		Short: "List roles in the organization",
+		Long:  `List all roles available in the organization.`,
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			owner := ""
+			var owner string
 			if len(args) > 0 {
 				owner = args[0]
 			}
-			repository, err := parser.Repository(parser.RepositoryOwner(owner), parser.RepositoryInput(repo))
+
+			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -41,28 +41,23 @@ func NewListCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			teams, err := gh.ListTeams(ctx, client, repository)
+			roles, err := gh.ListOrgRoles(ctx, client, repository)
 			if err != nil {
-				return fmt.Errorf("error retrieving teams: %w", err)
+				return fmt.Errorf("failed to list roles for owner '%s': %w", owner, err)
 			}
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if nameOnly {
-				renderer.RenderNames(teams)
+				renderer.RenderNames(roles)
 			} else {
-				renderer.RenderTeams(teams)
+				renderer.RenderCustomOrgRoles(roles)
 			}
 			return nil
 		},
 	}
 
+	f := cmd.Flags()
+	f.BoolVarP(&nameOnly, "name-only", "", false, "Output only role names")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
-	cmd.Flags().BoolVarP(&nameOnly, "name-only", "", false, "Output only team names")
-	cmd.Flags().StringVarP(&repo, "repo", "R", "", "Specify a repository to filter teams")
-
 	return cmd
-}
-
-func init() {
-	rootCmd.AddCommand(NewListCmd())
 }
