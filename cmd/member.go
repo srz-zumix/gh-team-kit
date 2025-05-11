@@ -18,6 +18,7 @@ func NewMemberCmd() *cobra.Command {
 	cmd.AddCommand(member.NewListCmd())
 	cmd.AddCommand(member.NewRemoveCmd())
 	cmd.AddCommand(member.NewRoleCmd())
+	cmd.AddCommand(member.NewSetsCmd())
 
 	return cmd
 }
