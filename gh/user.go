@@ -39,6 +39,16 @@ func CollectSuspendedUsers(users []*github.User) []*github.User {
 	return suspendedUsers
 }
 
+func ExcludeSuspendedUsers(users []*github.User) []*github.User {
+	var suspendedUsers []*github.User
+	for _, user := range users {
+		if user.SuspendedAt == nil {
+			suspendedUsers = append(suspendedUsers, user)
+		}
+	}
+	return suspendedUsers
+}
+
 func ExcludeOrganizationAdmins(ctx context.Context, g *GitHubClient, repo repository.Repository, users []*github.User) ([]*github.User, error) {
 	admins, err := ListOrgMembers(ctx, g, repo, []string{"admin"}, false)
 	if err != nil {
