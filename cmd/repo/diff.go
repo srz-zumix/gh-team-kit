@@ -3,30 +3,45 @@ package repo
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
+	"github.com/srz-zumix/gh-team-kit/render"
 )
 
 type DiffOptions struct {
 	Exporter cmdutil.Exporter
-	Color    bool
 }
 
 var colorFlag string
 
 func NewDiffCmd() *cobra.Command {
 	opts := &DiffOptions{}
+	var exitCode bool
+	var owner string
 
 	cmd := &cobra.Command{
 		Use:   "diff <repo1> <repo2> [team-slug...]",
 		Short: "Compare team permissions between two repositories",
+		Long:  `Compare team permissions between two repositories. The repositories can be specified by their full name (owner/repo) or just the repo name if the owner is provided as a flag.`,
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repo1 := args[0]
 			repo2 := args[1]
+
+			if exitCode {
+				cmd.SilenceUsage = true
+			}
+
+			if !strings.Contains(repo1, "/") {
+				repo1 = fmt.Sprintf("%s/%s", owner, repo1)
+			}
+			if !strings.Contains(repo2, "/") {
+				repo2 = fmt.Sprintf("%s/%s", owner, repo2)
+			}
 
 			repo1Parsed, err := parser.Repository(parser.RepositoryInput(repo1))
 			if err != nil {
@@ -41,12 +56,6 @@ func NewDiffCmd() *cobra.Command {
 			client, err := gh.NewGitHubClientWithRepo(repo1Parsed)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
-			}
-
-			if colorFlag == "always" || (colorFlag == "auto" && client.IO.ColorEnabled()) {
-				opts.Color = true
-			} else {
-				opts.Color = false
 			}
 
 			ctx := context.Background()
@@ -72,23 +81,23 @@ func NewDiffCmd() *cobra.Command {
 				return fmt.Errorf("error comparing team permissions: %w", err)
 			}
 
-			if opts.Exporter != nil {
-				if err := client.Write(opts.Exporter, differences); err != nil {
-					return fmt.Errorf("error exporting differences: %w", err)
-				}
-				return nil
+			renderer := render.NewRenderer(opts.Exporter)
+			renderer.SetColor(colorFlag)
+			renderer.RenderDiff(differences, repo1Parsed, repo2Parsed)
+
+			if exitCode && len(differences) > 0 {
+				cmd.SilenceErrors = true
+				return fmt.Errorf("differences found between the repositories")
 			}
 
-			if opts.Color {
-				fmt.Printf("%s", parser.ColorizeDiff(differences.GetDiffLines(repo1Parsed, repo2Parsed)))
-			} else {
-				fmt.Printf("%s", differences.GetDiffLines(repo1Parsed, repo2Parsed))
-			}
 			return nil
 		},
 	}
 
+	f := cmd.Flags()
 	cmdutil.StringEnumFlag(cmd, &colorFlag, "color", "", "auto", []string{"always", "never", "auto"}, "Use color in diff output")
+	cmd.Flags().BoolVar(&exitCode, "exit-code", false, "Return exit code 1 if there are differences")
+	f.StringVarP(&owner, "owner", "", "", "The owner of the repositories")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

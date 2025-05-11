@@ -8,20 +8,22 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
+	"github.com/srz-zumix/gh-team-kit/render"
 )
 
 type ListOptions struct {
 	Exporter cmdutil.Exporter
 }
 
-func init() {
+func NewListCmd() *cobra.Command {
 	opts := &ListOptions{}
+	var nameOnly bool
 	var repo string
 
-	var teamListCmd = &cobra.Command{
+	var cmd = &cobra.Command{
 		Use:   "list [owner]",
 		Short: "List all teams in the organization",
-		Long:  `Retrieve and display a list of all teams in the specified GitHub organization.`,
+		Long:  `Retrieve and display a list of all teams in the specified organization. You can optionally filter the results by repository.`,
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			owner := ""
@@ -44,22 +46,23 @@ func init() {
 				return fmt.Errorf("error retrieving teams: %w", err)
 			}
 
-			if opts.Exporter != nil {
-				if err := client.Write(opts.Exporter, teams); err != nil {
-					return fmt.Errorf("error exporting teams: %w", err)
-				}
-				return nil
-			}
-
-			for _, team := range teams {
-				fmt.Printf("%s\n", *team.Name)
+			renderer := render.NewRenderer(opts.Exporter)
+			if nameOnly {
+				renderer.RenderNames(teams)
+			} else {
+				renderer.RenderTeam(teams)
 			}
 			return nil
 		},
 	}
 
-	cmdutil.AddFormatFlags(teamListCmd, &opts.Exporter)
-	teamListCmd.Flags().StringVarP(&repo, "repo", "R", "", "Specify a repository to filter teams")
+	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
+	cmd.Flags().BoolVarP(&nameOnly, "name-only", "", false, "Output only team names")
+	cmd.Flags().StringVarP(&repo, "repo", "R", "", "Specify a repository to filter teams")
 
-	rootCmd.AddCommand(teamListCmd)
+	return cmd
+}
+
+func init() {
+	rootCmd.AddCommand(NewListCmd())
 }

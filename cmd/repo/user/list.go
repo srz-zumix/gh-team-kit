@@ -1,0 +1,104 @@
+package user
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/cli/cli/v2/pkg/cmdutil"
+	"github.com/spf13/cobra"
+	"github.com/srz-zumix/gh-team-kit/gh"
+	"github.com/srz-zumix/gh-team-kit/parser"
+	"github.com/srz-zumix/gh-team-kit/render"
+)
+
+type ListOptions struct {
+	Exporter cmdutil.Exporter
+}
+
+func NewListCmd() *cobra.Command {
+	opts := &ListOptions{}
+	var details bool
+	var nameOnly bool
+	var roles []string
+	var repo string
+	var suspended, noSuspended bool
+	var affiliations []string
+	var excludeOrgAdmin bool
+
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List repository collaborators",
+		Long:  `List all collaborators for the specified repository. You can filter the results by affiliation and role.`,
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if suspended || noSuspended {
+				details = true
+			}
+			if suspended && noSuspended {
+				return fmt.Errorf("both 'suspended' and 'no-suspended' options cannot be true at the same time")
+			}
+
+			repository, err := parser.Repository(parser.RepositoryInput(repo))
+			if err != nil {
+				return fmt.Errorf("error parsing repository: %w", err)
+			}
+
+			ctx := context.Background()
+			client, err := gh.NewGitHubClientWithRepo(repository)
+			if err != nil {
+				return fmt.Errorf("failed to create GitHub client: %w", err)
+			}
+
+			collaborators, err := gh.ListRepositoryCollaborators(ctx, client, repository, affiliations, roles)
+			if err != nil {
+				return fmt.Errorf("failed to list collaborators for repository %s: %w", repo, err)
+			}
+
+			renderer := render.NewRenderer(opts.Exporter)
+			if nameOnly {
+				renderer.RenderNames(collaborators)
+				return nil
+			}
+
+			if details {
+				collaborators, err = gh.UpdateUsers(ctx, client, collaborators)
+				if err != nil {
+					return fmt.Errorf("failed to update collaborators: %w", err)
+				}
+				if suspended {
+					collaborators = gh.CollectSuspendedUsers(collaborators)
+				}
+				if noSuspended {
+					collaborators = gh.ExcludeSuspendedUsers(collaborators)
+				}
+			}
+
+			if excludeOrgAdmin {
+				collaborators, err = gh.ExcludeOrganizationAdmins(ctx, client, repository, collaborators)
+				if err != nil {
+					return fmt.Errorf("failed to exclude organization admins: %w", err)
+				}
+			}
+
+			if details {
+				renderer.RenderUserDetails(collaborators)
+			} else {
+				renderer.RenderUserWithRole(collaborators)
+			}
+			return nil
+		},
+	}
+
+	f := cmd.Flags()
+	cmdutil.StringSliceEnumFlag(cmd, &affiliations, "affiliation", "a", nil, gh.CollaboratorAffiliationList, "List of affiliations to filter users")
+	f.BoolVarP(&excludeOrgAdmin, "exclude-org-admin", "", false, "Exclude organization administrators from the list")
+	f.BoolVarP(&details, "details", "d", false, "Include detailed information about members")
+	f.StringVarP(&repo, "repo", "R", "", "Repository in the format 'owner/name'")
+	f.BoolVarP(&nameOnly, "name-only", "", false, "Output only collaborator names")
+	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.PermissionsList, "List of permissions to filter users")
+	f.BoolVarP(&suspended, "suspended", "", false, "Output only suspended members")
+	f.BoolVarP(&noSuspended, "no-suspended", "", false, "Exclude suspended members")
+	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
+
+	return cmd
+}

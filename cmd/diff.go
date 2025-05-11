@@ -8,17 +8,18 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
+	"github.com/srz-zumix/gh-team-kit/render"
 )
 
 type DiffOptions struct {
 	Exporter cmdutil.Exporter
-	Color    bool
 }
 
 var colorFlag string
 
 func NewDiffCmd() *cobra.Command {
 	opts := &DiffOptions{}
+	var exitCode bool
 	var owner string
 
 	cmd := &cobra.Command{
@@ -30,6 +31,10 @@ func NewDiffCmd() *cobra.Command {
 			teamSlug1 := args[0]
 			teamSlug2 := args[1]
 
+			if exitCode {
+				cmd.SilenceUsage = true
+			}
+
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository owner: %w", err)
@@ -38,12 +43,6 @@ func NewDiffCmd() *cobra.Command {
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
-			}
-
-			if colorFlag == "always" || (colorFlag == "auto" && client.IO.ColorEnabled()) {
-				opts.Color = true
-			} else {
-				opts.Color = false
 			}
 
 			ctx := context.Background()
@@ -58,7 +57,6 @@ func NewDiffCmd() *cobra.Command {
 				return fmt.Errorf("error fetching repositories for team %s: %w", teamSlug2, err)
 			}
 
-			// Parse repositories from arguments
 			if len(args) > 2 {
 				repositories := args[2:]
 				repos1 = gh.FilterRepositoriesByNames(repos1, repositories, repository.Owner)
@@ -67,17 +65,13 @@ func NewDiffCmd() *cobra.Command {
 
 			differences := gh.CompareRepositories(repos1, repos2)
 
-			if opts.Exporter != nil {
-				if err := client.Write(opts.Exporter, differences); err != nil {
-					return fmt.Errorf("error exporting differences: %w", err)
-				}
-				return nil
-			}
+			renderer := render.NewRenderer(opts.Exporter)
+			renderer.SetColor(colorFlag)
+			renderer.RenderDiff(differences, teamSlug1, teamSlug2)
 
-			if opts.Color {
-				fmt.Printf("%s", parser.ColorizeDiff(differences.GetDiffLines(teamSlug1, teamSlug2)))
-			} else {
-				fmt.Printf("%s", differences.GetDiffLines(teamSlug1, teamSlug2))
+			if exitCode && len(differences) > 0 {
+				cmd.SilenceErrors = true
+				return fmt.Errorf("differences found between the teams")
 			}
 
 			return nil
@@ -86,6 +80,7 @@ func NewDiffCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	cmdutil.StringEnumFlag(cmd, &colorFlag, "color", "", "auto", []string{"always", "never", "auto"}, "Use color in diff output")
+	cmd.Flags().BoolVar(&exitCode, "exit-code", false, "Return exit code 1 if there are differences")
 	f.StringVarP(&owner, "owner", "", "", "The owner of the team")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

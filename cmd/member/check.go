@@ -16,6 +16,7 @@ func NewCheckCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "check <team-slug> <username>",
 		Short: "Check if a user is a member of a team",
+		Long:  `Check if a specified user is a member of the specified team in the organization.`,
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			teamSlug := args[0]
@@ -36,7 +37,7 @@ func NewCheckCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			membership, err := client.GetTeamMembership(ctx, repository.Owner, teamSlug, username)
+			membership, err := gh.FindTeamMembership(ctx, client, repository, teamSlug, username)
 			if err != nil {
 				return fmt.Errorf("error checking membership: %w", err)
 			}

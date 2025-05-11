@@ -5,22 +5,25 @@ import (
 	"github.com/srz-zumix/gh-team-kit/cmd/repo"
 )
 
-func init() {
-	var repoCmd = &cobra.Command{
+func NewRepoCmd() *cobra.Command {
+	var cmd = &cobra.Command{
 		Use:   "repo",
 		Short: "Manage team repositories",
-		Long:  `Manage team repositories with various subcommands.`,
+		Long:  `Manage team repositories in the organization.`,
 	}
 
-	// Add subcommand of repoCmd
-	repoCmd.AddCommand(repo.NewAddCmd())
-	repoCmd.AddCommand(repo.NewCheckCmd())
-	repoCmd.AddCommand(repo.NewCopyCmd())
-	repoCmd.AddCommand(repo.NewDiffCmd())
-	repoCmd.AddCommand(repo.NewListCmd())
-	repoCmd.AddCommand(repo.NewRemoveCmd())
-	repoCmd.AddCommand(repo.NewSyncCmd())
+	cmd.AddCommand(repo.NewAddCmd())
+	cmd.AddCommand(repo.NewCheckCmd())
+	cmd.AddCommand(repo.NewCopyCmd())
+	cmd.AddCommand(repo.NewDiffCmd())
+	cmd.AddCommand(repo.NewListCmd())
+	cmd.AddCommand(repo.NewRemoveCmd())
+	cmd.AddCommand(repo.NewSyncCmd())
+	cmd.AddCommand(repo.NewUserCmd())
 
-	// Add repoCmd as a subcommand of rootCmd
-	rootCmd.AddCommand(repoCmd)
+	return cmd
+}
+
+func init() {
+	rootCmd.AddCommand(NewRepoCmd())
 }

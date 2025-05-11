@@ -46,6 +46,22 @@ func RepositoryOwner(input string) RepositoryOption {
 	}
 }
 
+func RepositoryOwners(inputs []string) RepositoryOption {
+	return func(r *repository.Repository) error {
+		for _, input := range inputs {
+			if input == "" {
+				continue
+			}
+			if r.Owner != "" && r.Owner != input {
+				return errors.New("conflicting owner")
+			}
+			r.Owner = input
+			break
+		}
+		return nil
+	}
+}
+
 // ParseRepository parses a string into a go-gh Repository object. If the string is empty, it returns the current repository.
 func Repository(opts ...RepositoryOption) (repository.Repository, error) {
 	var r repository.Repository
