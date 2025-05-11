@@ -23,8 +23,8 @@ func NewListCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "list <org-role-name>",
-		Short: "List users assigned to a role",
-		Long:  `List all users assigned to a specific role in the organization with optional role filtering and details.`,
+		Short: "List users assigned to a organization role",
+		Long:  `Retrieve and display a list of all users assigned to a specific role in the organization.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			role := args[0]
