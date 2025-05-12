@@ -110,14 +110,34 @@ func GetRoleIDByName(ctx context.Context, g *GitHubClient, repo repository.Repos
 }
 
 // ListUsersAssignedToOrgRole retrieves users assigned to a specific organization role.
-func ListUsersAssignedToOrgRole(ctx context.Context, g *GitHubClient, repo repository.Repository, role string) ([]*github.User, error) {
+func ListUsersAssignedToOrgRole(ctx context.Context, g *GitHubClient, repo repository.Repository, roleName string) ([]*github.User, error) {
+	roles, err := ListOrgRoles(ctx, g, repo)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve roles in organization '%s': %w", repo.Owner, err)
+	}
+
+	var users []*github.User
+	for _, role := range roles {
+		if roleName == "" || *role.Name == roleName {
+			usersFromRole, err := g.ListUsersAssignedToOrgRole(ctx, repo.Owner, *role.ID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to list users for role '%s' in organization '%s': %w", *role.Name, repo.Owner, err)
+			}
+			for _, user := range users {
+				user.RoleName = role.Name
+			}
+			users = append(users, usersFromRole...)
+		}
+	}
+
+	return users, nil
+}
+
+// AssignOrgRoleToTeam assigns a specific organization role to a team.
+func AssignOrgRoleToTeam(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, role string) error {
 	roleID, err := GetRoleIDByName(ctx, g, repo, role)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get role ID for role '%s' in organization '%s': %w", role, repo.Owner, err)
+		return fmt.Errorf("failed to get role ID for role '%s' in organization '%s': %w", role, repo.Owner, err)
 	}
-	users, err := g.ListUsersAssignedToOrgRole(ctx, repo.Owner, *roleID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list users for role '%s' in organization '%s': %w", role, repo.Owner, err)
-	}
-	return users, nil
+	return g.AssignOrgRoleToTeam(ctx, repo.Owner, teamSlug, *roleID)
 }

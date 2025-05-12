@@ -53,10 +53,6 @@ func NewListCmd() *cobra.Command {
 			}
 
 			renderer := render.NewRenderer(opts.Exporter)
-			if nameOnly {
-				renderer.RenderNames(members)
-				return nil
-			}
 
 			if details {
 				members, err = gh.UpdateUsers(ctx, client, members)
@@ -71,10 +67,15 @@ func NewListCmd() *cobra.Command {
 				}
 			}
 
-			if details {
-				renderer.RenderUserDetails(members)
+			if nameOnly {
+				renderer.RenderNames(members)
+				return nil
 			} else {
-				renderer.RenderUserWithRole(members)
+				if details {
+					renderer.RenderUserDetails(members)
+				} else {
+					renderer.RenderUserWithRole(members)
+				}
 			}
 
 			return nil

@@ -169,3 +169,9 @@ func (g *GitHubClient) ListOrgRoles(ctx context.Context, org string) (*github.Or
 
 	return roles, nil
 }
+
+// AssignOrgRoleToTeam assigns a specific organization role to a team using the GitHub API.
+func (g *GitHubClient) AssignOrgRoleToTeam(ctx context.Context, org string, teamSlug string, roleID int64) error {
+	_, err := g.client.Organizations.AssignOrgRoleToTeam(ctx, org, teamSlug, roleID)
+	return err
+}

@@ -109,10 +109,12 @@ func NewSetsCmd() *cobra.Command {
 			renderer := render.NewRenderer(opts.Exporter)
 			if nameOnly {
 				renderer.RenderNames(result)
-			} else if details {
-				renderer.RenderUserDetails(result)
 			} else {
-				renderer.RenderUsers(result, []string{"USERNAME"})
+				if details {
+					renderer.RenderUserDetails(result)
+				} else {
+					renderer.RenderUsers(result, []string{"USERNAME"})
+				}
 			}
 
 			return nil
