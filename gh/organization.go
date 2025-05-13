@@ -141,3 +141,11 @@ func AssignOrgRoleToTeam(ctx context.Context, g *GitHubClient, repo repository.R
 	}
 	return g.AssignOrgRoleToTeam(ctx, repo.Owner, teamSlug, *roleID)
 }
+
+func RemoveOrgRoleFromTeam(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, role string) error {
+	roleID, err := GetRoleIDByName(ctx, g, repo, role)
+	if err != nil {
+		return fmt.Errorf("failed to get role ID for role '%s' in organization '%s': %w", role, repo.Owner, err)
+	}
+	return g.RemoveOrgRoleFromTeam(ctx, repo.Owner, teamSlug, *roleID)
+}
