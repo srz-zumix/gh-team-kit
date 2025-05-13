@@ -180,3 +180,13 @@ func (g *GitHubClient) RemoveOrgRoleFromTeam(ctx context.Context, org string, te
 	_, err := g.client.Organizations.RemoveOrgRoleFromTeam(ctx, org, teamSlug, roleID)
 	return err
 }
+
+func (g *GitHubClient) AssignOrgRoleToUser(ctx context.Context, org string, username string, roleID int64) error {
+	_, err := g.client.Organizations.AssignOrgRoleToUser(ctx, org, username, roleID)
+	return err
+}
+
+func (g *GitHubClient) RemoveOrgRoleFromUser(ctx context.Context, org string, username string, roleID int64) error {
+	_, err := g.client.Organizations.RemoveOrgRoleFromUser(ctx, org, username, roleID)
+	return err
+}
