@@ -1,4 +1,4 @@
-package org
+package user
 
 import (
 	"context"
@@ -9,16 +9,17 @@ import (
 	"github.com/srz-zumix/gh-team-kit/parser"
 )
 
-func NewAddCmd() *cobra.Command {
+func NewRemoveCmd() *cobra.Command {
 	var owner string
 
 	cmd := &cobra.Command{
-		Use:   "add <team-slug> <org-role>",
-		Short: "Add a team to an organization role",
-		Long:  `Add a specified team to the specified role in the organization.`,
-		Args:  cobra.ExactArgs(2),
+		Use:     "remove <username> <org-role>",
+		Short:   "Remove a user from an organization role",
+		Long:    `Remove a specified user from the specified role in the organization.`,
+		Aliases: []string{"rm"},
+		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			teamSlug := args[0]
+			username := args[0]
 			orgRole := args[1]
 
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
@@ -32,11 +33,11 @@ func NewAddCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			if err := gh.AssignOrgRoleToTeam(ctx, client, repository, teamSlug, orgRole); err != nil {
-				return fmt.Errorf("failed to add team '%s' to role '%s' in organization '%s': %w", teamSlug, orgRole, owner, err)
+			if err := gh.RemoveOrgRoleFromUser(ctx, client, repository, username, orgRole); err != nil {
+				return fmt.Errorf("failed to remove user '%s' from role '%s' in organization '%s': %w", username, orgRole, owner, err)
 			}
 
-			fmt.Printf("Successfully added team '%s' to role '%s' in organization '%s'.\n", teamSlug, orgRole, owner)
+			fmt.Printf("Successfully removed user '%s' from role '%s' in organization '%s'.\n", username, orgRole, owner)
 			return nil
 		},
 	}

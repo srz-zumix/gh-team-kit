@@ -1,6 +1,7 @@
 package gh
 
 import (
+	"github.com/cli/go-gh/v2/pkg/auth"
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/k1LoW/go-github-client/v71/factory"
 	"github.com/srz-zumix/gh-team-kit/gh/client"
@@ -20,6 +21,7 @@ func RepositoryOption(repo repository.Repository) factory.Option {
 			} else {
 				c.Endpoint = "https://" + host + "/api/v3"
 			}
+			c.Token, _ = auth.TokenForHost(host)
 		}
 		c.Owner = repo.Owner
 		c.Repo = repo.Name

@@ -315,3 +315,19 @@ gh team-kit org user list [org-role-name]
 ```
 
 Retrieve and display a list of all users assigned to a specific role in the organization. Supports options for detailed information, suspended users, and filtering by owner.
+
+#### Add a user to an organization role
+
+```sh
+gh team-kit org user add <username> <org-role>
+```
+
+Assign a specified user to the specified role in the organization.
+
+#### Remove a user from an organization role
+
+```sh
+gh team-kit org user remove <username> <org-role>
+```
+
+Remove a specified user from the specified role in the organization.
