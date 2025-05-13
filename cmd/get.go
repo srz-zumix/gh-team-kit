@@ -52,7 +52,7 @@ func NewGetCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVarP(&owner, "owner", "", "", "The owner of the team")
+	f.StringVarP(&owner, "owner", "", "", "Specify the organization name")
 	f.StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
 	f.BoolVarP(&child, "child", "c", false, "Retrieve and display the parent team if it exists")
 	f.BoolVarP(&recursive, "recursive", "r", false, "Retrieve teams recursively")

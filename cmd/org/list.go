@@ -55,7 +55,7 @@ func NewListCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.BoolVarP(&nameOnly, "name-only", "", false, "Output only team names")
-	f.StringVarP(&owner, "owner", "", "", "The owner of the organization")
+	f.StringVarP(&owner, "owner", "", "", "Specify the organization name")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

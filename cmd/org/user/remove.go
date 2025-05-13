@@ -13,10 +13,11 @@ func NewRemoveCmd() *cobra.Command {
 	var owner string
 
 	cmd := &cobra.Command{
-		Use:   "remove <username> <org-role>",
-		Short: "Remove a user from an organization role",
-		Long:  `Remove a specified user from the specified role in the organization.`,
-		Args:  cobra.ExactArgs(2),
+		Use:     "remove <username> <org-role>",
+		Short:   "Remove a user from an organization role",
+		Long:    `Remove a specified user from the specified role in the organization.`,
+		Aliases: []string{"rm"},
+		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			username := args[0]
 			orgRole := args[1]
@@ -41,7 +42,8 @@ func NewRemoveCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&owner, "owner", "", "", "The owner of the organization")
+	f := cmd.Flags()
+	f.StringVarP(&owner, "owner", "", "", "Specify the organization name")
 
 	return cmd
 }

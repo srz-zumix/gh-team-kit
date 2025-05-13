@@ -81,7 +81,7 @@ func NewDiffCmd() *cobra.Command {
 	f := cmd.Flags()
 	cmdutil.StringEnumFlag(cmd, &colorFlag, "color", "", "auto", []string{"always", "never", "auto"}, "Use color in diff output")
 	cmd.Flags().BoolVar(&exitCode, "exit-code", false, "Return exit code 1 if there are differences")
-	f.StringVarP(&owner, "owner", "", "", "The owner of the team")
+	f.StringVarP(&owner, "owner", "", "", "Specify the organization name")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

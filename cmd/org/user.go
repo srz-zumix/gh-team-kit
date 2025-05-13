@@ -11,8 +11,8 @@ func NewUserCmd() *cobra.Command {
 		Short: "Manage organization role users",
 		Long:  `Manage users assigned to specific roles within the organization.`}
 
-	userCmd.AddCommand(user.NewListCmd())
 	userCmd.AddCommand(user.NewAddCmd())
+	userCmd.AddCommand(user.NewListCmd())
 	userCmd.AddCommand(user.NewRemoveCmd())
 
 	return userCmd

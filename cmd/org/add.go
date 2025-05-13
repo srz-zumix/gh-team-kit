@@ -41,7 +41,8 @@ func NewAddCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&owner, "owner", "", "", "The owner of the organization")
+	f := cmd.Flags()
+	f.StringVarP(&owner, "owner", "", "", "Specify the organization name")
 
 	return cmd
 }
