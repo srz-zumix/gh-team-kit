@@ -50,52 +50,57 @@ func NewSetsCmd() *cobra.Command {
 				return fmt.Errorf("both 'suspended' and 'no-suspended' options cannot be true at the same time")
 			}
 
-			// Use TeamSlugWithOwner to parse team1 and team2
-			repo1, teamSlug1 := parser.TeamSlugWithOwner(owner, team1)
-			repo2, teamSlug2 := parser.TeamSlugWithOwner(owner, team2)
-
-			owners := []string{
-				owner,
-				repo1.Owner,
-				repo2.Owner,
-			}
-			repository, err := parser.Repository(parser.RepositoryOwners(owners))
-
-			if repo1.Owner == "" {
-				repo1.Owner = repository.Owner
-			}
-			if repo2.Owner == "" {
-				repo2.Owner = repository.Owner
-			}
-
+			repo1, teamSlug1, err := parser.RepositoryFromTeamSlugs(owner, team1)
 			if err != nil {
-				return fmt.Errorf("error parsing repository: %w", err)
+				return fmt.Errorf("error parsing team-slug1 '%s': %w", team1, err)
+			}
+			repo2, teamSlug2, err := parser.RepositoryFromTeamSlugs(owner, team2)
+			if err != nil {
+				return fmt.Errorf("error parsing team-slug2 '%s': %w", team1, err)
 			}
 
 			ctx := context.Background()
-			client, err := gh.NewGitHubClientWithRepo(repository)
+			client1, err := gh.NewGitHubClientWithRepo(repo1)
+			if err != nil {
+				return fmt.Errorf("failed to create GitHub client: %w", err)
+			}
+			client2, err := gh.NewGitHubClientWithRepo(repo2)
 			if err != nil {
 				return fmt.Errorf("failed to create GitHub client: %w", err)
 			}
 
 			// Fetch members for team1 and team2 using the correct teamSlug
-			members1, err := gh.ListTeamMembers(ctx, client, repo1, teamSlug1, roles, !nameOnly)
+			members1, err := gh.ListTeamMembers(ctx, client1, repo1, teamSlug1, roles, !nameOnly)
 			if err != nil {
 				return fmt.Errorf("failed to list members of team1 '%s': %w", team1, err)
 			}
 
-			members2, err := gh.ListTeamMembers(ctx, client, repo2, teamSlug2, roles, !nameOnly)
+			members2, err := gh.ListTeamMembers(ctx, client2, repo2, teamSlug2, roles, !nameOnly)
 			if err != nil {
 				return fmt.Errorf("failed to list members of team2 '%s': %w", team2, err)
+			}
+
+			if details && repo1.Host != repo2.Host {
+				// If the repositories are on different hosts, we need to update the user details
+				members1, err = gh.UpdateUsers(ctx, client1, members1)
+				if err != nil {
+					return fmt.Errorf("failed to update users after set operation: %w", err)
+				}
+				members2, err = gh.UpdateUsers(ctx, client1, members2)
+				if err != nil {
+					return fmt.Errorf("failed to update users after set operation: %w", err)
+				}
 			}
 
 			// Perform the set operation using PerformSetOperation
 			result := opts.Sets(members1, members2)
 
 			if details {
-				result, err = gh.UpdateUsers(ctx, client, result)
-				if err != nil {
-					return fmt.Errorf("failed to update users after set operation: %w", err)
+				if repo1.Host == repo2.Host {
+					result, err = gh.UpdateUsers(ctx, client1, result)
+					if err != nil {
+						return fmt.Errorf("failed to update users after set operation: %w", err)
+					}
 				}
 				if suspended {
 					result = gh.CollectSuspendedUsers(result)
