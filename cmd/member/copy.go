@@ -4,19 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/gh"
 	"github.com/srz-zumix/gh-team-kit/parser"
 )
 
-type CopyOptions struct {
-	Exporter cmdutil.Exporter
-}
-
 // NewCopyCmd creates the `member copy` command for copying team members
 func NewCopyCmd() *cobra.Command {
-	opts := &CopyOptions{}
 	var owner string
 
 	cmd := &cobra.Command{
@@ -49,7 +43,6 @@ func NewCopyCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&owner, "owner", "", "Default owner for team slugs (optional)")
-	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd
 }

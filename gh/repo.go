@@ -101,6 +101,11 @@ func ListRepositoryCollaborators(ctx context.Context, g *GitHubClient, repo repo
 	return FilterByUserPermissions(collaborators, roles), nil
 }
 
+// AddRepositoryCollaborator is a wrapper function to add a collaborator to a repository.
+func AddRepositoryCollaborator(ctx context.Context, g *GitHubClient, repo repository.Repository, username string, permission string) (*github.CollaboratorInvitation, error) {
+	return g.AddRepositoryCollaborator(ctx, repo.Owner, repo.Name, username, permission)
+}
+
 // RemoveRepositoryCollaborator removes a collaborator from a specific repository.
 func RemoveRepositoryCollaborator(ctx context.Context, g *GitHubClient, repo repository.Repository, username string) error {
 	return g.RemoveRepositoryCollaborator(ctx, repo.Owner, repo.Name, username)
