@@ -134,6 +134,14 @@ gh team-kit member sets <[owner]/team-slug1> <|,&,-,^> <[owner]/team-slug2>
 
 Perform set operations on the members of two teams. The operation can be union (`|`), intersection (`&`), difference (`-`), or symmetric difference (`^`).
 
+#### Sync members from one team to another
+
+```sh
+gh team-kit member sync <[owner/]team-slug> <[owner/]team-slug>
+```
+
+Sync members from the source team to the destination team. Members in the source team will be added to the destination team, and members not in the source team will be removed from the destination team.
+
 #### Remove a member from a team
 
 ```sh

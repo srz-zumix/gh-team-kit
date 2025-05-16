@@ -68,3 +68,8 @@ func UpdateTeamMemberRole(ctx context.Context, g *GitHubClient, repo repository.
 func RemoveTeamMember(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string, username string) error {
 	return g.RemoveTeamMember(ctx, repo.Owner, teamSlug, username)
 }
+
+// AddRepositoryCollaborator is a wrapper function to add a collaborator to a repository.
+func AddRepositoryCollaborator(ctx context.Context, g *GitHubClient, repo repository.Repository, username string, permission string) (*github.CollaboratorInvitation, error) {
+	return g.AddRepositoryCollaborator(ctx, repo.Owner, repo.Name, username, permission)
+}
