@@ -53,19 +53,19 @@ func NewDiffCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository 2: %w", err)
 			}
 
-			client, err := gh.NewGitHubClientWithRepo(repo1Parsed)
+			client1, client2, err := gh.NewGitHubClientWith2Repos(repo1Parsed, repo2Parsed)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
 			ctx := context.Background()
 
-			teams1, err := gh.ListRepositoryTeams(ctx, client, repo1Parsed)
+			teams1, err := gh.ListRepositoryTeams(ctx, client1, repo1Parsed)
 			if err != nil {
 				return fmt.Errorf("failed to fetch teams for %s: %w", repo1, err)
 			}
 
-			teams2, err := gh.ListRepositoryTeams(ctx, client, repo2Parsed)
+			teams2, err := gh.ListRepositoryTeams(ctx, client2, repo2Parsed)
 			if err != nil {
 				return fmt.Errorf("failed to fetch teams for %s: %w", repo2, err)
 			}

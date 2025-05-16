@@ -14,3 +14,22 @@ func TeamSlugWithOwner(owner, teamSlug string) (repository.Repository, string) {
 	}
 	return repository.Repository{Owner: owner}, teamSlug
 }
+
+func RepositoryFromTeamSlugs(owner string, teamSlug string) (repository.Repository, string, error) {
+	repo, team := TeamSlugWithOwner(owner, teamSlug)
+
+	owners := []string{
+		owner,
+		repo.Owner,
+	}
+	repository, err := Repository(RepositoryOwners(owners))
+	if err != nil {
+		return repository, team, err
+	}
+
+	if repo.Owner == "" {
+		repo.Host = repository.Host
+		repo.Owner = repository.Owner
+	}
+	return repository, team, nil
+}

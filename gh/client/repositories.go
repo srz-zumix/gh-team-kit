@@ -85,3 +85,12 @@ func (g *GitHubClient) RemoveRepositoryCollaborator(ctx context.Context, owner s
 	_, err := g.client.Repositories.RemoveCollaborator(ctx, owner, repo, username)
 	return err
 }
+
+// AddRepositoryCollaborator adds a collaborator to a specific repository with a given permission.
+func (g *GitHubClient) AddRepositoryCollaborator(ctx context.Context, owner string, repo string, username string, permission string) (*github.CollaboratorInvitation, error) {
+	invitation, _, err := g.client.Repositories.AddCollaborator(ctx, owner, repo, username, &github.RepositoryAddCollaboratorOptions{Permission: permission})
+	if err != nil {
+		return nil, err
+	}
+	return invitation, nil
+}

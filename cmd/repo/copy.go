@@ -41,6 +41,9 @@ func NewCopyCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("error parsing destination repository: %w", err)
 				}
+				if repository.Host != dstRepository.Host {
+					return fmt.Errorf("source and destination repositories must be on the same host: %s vs %s", repository.Host, dstRepository.Host)
+				}
 
 				if err := gh.CopyRepoTeamsAndPermissions(ctx, client, repository, dstRepository, force); err != nil {
 					return fmt.Errorf("failed to copy teams and permissions to %s: %w", dstArg, err)

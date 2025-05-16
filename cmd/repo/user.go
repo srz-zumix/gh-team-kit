@@ -12,6 +12,7 @@ func NewUserCmd() *cobra.Command {
 		Long:  `Manage repository users in the organization.`,
 	}
 
+	userCmd.AddCommand(user.NewAddCmd())
 	userCmd.AddCommand(user.NewCheckCmd())
 	userCmd.AddCommand(user.NewListCmd())
 	userCmd.AddCommand(user.NewRemoveCmd())

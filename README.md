@@ -134,6 +134,22 @@ gh team-kit member sets <[owner]/team-slug1> <|,&,-,^> <[owner]/team-slug2>
 
 Perform set operations on the members of two teams. The operation can be union (`|`), intersection (`&`), difference (`-`), or symmetric difference (`^`).
 
+#### Sync members from one team to another
+
+```sh
+gh team-kit member sync <[owner/]src-team-slug> <[owner/]dst-team-slug>
+```
+
+Sync members from the source team to the destination team. Members in the source team will be added to the destination team, and members not in the source team will be removed from the destination team.
+
+#### Copy members from one team to another
+
+```sh
+gh team-kit member copy <[owner/]src-team-slug> <[owner/]dst-team-slug>
+```
+
+Copy members from the source team to the destination team. Members in the source team will be added to the destination team, but no members will be removed from the destination team.
+
 #### Remove a member from a team
 
 ```sh
@@ -257,6 +273,14 @@ gh team-kit user role <username> <role>
 ```
 
 Change the role of a specified user in the organization. Valid roles include `member` and `admin`.
+
+#### Add a user as a collaborator to a repository
+
+```sh
+gh team-kit repo user add <username> <permission>
+```
+
+Add a specified user as a collaborator to a repository with a given permission (`admin`, `maintain`, `push`, `triage`, `pull`).
 
 #### Check user permissions for a repository
 

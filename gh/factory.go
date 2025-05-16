@@ -47,3 +47,18 @@ func NewGitHubClientWithRepo(repo repository.Repository) (*GitHubClient, error) 
 	}
 	return client.NewClient(c)
 }
+
+func NewGitHubClientWith2Repos(repo1, repo2 repository.Repository) (*GitHubClient, *GitHubClient, error) {
+	c1, err := NewGitHubClientWithRepo(repo1)
+	if err != nil {
+		return nil, nil, err
+	}
+	if repo1.Host != repo2.Host {
+		c2, err := NewGitHubClientWithRepo(repo2)
+		if err != nil {
+			return nil, nil, err
+		}
+		return c1, c2, nil
+	}
+	return c1, c1, nil
+}
