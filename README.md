@@ -274,6 +274,14 @@ gh team-kit user role <username> <role>
 
 Change the role of a specified user in the organization. Valid roles include `member` and `admin`.
 
+#### Add a user as a collaborator to a repository
+
+```sh
+gh team-kit repo user add <username> <permission>
+```
+
+Add a specified user as a collaborator to a repository with a given permission (`admin`, `maintain`, `push`, `triage`, `pull`).
+
 #### Check user permissions for a repository
 
 ```sh
