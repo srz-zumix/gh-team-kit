@@ -92,6 +92,37 @@ func SyncRepoTeamsAndPermissions(ctx context.Context, g *GitHubClient, src repos
 	return nil
 }
 
+// CopyTeamMembers copies members from the source team to the destination team (add only).
+func CopyTeamMembers(ctx context.Context, g *GitHubClient, srcRepo repository.Repository, srcTeamSlug string, dstRepo repository.Repository, dstTeamSlug string) error {
+	srcMembers, err := ListTeamMembers(ctx, g, srcRepo, srcTeamSlug, nil, false)
+	if err != nil {
+		return fmt.Errorf("failed to fetch members from source team: %w", err)
+	}
+	dstMembers, err := ListTeamMembers(ctx, g, dstRepo, dstTeamSlug, nil, false)
+	if err != nil {
+		return fmt.Errorf("failed to fetch members from destination team: %w", err)
+	}
+	dstMemberMap := make(map[string]struct{})
+	for _, m := range dstMembers {
+		if m.Login != nil {
+			dstMemberMap[*m.Login] = struct{}{}
+		}
+	}
+	for _, m := range srcMembers {
+		if m.Login == nil {
+			continue
+		}
+		username := *m.Login
+		if _, exists := dstMemberMap[username]; !exists {
+			_, err := AddTeamMember(ctx, g, dstRepo, dstTeamSlug, username, "member", false)
+			if err != nil {
+				return fmt.Errorf("failed to add member %s to destination team: %w", username, err)
+			}
+		}
+	}
+	return nil
+}
+
 // SyncTeamMembers syncs members from the source team to the destination team.
 func SyncTeamMembers(ctx context.Context, g *GitHubClient, srcRepo repository.Repository, srcTeamSlug string, dstRepo repository.Repository, dstTeamSlug string) error {
 	srcMembers, err := ListTeamMembers(ctx, g, srcRepo, srcTeamSlug, nil, false)

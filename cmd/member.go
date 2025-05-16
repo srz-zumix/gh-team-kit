@@ -20,6 +20,7 @@ func NewMemberCmd() *cobra.Command {
 	cmd.AddCommand(member.NewRoleCmd())
 	cmd.AddCommand(member.NewSetsCmd())
 	cmd.AddCommand(member.NewSyncCmd())
+	cmd.AddCommand(member.NewCopyCmd())
 
 	return cmd
 }

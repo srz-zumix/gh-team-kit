@@ -10,19 +10,19 @@ import (
 	"github.com/srz-zumix/gh-team-kit/parser"
 )
 
-type SyncOptions struct {
+type CopyOptions struct {
 	Exporter cmdutil.Exporter
 }
 
-// NewSyncCmd creates the `member sync` command for synchronizing team members
-func NewSyncCmd() *cobra.Command {
-	opts := &SyncOptions{}
+// NewCopyCmd creates the `member copy` command for copying team members
+func NewCopyCmd() *cobra.Command {
+	opts := &CopyOptions{}
 	var owner string
 
 	cmd := &cobra.Command{
-		Use:   "sync <[owner/]src-team-slug> <[owner/]dst-team-slug>",
-		Short: "Sync members from source team to destination team",
-		Long:  `Sync members from the source team to the destination team. Members in the source team will be added to the destination team, and members not in the source team will be removed from the destination team.`,
+		Use:   "copy <[owner/]src-team-slug> <[owner/]dst-team-slug>",
+		Short: "Copy members from source team to destination team (add only)",
+		Long:  `Copy members from the source team to the destination team. Members in the source team will be added to the destination team, but no members will be removed from the destination team.`,
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			srcTeam := args[0]
@@ -35,20 +35,15 @@ func NewSyncCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("error parsing destination team: %w", err)
 			}
-
-			if srcRepo.Host != dstRepo.Host {
-				return fmt.Errorf("source and destination teams must be on the same host (%s != %s)", srcRepo.Host, dstRepo.Host)
-			}
-
 			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(srcRepo)
 			if err != nil {
 				return fmt.Errorf("failed to create GitHub client: %w", err)
 			}
-			if err := gh.SyncTeamMembers(ctx, client, srcRepo, srcTeamSlug, dstRepo, dstTeamSlug); err != nil {
-				return fmt.Errorf("failed to sync team members: %w", err)
+			if err := gh.CopyTeamMembers(ctx, client, srcRepo, srcTeamSlug, dstRepo, dstTeamSlug); err != nil {
+				return fmt.Errorf("failed to copy team members: %w", err)
 			}
-			fmt.Printf("Successfully synced members from %s to %s\n", srcTeam, dstTeam)
+			fmt.Printf("Successfully copied members from %s to %s\n", srcTeam, dstTeam)
 			return nil
 		},
 	}

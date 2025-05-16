@@ -137,10 +137,18 @@ Perform set operations on the members of two teams. The operation can be union (
 #### Sync members from one team to another
 
 ```sh
-gh team-kit member sync <[owner/]team-slug> <[owner/]team-slug>
+gh team-kit member sync <[owner/]src-team-slug> <[owner/]dst-team-slug>
 ```
 
 Sync members from the source team to the destination team. Members in the source team will be added to the destination team, and members not in the source team will be removed from the destination team.
+
+#### Copy members from one team to another
+
+```sh
+gh team-kit member copy <[owner/]src-team-slug> <[owner/]dst-team-slug>
+```
+
+Copy members from the source team to the destination team. Members in the source team will be added to the destination team, but no members will be removed from the destination team.
 
 #### Remove a member from a team
 
