@@ -9,6 +9,14 @@ import (
 	"github.com/google/go-github/v71/github"
 )
 
+func GetLoginUser(ctx context.Context, g *GitHubClient) (*github.User, error) {
+	user, err := g.GetUser(ctx, "")
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
 func UpdateUsers(ctx context.Context, g *GitHubClient, users []*github.User) ([]*github.User, error) {
 	for _, user := range users {
 		userDetails, err := g.GetUser(ctx, *user.Login)
@@ -64,4 +72,31 @@ func ExcludeOrganizationAdmins(ctx context.Context, g *GitHubClient, repo reposi
 		filteredUsers = append(filteredUsers, user)
 	}
 	return filteredUsers, nil
+}
+
+// DetectUserTeams adds team information to each user (collaborator) for a repository
+func DetectUserTeams(ctx context.Context, g *GitHubClient, repo repository.Repository, users []*github.User) ([]*github.User, error) {
+	teams, err := g.ListRepositoryTeams(ctx, repo.Owner, repo.Name)
+	if err != nil {
+		return users, err
+	}
+	for _, team := range teams {
+		members, err := g.ListTeamMembers(ctx, repo.Owner, team.GetSlug(), "")
+		if err != nil {
+			continue // skip error team
+		}
+		for _, user := range users {
+			if GetPermissionName(user.Permissions) == GetPermissionName(team.Permissions) {
+				if slices.ContainsFunc(members, func(m *github.User) bool {
+					return *m.ID == *user.ID
+				}) {
+					if user.InheritedFrom == nil {
+						user.InheritedFrom = make([]*github.Team, 0)
+					}
+					user.InheritedFrom = append(user.InheritedFrom, team)
+				}
+			}
+		}
+	}
+	return users, nil
 }

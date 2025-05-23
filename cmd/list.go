@@ -50,7 +50,7 @@ func NewListCmd() *cobra.Command {
 			if nameOnly {
 				renderer.RenderNames(teams)
 			} else {
-				renderer.RenderTeams(teams)
+				renderer.RenderTeamsWithPermission(teams)
 			}
 			return nil
 		},
