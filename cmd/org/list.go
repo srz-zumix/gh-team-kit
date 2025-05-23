@@ -47,7 +47,7 @@ func NewListCmd() *cobra.Command {
 			if nameOnly {
 				renderer.RenderNames(teams)
 			} else {
-				renderer.RenderTeams(teams)
+				renderer.RenderTeamsDefault(teams)
 			}
 			return nil
 		},

@@ -61,8 +61,12 @@ func ListTeamRepos(ctx context.Context, g *GitHubClient, repo repository.Reposit
 }
 
 func ListUserAccessableRepositories(ctx context.Context, g *GitHubClient, repo repository.Repository, username string, roles []string, opt *RespositorySearchOptions) ([]*github.Repository, error) {
-	if username == "" {
-		return nil, nil
+	loginUser, err := g.GetUser(ctx, "")
+	if err != nil {
+		return nil, err
+	}
+	if username == "" || username == "@me" {
+		username = *loginUser.Login
 	}
 
 	repos, err := g.ListOrganizationRepositories(ctx, repo.Owner, opt.GetFilterString())
@@ -78,13 +82,17 @@ func ListUserAccessableRepositories(ctx context.Context, g *GitHubClient, repo r
 		if err != nil {
 			return nil, err
 		}
-		if permissions == nil || *permissions.Permission == "none" {
-			continue
-		}
-
-		if len(roles) == 0 || HasPermission(permissions.User, roles) {
+		if permissions == nil {
+			if username == *loginUser.Login {
+				r.RoleName = github.Ptr("pull")
+				r.Permissions = CreatePermissionMap([]string{"pull"})
+			}
+		} else {
 			r.RoleName = permissions.RoleName
 			r.Permissions = permissions.User.Permissions
+		}
+
+		if len(roles) == 0 || HasPermission(r, roles) {
 			filteredRepos = append(filteredRepos, r)
 		}
 	}

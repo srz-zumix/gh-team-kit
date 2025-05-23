@@ -45,7 +45,7 @@ func NewGetCmd() *cobra.Command {
 			}
 
 			renderer := render.NewRenderer(opts.Exporter)
-			renderer.RenderTeams(teams)
+			renderer.RenderTeamsDefault(teams)
 
 			return nil
 		},
