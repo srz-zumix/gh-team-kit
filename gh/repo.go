@@ -9,6 +9,10 @@ import (
 	"github.com/google/go-github/v71/github"
 )
 
+func GetRepository(ctx context.Context, g *GitHubClient, repo repository.Repository) (*github.Repository, error) {
+	return g.GetRepository(ctx, repo.Owner, repo.Name)
+}
+
 // CheckTeamPermissions is a wrapper function to check team permissions for a repository.
 func CheckTeamPermissions(ctx context.Context, g *GitHubClient, repo repository.Repository, teamSlug string) (*github.Repository, error) {
 	if teamSlug == "" {

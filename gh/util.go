@@ -1,6 +1,8 @@
 package gh
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 
 	"slices"
@@ -49,4 +51,16 @@ func FilterTeamByNames(teams []*github.Team, slugs []string) []*github.Team {
 		}
 	}
 	return filteredTeams
+}
+
+func GetNumberFromString(s string) (int, error) {
+	number, err := strconv.Atoi(s)
+	if err == nil {
+		return number, nil
+	}
+	_, err = fmt.Sscanf(s, "#%d", &number)
+	if err != nil {
+		return 0, fmt.Errorf("invalid number format: %s", s)
+	}
+	return number, nil
 }

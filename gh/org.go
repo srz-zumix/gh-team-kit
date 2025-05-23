@@ -8,6 +8,14 @@ import (
 	"github.com/google/go-github/v71/github"
 )
 
+func GetOrg(ctx context.Context, g *GitHubClient, orgName string) (*github.Organization, error) {
+	org, err := g.GetOrg(ctx, orgName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get organization '%s': %w", orgName, err)
+	}
+	return org, nil
+}
+
 // GetOrgMembership retrieves the membership details of a user in the specified organization.
 func GetOrgMembership(ctx context.Context, g *GitHubClient, repo repository.Repository, username string) (*github.Membership, error) {
 	return g.GetOrgMembership(ctx, repo.Owner, username)

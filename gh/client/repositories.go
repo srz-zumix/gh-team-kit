@@ -6,6 +6,14 @@ import (
 	"github.com/google/go-github/v71/github"
 )
 
+func (g *GitHubClient) GetRepository(ctx context.Context, owner string, repo string) (*github.Repository, error) {
+	repository, _, err := g.client.Repositories.Get(ctx, owner, repo)
+	if err != nil {
+		return nil, err
+	}
+	return repository, nil
+}
+
 // ListRepositoryTeams retrieves all teams associated with a specific repository.
 func (g *GitHubClient) ListRepositoryTeams(ctx context.Context, owner string, repo string) ([]*github.Team, error) {
 	var allTeams []*github.Team
