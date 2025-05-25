@@ -180,6 +180,14 @@ func HasPermission(obj PermissionInterface, roles []string) bool {
 	return false
 }
 
+func CreatePermissionMap(permissions []string) map[string]bool {
+	permissionMap := make(map[string]bool)
+	for _, permission := range PermissionsList {
+		permissionMap[permission] = slices.Contains(permissions, permission)
+	}
+	return permissionMap
+}
+
 func FilterByRepositoryPermissions(repos []*github.Repository, permissions []string) []*github.Repository {
 	if len(permissions) > 0 {
 		var filtered []*github.Repository

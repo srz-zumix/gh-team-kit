@@ -28,12 +28,15 @@ func NewRepoCmd() *cobra.Command {
 	var sources bool
 
 	cmd := &cobra.Command{
-		Use:   "repo <username>",
+		Use:   "repo [username]",
 		Short: "List repositories of a user",
 		Long:  `List all repositories owned by the specified user`,
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			username := args[0]
+			username := ""
+			if len(args) > 0 {
+				username = args[0]
+			}
 
 			if archived && noArchived {
 				return fmt.Errorf("both 'archived' and 'no-archived' options cannot be true at the same time")

@@ -24,6 +24,7 @@ func NewListCmd() *cobra.Command {
 	var suspended, noSuspended bool
 	var affiliations []string
 	var excludeOrgAdmin bool
+	var withTeam bool
 
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -76,15 +77,25 @@ func NewListCmd() *cobra.Command {
 				}
 			}
 
+			if withTeam {
+				collaborators, err = gh.DetectUserTeams(ctx, client, repository, collaborators)
+				if err != nil {
+					return fmt.Errorf("failed to detect user teams: %w", err)
+				}
+			}
+
 			if nameOnly {
 				renderer.RenderNames(collaborators)
 				return nil
 			} else {
-				if details {
-					renderer.RenderUserDetails(collaborators)
-				} else {
-					renderer.RenderUserWithRole(collaborators)
+				headers := []string{"USERNAME", "ROLE"}
+				if withTeam {
+					headers = append(headers, "TEAM")
 				}
+				if details {
+					headers = append(headers, "EMAIL", "SUSPENDED")
+				}
+				renderer.RenderUsers(collaborators, headers)
 			}
 			return nil
 		},
@@ -99,6 +110,7 @@ func NewListCmd() *cobra.Command {
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.PermissionsList, "List of permissions to filter users")
 	f.BoolVarP(&suspended, "suspended", "", false, "Output only suspended members")
 	f.BoolVarP(&noSuspended, "no-suspended", "", false, "Exclude suspended members")
+	f.BoolVar(&withTeam, "with-team", false, "Detect and display team for each user")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd
