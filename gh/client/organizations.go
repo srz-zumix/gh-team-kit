@@ -6,6 +6,14 @@ import (
 	"github.com/google/go-github/v71/github"
 )
 
+func (g *GitHubClient) GetOrg(ctx context.Context, org string) (*github.Organization, error) {
+	organization, _, err := g.client.Organizations.Get(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+	return organization, nil
+}
+
 // ListOrgMembers retrieves all members of the specified organization.
 func (g *GitHubClient) ListOrgMembers(ctx context.Context, org string, role string) ([]*github.User, error) {
 	var allMembers []*github.User
