@@ -6,8 +6,8 @@ import (
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
-	"github.com/srz-zumix/gh-team-kit/gh"
-	"github.com/srz-zumix/gh-team-kit/render"
+	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/render"
 )
 
 type GetOptions struct {

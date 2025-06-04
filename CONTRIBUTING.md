@@ -4,7 +4,7 @@ Thank you for considering contributing to gh-team-kit! We welcome contributions 
 
 ## How to Report Issues
 
-If you encounter any issues or have questions, please feel free to [open an issue](https://github.com/srz-zumix/gh-team-kit/issues). We will do our best to address your concerns promptly.
+If you encounter any issues or have questions, please feel free to [open an issue](https://github.com/srz-zumix/go-gh-extension/pkg/issues). We will do our best to address your concerns promptly.
 
 ## Setting Up the Development Environment
 
