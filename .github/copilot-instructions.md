@@ -35,7 +35,7 @@
 ## コーディング規約
 
 * fmt.Errorf: error strings should not end with punctuation or newlines (ST1005) go-staticcheck
-* ローカルパッケージは github.com/srz-zumix/gh-team-kit/<path/to/dir> で import
+* ローカルパッケージは github.com/srz-zumix/go-gh-extension/pkg/<path/to/dir> で import
 
 ### ソースコード全般
 
@@ -47,7 +47,7 @@
   * parser/: 入力値のパース・バリデーション等
 * コマンド追加時はcmd/配下にcobra.Commandを返すNew<Cmd名>Cmd関数を新設し、親コマンドで登録する
 * gh/配下のラッパー関数は必ずctx context.Context, g *GitHubClientを先頭引数に取り、repository.Repository型等を利用する
-* importはローカルパッケージをgithub.com/srz-zumix/gh-team-kit/<path>で記述し、cmd/から直接github/client/やgo-githubをimportしない
+* importはローカルパッケージをgithub.com/srz-zumix/go-gh-extension/pkg/<path>で記述し、cmd/から直接github/client/やgo-githubをimportしない
 * コメントは英語で記載し、関数・構造体・パッケージの責務が明確になるよう記述する
 * エラーはcmd/では操作内容を含めてラップし、gh/client/ではラップせずそのまま返す
 * テストコードは*_test.goで実装し、各責務ごとに配置する

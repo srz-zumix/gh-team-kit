@@ -7,19 +7,22 @@ import (
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
-	"github.com/srz-zumix/gh-team-kit/gh"
-	"github.com/srz-zumix/gh-team-kit/parser"
-	"github.com/srz-zumix/gh-team-kit/render"
+	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/parser"
+	"github.com/srz-zumix/go-gh-extension/pkg/render"
 )
 
 type DiffOptions struct {
 	Exporter cmdutil.Exporter
 }
 
-var colorFlag string
+func commandBuilder(left, right string, target string) string {
+	return fmt.Sprintf("gh team-kit repo diff %s %s %s", left, right, target)
+}
 
 func NewDiffCmd() *cobra.Command {
 	opts := &DiffOptions{}
+	var colorFlag string
 	var exitCode bool
 	var owner string
 
@@ -83,7 +86,7 @@ func NewDiffCmd() *cobra.Command {
 
 			renderer := render.NewRenderer(opts.Exporter)
 			renderer.SetColor(colorFlag)
-			renderer.RenderDiff(differences, repo1Parsed, repo2Parsed)
+			renderer.RenderDiff(differences, repo1Parsed, repo2Parsed, commandBuilder)
 
 			if exitCode && len(differences) > 0 {
 				cmd.SilenceErrors = true

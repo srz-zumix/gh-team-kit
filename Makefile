@@ -18,5 +18,13 @@ build:
 
 test: ## run tests
 	go test -v ./...
-	
+
 clean:
+	rm -f go.work
+
+go-work:
+	# (cd .. && gh repo clone srz-zumix/go-gh-extension)
+	ln -snf ../go-gh-extension go-gh-extension
+	go work use .
+	go work use ./go-gh-extension
+	go work sync

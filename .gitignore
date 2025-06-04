@@ -30,3 +30,6 @@ go.work.sum
 
 # temp
 [Tt]emp/
+
+# go.work paths
+go-gh-extension

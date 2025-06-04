@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/srz-zumix/gh-team-kit/gh"
-	"github.com/srz-zumix/gh-team-kit/parser"
+	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 )
 
 // NewRemoveCmd creates a new `repo user remove` command
