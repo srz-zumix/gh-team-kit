@@ -4,7 +4,7 @@ go 1.24.2
 
 require github.com/cli/go-gh/v2 v2.12.0 // indirect
 
-require github.com/srz-zumix/go-gh-extension v0.1.0
+require github.com/srz-zumix/go-gh-extension v0.1.1
 
 require (
 	dario.cat/mergo v1.0.1 // indirect
@@ -63,7 +63,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
-	github.com/shurcooL/githubv4 v0.0.0-20240120211514-18a1ae0e79dc // indirect
+	github.com/shurcooL/githubv4 v0.0.0-20240727222349-48295856cce7 // indirect
 	github.com/shurcooL/graphql v0.0.0-20230722043721-ed46e5a46466 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect

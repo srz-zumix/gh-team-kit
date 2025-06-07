@@ -19,6 +19,7 @@ func NewCheckCmd() *cobra.Command {
 	opts := &CheckOptions{}
 	var repo string
 	var exitCode bool
+	var submodules bool
 
 	cmd := &cobra.Command{
 		Use:   "check <team-slug>",
@@ -41,15 +42,27 @@ func NewCheckCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			teamRepo, err := gh.CheckTeamPermissions(ctx, client, repository, teamSlug)
-			if err != nil {
-				return fmt.Errorf("failed to check team permissions: %w", err)
+			hasPermission := false
+			renderer := render.NewRenderer(opts.Exporter)
+			if submodules {
+				teamRepos, _hasPermission, err := gh.CheckTeamPermissionsWithSubmodules(ctx, client, repository, teamSlug)
+				if err != nil {
+					return fmt.Errorf("failed to check team permissions for submodules: %w", err)
+				}
+
+				hasPermission = _hasPermission
+				renderer.RenderPermissions(teamRepos)
+			} else {
+				teamRepo, _hasPermission, err := gh.CheckTeamPermissions(ctx, client, repository, teamSlug)
+				if err != nil {
+					return fmt.Errorf("failed to check team permissions: %w", err)
+				}
+
+				hasPermission = _hasPermission
+				renderer.RenderPermission(teamRepo)
 			}
 
-			renderer := render.NewRenderer(opts.Exporter)
-			renderer.RenderPermission(teamRepo)
-
-			if teamRepo == nil && exitCode {
+			if !hasPermission && exitCode {
 				cmd.SilenceErrors = true
 				return fmt.Errorf("no team permissions found for the specified repository")
 			}
@@ -58,6 +71,7 @@ func NewCheckCmd() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&exitCode, "exit-code", false, "Exit with a status code based on the result")
+	cmd.Flags().BoolVar(&submodules, "submodules", false, "Also check permissions for submodules")
 	cmd.Flags().StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
