@@ -41,7 +41,8 @@ func NewRemoveCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&owner, "owner", "o", "", "Owner of the organization (optional)")
+	f := cmd.Flags()
+	f.StringVar(&owner, "owner", "", "Owner of the organization (optional)")
 
 	return cmd
 }

@@ -55,7 +55,9 @@ func NewIssueCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&repo, "repo", "R", "", "Repository in the format 'owner/repo' (used with --issue-number)")
+
+	f := cmd.Flags()
+	f.StringVarP(&repo, "repo", "R", "", "Repository in the format 'owner/repo' (used with --issue-number)")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 	return cmd
 }

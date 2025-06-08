@@ -47,7 +47,8 @@ func NewSyncCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&owner, "owner", "", "Default owner for team slugs (optional)")
+	f := cmd.Flags()
+	f.StringVar(&owner, "owner", "", "Default owner for team slugs")
 
 	return cmd
 }

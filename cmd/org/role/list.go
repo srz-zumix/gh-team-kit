@@ -57,7 +57,7 @@ func NewListCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.BoolVarP(&nameOnly, "name-only", "", false, "Output only role names")
+	f.BoolVar(&nameOnly, "name-only", false, "Output only role names")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 	return cmd
 }

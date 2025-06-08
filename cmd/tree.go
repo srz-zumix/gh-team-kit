@@ -58,7 +58,7 @@ func NewTreeCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVarP(&owner, "owner", "", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Specify the organization name")
 	f.BoolVarP(&recursive, "recursive", "r", false, "Retrieve teams recursively")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

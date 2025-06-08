@@ -75,9 +75,10 @@ func NewCheckCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&exitCode, "exit-code", false, "Return an exit code of 1 if the user has no permissions")
-	cmd.Flags().BoolVar(&submodules, "submodules", false, "Also check permissions for submodules")
-	cmd.Flags().StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
+	f := cmd.Flags()
+	f.BoolVar(&exitCode, "exit-code", false, "Return an exit code of 1 if the user has no permissions")
+	f.BoolVar(&submodules, "submodules", false, "Also check permissions for submodules")
+	f.StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

@@ -55,8 +55,9 @@ func NewCopyCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVarP(&force, "force", "f", false, "Force overwrite existing permissions if they exist")
-	cmd.Flags().StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
+	f := cmd.Flags()
+	f.BoolVarP(&force, "force", "f", false, "Force overwrite existing permissions if they exist")
+	f.StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

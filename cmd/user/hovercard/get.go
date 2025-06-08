@@ -43,8 +43,9 @@ func NewGetCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&subjectType, "subject-type", "", "Type of subject for contextual hovercard")
-	cmd.Flags().StringVar(&subjectId, "subject-id", "", "ID of subject for contextual hovercard")
+	f := cmd.Flags()
+	f.StringVar(&subjectType, "subject-type", "", "Type of subject for contextual hovercard")
+	f.StringVar(&subjectId, "subject-id", "", "ID of subject for contextual hovercard")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

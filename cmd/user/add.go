@@ -54,8 +54,9 @@ func NewAddCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&owner, "owner", "o", "", "Owner of the organization")
-	cmdutil.StringEnumFlag(cmd, &role, "role", "", "member", gh.OrgMembershipList, "Role to assign to the user (default: member)").NoOptDefVal = "member"
+	f := cmd.Flags()
+	f.StringVar(&owner, "owner", "", "Owner of the organization")
+	cmdutil.StringEnumFlag(cmd, &role, "role", "r", "member", gh.OrgMembershipList, "Role to assign to the user (default: member)").NoOptDefVal = "member"
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

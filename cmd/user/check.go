@@ -57,8 +57,9 @@ func NewCheckCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&exitCode, "exit-code", false, "Return an exit code of 1 if the user is not a member")
-	cmd.Flags().StringVar(&owner, "owner", "", "Owner of the repository")
+	f := cmd.Flags()
+	f.BoolVar(&exitCode, "exit-code", false, "Return an exit code of 1 if the user is not a member")
+	f.StringVar(&owner, "owner", "", "Owner of the repository")
 
 	return cmd
 }

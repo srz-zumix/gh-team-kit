@@ -84,10 +84,10 @@ func NewListCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.BoolVarP(&details, "details", "d", false, "Include detailed information about members")
-	f.BoolVarP(&nameOnly, "name-only", "", false, "Output only member names")
-	f.StringVarP(&owner, "owner", "", "", "Specify the organization name")
-	f.BoolVarP(&suspended, "suspended", "", false, "Output only suspended members")
-	f.BoolVarP(&noSuspended, "no-suspended", "", false, "Exclude suspended members")
+	f.BoolVar(&nameOnly, "name-only", false, "Output only member names")
+	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.BoolVar(&suspended, "suspended", false, "Output only suspended members")
+	f.BoolVar(&noSuspended, "no-suspended", false, "Exclude suspended members")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.TeamMembershipList, "List of roles to filter members")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

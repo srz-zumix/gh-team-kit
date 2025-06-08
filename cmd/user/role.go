@@ -69,7 +69,8 @@ func NewRoleCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&owner, "owner", "", "", "Specify the organization name")
+	f := cmd.Flags()
+	f.StringVar(&owner, "owner", "", "Specify the organization name")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd
