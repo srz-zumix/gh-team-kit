@@ -56,9 +56,9 @@ func NewListCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.BoolVarP(&nameOnly, "name-only", "", false, "Output only repository names")
+	f.BoolVar(&nameOnly, "name-only", false, "Output only repository names")
 	f.BoolVar(&noInherit, "no-inherit", false, "Disable inherited permissions")
-	f.StringVarP(&owner, "owner", "", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Specify the organization name")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.PermissionsList, "List of permissions to filter repositories")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

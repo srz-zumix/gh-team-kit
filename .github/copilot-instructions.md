@@ -35,16 +35,21 @@
 ## コーディング規約
 
 * fmt.Errorf: error strings should not end with punctuation or newlines (ST1005) go-staticcheck
-* ローカルパッケージは github.com/srz-zumix/go-gh-extension/pkg/<path/to/dir> で import
+* gh extension 用開発の共通パッケージは github.com/srz-zumix/go-gh-extension/pkg/<path/to/dir> で import
 
 ### ソースコード全般
 
 * ディレクトリ・ファイル構成は以下の責務分割に従うこと
   * cmd/: CLIコマンド定義・引数/フラグ処理・cobra.Command生成のみを担当し、ビジネスロジックは持たない
+    * cmd/直下に主要コマンド（create.go, delete.go, diff.go, get.go, list.go, member.go, move.go, org.go, rename.go, repo.go, root.go, tree.go, update.go, user.go など）を配置
+    * cmd/member/, cmd/org/, cmd/repo/, cmd/user/ などのサブディレクトリに、各コマンドのサブコマンドを配置
+    * サブディレクトリ内にもさらに role/, sets/, sync/ などの細分化されたコマンドを配置する場合がある
   * gh/: GitHub APIラッパー・ビジネスロジック層。API呼び出しはgh/client/配下で行い、gh/直下はラッパー・ユーティリティ関数のみ
   * gh/client/: go-github等の外部APIクライアント呼び出し専用。APIレスポンスの整形やエラーラップは行わない
   * render/: 表示用の整形・出力処理（テーブル/JSON/hovercard等）
   * parser/: 入力値のパース・バリデーション等
+  * config/: 設定ファイル関連
+  * version/: バージョン情報管理
 * コマンド追加時はcmd/配下にcobra.Commandを返すNew<Cmd名>Cmd関数を新設し、親コマンドで登録する
 * gh/配下のラッパー関数は必ずctx context.Context, g *GitHubClientを先頭引数に取り、repository.Repository型等を利用する
 * importはローカルパッケージをgithub.com/srz-zumix/go-gh-extension/pkg/<path>で記述し、cmd/から直接github/client/やgo-githubをimportしない
@@ -70,6 +75,9 @@
   * コマンドの登録は親コマンドの .go ファイルで行います
   * 関数名は New<コマンド名>Cmd としてください。例えば list コマンドであれば NewListCmd 、add コマンドであれば NewAddCmd となります
 * owner もしくは repo オプションはオプショナルです。文字列が空の場合の処理は不要です
+* サブディレクトリ構成例:
+  * cmd/member/add.go, cmd/member/list.go, cmd/member/role.go など
+  * cmd/org/role/list.go などの多階層構成も可
 
 #### gh
 

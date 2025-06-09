@@ -56,8 +56,9 @@ func NewCheckCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&exitCode, "exit-code", false, "Return an exit code of 1 if the user is not a member")
-	cmd.Flags().StringVarP(&owner, "owner", "", "", "Specify the organization name")
+	f := cmd.Flags()
+	f.BoolVar(&exitCode, "exit-code", false, "Return an exit code of 1 if the user is not a member")
+	f.StringVar(&owner, "owner", "", "Specify the organization name")
 
 	return cmd
 }

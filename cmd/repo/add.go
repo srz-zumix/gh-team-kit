@@ -46,7 +46,8 @@ func NewAddCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
+	f := cmd.Flags()
+	f.StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
 
 	return cmd
 }

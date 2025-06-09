@@ -56,9 +56,10 @@ func NewListCmd() *cobra.Command {
 		},
 	}
 
+	f := cmd.Flags()
+	f.BoolVar(&nameOnly, "name-only", false, "Output only team names")
+	f.StringVarP(&repo, "repo", "R", "", "Specify a repository to filter teams")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
-	cmd.Flags().BoolVarP(&nameOnly, "name-only", "", false, "Output only team names")
-	cmd.Flags().StringVarP(&repo, "repo", "R", "", "Specify a repository to filter teams")
 
 	return cmd
 }

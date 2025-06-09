@@ -112,7 +112,7 @@ func NewRepoCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.BoolVarP(&nameOnly, "name-only", "", false, "Output only repository names")
+	f.BoolVar(&nameOnly, "name-only", false, "Output only repository names")
 	f.StringVar(&owner, "owner", "", "Specify the owner of the repository")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.PermissionsList, "List of permissions to filter repositories")
 	cmdutil.StringSliceEnumFlag(cmd, &visibilities, "visibility", "v", nil, gh.RepoVisibilityList, "List of visibility to filter repositories")

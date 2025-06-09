@@ -55,7 +55,9 @@ func NewPrCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVarP(&repo, "repo", "R", "", "Repository in the format 'owner/repo'")
+
+	f := cmd.Flags()
+	f.StringVarP(&repo, "repo", "R", "", "Repository in the format 'owner/repo'")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 	return cmd
 }
