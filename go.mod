@@ -4,7 +4,7 @@ go 1.24.2
 
 require github.com/cli/go-gh/v2 v2.12.1 // indirect
 
-require github.com/srz-zumix/go-gh-extension v0.1.1
+require github.com/srz-zumix/go-gh-extension v0.1.6
 
 require (
 	dario.cat/mergo v1.0.1 // indirect
