@@ -4,7 +4,7 @@ go 1.24.2
 
 require github.com/cli/go-gh/v2 v2.12.1 // indirect
 
-require github.com/srz-zumix/go-gh-extension v0.1.6
+require github.com/srz-zumix/go-gh-extension v0.1.9
 
 require (
 	dario.cat/mergo v1.0.1 // indirect
@@ -36,6 +36,7 @@ require (
 	github.com/goccy/go-yaml v1.17.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/google/go-github/v71 v71.0.0 // indirect
+	github.com/google/go-github/v73 v73.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -43,7 +44,6 @@ require (
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/itchyny/gojq v0.12.15 // indirect
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
-	github.com/k1LoW/go-github-client/v71 v71.0.17 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
