@@ -41,7 +41,7 @@ func NewAddCmd() *cobra.Command {
 				return fmt.Errorf("failed to add repository to team: %w", err)
 			}
 
-			fmt.Printf("Successfully added %s permission for repository '%s/%s' to team '%s'.\n", repository.Owner, repository.Name, permission, teamSlug)
+			fmt.Printf("Successfully added %s permission for repository '%s' to team '%s'.\n", permission, parser.GetRepositoryFullName(repository), teamSlug)
 			return nil
 		},
 	}
