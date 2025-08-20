@@ -35,7 +35,7 @@ func NewRemoveCmd() *cobra.Command {
 				return fmt.Errorf("failed to remove repository from team: %w", err)
 			}
 
-			fmt.Printf("Successfully removed repository '%s/%s' from team '%s'.\n", repository.Owner, repository.Name, teamSlug)
+			fmt.Printf("Successfully removed repository '%s' from team '%s'.\n", parser.GetRepositoryFullName(repository), teamSlug)
 			return nil
 		},
 	}
