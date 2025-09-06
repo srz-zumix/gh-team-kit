@@ -20,6 +20,7 @@ func NewUserCmd() *cobra.Command {
 	cmd.AddCommand(user.NewRemoveCmd())
 	cmd.AddCommand(user.NewRepoCmd())
 	cmd.AddCommand(user.NewRoleCmd())
+	cmd.AddCommand(user.NewSearchCmd())
 
 	return cmd
 }
