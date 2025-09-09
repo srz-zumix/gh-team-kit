@@ -31,4 +31,5 @@ jobs:
     uses: ./.github/workflows/release.yml
     if: github.event_name == 'workflow_dispatch'
     with:
+      publish: true
       ref: ${{ needs.draft_release.outputs.tag_name }}
