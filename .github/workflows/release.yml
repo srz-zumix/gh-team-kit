@@ -31,5 +31,5 @@ jobs:
           release_tag: ${{ env.RELEASE_TAG }}
       - name: Publish
         if: inputs.publish
-        run: gh release edit --draft=false {{ env.RELEASE_TAG }}
+        run: gh release edit --draft=false ${{ env.RELEASE_TAG }}
 
