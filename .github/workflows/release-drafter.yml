@@ -18,7 +18,8 @@ permissions:
 jobs:
   draft_release:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    outputs:
+      tag_name: ${{ steps.release-drafter.outputs.tag_name }}
     steps:
       - uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6.1.0
         id: release-drafter
@@ -26,20 +27,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish_release:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
-    outputs:
-      tag_name: ${{ steps.release-drafter.outputs.tag_name }}
-    steps:
-      - uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6.1.0
-        id: release-drafter
-        with:
-          publish: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  update_release:
-    needs: publish_release
+    needs: draft_release
     uses: ./.github/workflows/release.yml
+    if: github.event_name == 'workflow_dispatch'
     with:
-      ref: ${{ needs.publish_release.outputs.tag_name }}
+      ref: ${{ needs.draft_release.outputs.tag_name }}
