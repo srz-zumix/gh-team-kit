@@ -274,6 +274,35 @@ gh team-kit user role <username> <role>
 
 Change the role of a specified user in the organization. Valid roles include `member` and `admin`.
 
+#### Search GitHub users
+
+```sh
+gh team-kit user search <query>
+```
+
+Search for GitHub users by query string.
+
+#### Get contextual hovercard information for a user
+
+```sh
+# Basic hovercard
+gh team-kit user hovercard get <username>
+
+# Issue hovercard
+gh team-kit user hovercard issue <username> <issue-number>
+
+# Organization hovercard
+gh team-kit user hovercard org <username> <org>
+
+# Pull request hovercard
+gh team-kit user hovercard pr <username> <pr-number>
+
+# Repository hovercard
+gh team-kit user hovercard repo <username> <repo>
+```
+
+Retrieve contextual hovercard information for a user. Use each subcommand for different contexts (basic, issue, organization, pull request, repository).
+
 #### Add a user as a collaborator to a repository
 
 ```sh
@@ -355,3 +384,13 @@ gh team-kit org user remove <username> <org-role>
 ```
 
 Remove a specified user from the specified role in the organization.
+
+### Copilot Management
+
+#### Show Copilot metrics for a team
+
+```sh
+gh team-kit copilot metrics <team-slug> [--org <org>] [--since <RFC3339>] [--until <RFC3339>]
+```
+
+Display GitHub Copilot usage metrics for the specified team. You can optionally specify the organization and date range.
