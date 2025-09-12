@@ -5,19 +5,20 @@ on:
       - main
   workflow_dispatch:
 
-permissions:
-  # write permission is required to create a github release
-  contents: write
-  # write permission is required for autolabeler
-  # otherwise, read permission is required at least
-  pull-requests: write
-  # for release workflow
-  id-token: write
-  attestations: write
+permissions: {}
 
 jobs:
   draft_release:
     runs-on: ubuntu-latest
+    permissions:
+      # write permission is required to create a github release
+      contents: write
+      # write permission is required for autolabeler
+      # otherwise, read permission is required at least
+      pull-requests: write
+      # for release workflow
+      id-token: write
+      attestations: write
     outputs:
       tag_name: ${{ steps.release-drafter.outputs.tag_name }}
     steps:

@@ -12,19 +12,22 @@ on:
         default: false
         type: boolean
 
-permissions:
-  contents: write
-  id-token: write
-  attestations: write
+permissions: {}
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
     env:
       RELEASE_TAG: ${{ inputs.ref || github.ref }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: cli/gh-extension-precompile@561b19deda1228a0edf856c3325df87416f8c9bd # v2.0.0
         with:
           generate_attestations: true
@@ -32,5 +35,5 @@ jobs:
           release_tag: ${{ env.RELEASE_TAG }}
       - name: Publish
         if: inputs.publish
-        run: gh release edit --draft=false ${{ env.RELEASE_TAG }}
+        run: gh release edit --draft=false "${RELEASE_TAG}"
 
