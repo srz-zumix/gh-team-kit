@@ -13,14 +13,14 @@ func NewRemoveCmd() *cobra.Command {
 	var owner string
 
 	cmd := &cobra.Command{
-		Use:     "remove <team-slug> <username>",
+		Use:     "remove <team-slug> <username...>",
 		Short:   "Remove a member from a team",
 		Long:    `Remove a specified user from the specified team in the organization.`,
 		Aliases: []string{"rm"},
-		Args:    cobra.ExactArgs(2),
+		Args:    cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			teamSlug := args[0]
-			username := args[1]
+			usernames := args[1:]
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
@@ -32,11 +32,19 @@ func NewRemoveCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			if err := gh.RemoveTeamMember(ctx, client, repository, teamSlug, username); err != nil {
-				return fmt.Errorf("failed to remove member from team: %w", err)
+			var errors []error
+			for _, username := range usernames {
+				if err := gh.RemoveTeamMember(ctx, client, repository, teamSlug, username); err != nil {
+					fmt.Printf("failed to remove member from team '%s': %v\n", teamSlug, err)
+					errors = append(errors, err)
+				} else {
+					fmt.Printf("Successfully removed user '%s' from team '%s'.\n", username, teamSlug)
+				}
 			}
 
-			fmt.Printf("Successfully removed user '%s' from team '%s'.\n", username, teamSlug)
+			if len(errors) > 0 {
+				return fmt.Errorf("failed to remove %d user(s) from organization", len(errors))
+			}
 			return nil
 		},
 	}
