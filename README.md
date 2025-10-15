@@ -126,6 +126,14 @@ gh team-kit member list <team-slug>
 
 List all members of the specified team in the organization.
 
+#### Randomly pick members from a team
+
+```sh
+gh team-kit member pick <team-slug> <count>
+```
+
+Randomly select a specified number of members from the team.
+
 #### Perform set operations on two teams members
 
 ```sh
