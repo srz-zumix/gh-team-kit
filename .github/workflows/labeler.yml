@@ -1,0 +1,19 @@
+name: Labeler
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      pr-number:
+        description: 'The pull request number(s)'
+        required: true
+
+jobs:
+  labeler:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: srz-zumix/labeler-action@ac75951ba223eca66c556651518064fa76972021 # v0.3.1
+        with:
+          pr-number: ${{ github.event.inputs.pr-number || github.event.number }}
