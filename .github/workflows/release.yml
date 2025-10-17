@@ -28,6 +28,9 @@ jobs:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
+      - name: Check version
+        run: |
+          grep "${RELEASE_TAG#v}" version/version.go          
       - uses: cli/gh-extension-precompile@9e2237c30f869ad3bcaed6a4be2cd43564dd421b # v2.1.0
         with:
           generate_attestations: true
