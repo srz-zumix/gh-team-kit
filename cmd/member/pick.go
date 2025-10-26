@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
+	"github.com/google/go-github/v73/github"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
@@ -25,6 +26,7 @@ func NewPickCmd() *cobra.Command {
 	var owner string
 	var roles []string
 	var suspended, noSuspended bool
+	var excludeMembers []string
 
 	cmd := &cobra.Command{
 		Use:   "pick <team-slug> [count]",
@@ -69,6 +71,29 @@ func NewPickCmd() *cobra.Command {
 
 			if len(members) == 0 {
 				return fmt.Errorf("no members found in team '%s'", teamSlug)
+			}
+
+			// Apply exclude filter first
+			if len(excludeMembers) > 0 {
+				var filteredMembers []*github.User
+				for _, member := range members {
+					excluded := false
+					for _, excludeName := range excludeMembers {
+						if member.Login != nil && *member.Login == excludeName {
+							excluded = true
+							break
+						}
+					}
+					if !excluded {
+						filteredMembers = append(filteredMembers, member)
+					}
+				}
+				members = filteredMembers
+
+				// Re-check count after excluding members
+				if len(members) == 0 {
+					return fmt.Errorf("no members found after excluding specified members")
+				}
 			}
 
 			// Apply filters if details are requested
@@ -135,6 +160,7 @@ func NewPickCmd() *cobra.Command {
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
 	f.BoolVar(&suspended, "suspended", false, "Output only suspended members")
 	f.BoolVar(&noSuspended, "no-suspended", false, "Exclude suspended members")
+	f.StringSliceVarP(&excludeMembers, "exclude", "e", nil, "Exclude specified members from pick selection")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.TeamMembershipList, "List of roles to filter members")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
