@@ -129,10 +129,10 @@ List all members of the specified team in the organization.
 #### Randomly pick members from a team
 
 ```sh
-gh team-kit member pick <team-slug> <count>
+gh team-kit member pick <team-slug> [count]
 ```
 
-Randomly select a specified number of members from the team.
+Randomly select a specified number of members from the team. If count is 0 (default), all members are returned. If count is negative, it picks (total members - |count|) members.
 
 #### Perform set operations on two teams members
 

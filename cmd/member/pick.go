@@ -27,20 +27,21 @@ func NewPickCmd() *cobra.Command {
 	var suspended, noSuspended bool
 
 	cmd := &cobra.Command{
-		Use:   "pick <team-slug> <count>",
+		Use:   "pick <team-slug> [count]",
 		Short: "Randomly pick members from a team",
-		Long:  `Randomly select a specified number of members from the team. The count parameter specifies how many members to pick.`,
-		Args:  cobra.ExactArgs(2),
+		Long:  `Randomly select a specified number of members from the team. The count parameter specifies how many members to pick. If count is 0 (default), all members are returned. If count is negative, it picks (total members - |count|) members.`,
+		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			teamSlug := args[0]
-			countStr := args[1]
+			count := 0 // Default value
 
-			count, err := strconv.Atoi(countStr)
-			if err != nil {
-				return fmt.Errorf("invalid count value '%s': must be a number", countStr)
-			}
-			if count <= 0 {
-				return fmt.Errorf("count must be greater than 0")
+			if len(args) > 1 {
+				countStr := args[1]
+				var err error
+				count, err = strconv.Atoi(countStr)
+				if err != nil {
+					return fmt.Errorf("invalid count value '%s': must be a number", countStr)
+				}
 			}
 
 			if suspended || noSuspended {
@@ -70,10 +71,6 @@ func NewPickCmd() *cobra.Command {
 				return fmt.Errorf("no members found in team '%s'", teamSlug)
 			}
 
-			if count > len(members) {
-				return fmt.Errorf("requested count (%d) is greater than available members (%d)", count, len(members))
-			}
-
 			// Apply filters if details are requested
 			if details {
 				members, err = gh.UpdateUsers(ctx, client, members)
@@ -91,12 +88,24 @@ func NewPickCmd() *cobra.Command {
 				if len(members) == 0 {
 					return fmt.Errorf("no members found after applying filters")
 				}
-				if count > len(members) {
-					return fmt.Errorf("requested count (%d) is greater than available members after filtering (%d)", count, len(members))
+			}
+
+			// Adjust count based on the rules
+			if count == 0 {
+				count = len(members) // Return all members
+			} else if count < 0 {
+				count = len(members) + count // Subtract absolute value from total
+				if count < 0 {
+					return fmt.Errorf("negative count value (%d) results in invalid selection: would need to pick %d members but only %d available", count-len(members), count, len(members))
 				}
 			}
 
+			if count > len(members) {
+				return fmt.Errorf("requested count (%d) is greater than available members (%d)", count, len(members))
+			}
+
 			// Randomly pick members
+			// Shuffle and pick the specified count
 			r := rand.New(rand.NewSource(time.Now().UnixNano()))
 			r.Shuffle(len(members), func(i, j int) {
 				members[i], members[j] = members[j], members[i]
