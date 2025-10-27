@@ -4,7 +4,10 @@ go 1.24.2
 
 require github.com/cli/go-gh/v2 v2.12.2 // indirect
 
-require github.com/srz-zumix/go-gh-extension v0.1.16
+require (
+	github.com/google/go-github/v73 v73.0.0
+	github.com/srz-zumix/go-gh-extension v0.1.20
+)
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
@@ -36,7 +39,6 @@ require (
 	github.com/goccy/go-yaml v1.17.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/google/go-github/v71 v71.0.0 // indirect
-	github.com/google/go-github/v73 v73.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
