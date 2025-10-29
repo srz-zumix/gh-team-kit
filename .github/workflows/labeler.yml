@@ -14,6 +14,6 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      - uses: srz-zumix/labeler-action@ac75951ba223eca66c556651518064fa76972021 # v0.3.1
+      - uses: srz-zumix/labeler-action@f311631074c2d14214f49713ae3b236586a60418 # v0.4.2
         with:
           pr-number: ${{ github.event.inputs.pr-number || github.event.number }}
