@@ -97,7 +97,7 @@ Update the details of an existing team in the specified organization, such as it
 #### Add a member to a team
 
 ```sh
-gh team-kit member add <team-slug> <username> [role]
+gh team-kit member add <team-slug> <username...> [role]
 ```
 
 Add a specified user to the specified team in the organization. Optionally specify the role (default: member).
@@ -161,7 +161,7 @@ Copy members from the source team to the destination team. Members in the source
 #### Remove a member from a team
 
 ```sh
-gh team-kit member remove <team-slug> <username>
+gh team-kit member remove <team-slug> <username...>
 ```
 
 Remove a specified user from the specified team in the organization.

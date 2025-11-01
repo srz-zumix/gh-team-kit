@@ -22,12 +22,13 @@ func NewAddCmd() *cobra.Command {
 	var role string
 
 	cmd := &cobra.Command{
-		Use:   "add <team-slug> <username>",
+		Use:   "add <team-slug> <username...>",
 		Short: "Add a member to a team",
 		Long:  `Add a specified user to the specified team in the organization.`,
+		Args:  cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			teamSlug := args[0]
-			username := args[1]
+			usernames := args[1:]
 
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
@@ -40,18 +41,24 @@ func NewAddCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			membership, err := gh.AddTeamMember(ctx, client, repository, teamSlug, username, role, allowNonOrganizationMember)
+			memberships, err := gh.AddTeamMembers(ctx, client, repository, teamSlug, usernames, role, allowNonOrganizationMember)
 			if err != nil {
 				return fmt.Errorf("failed to add member to team: %w", err)
 			}
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if opts.Exporter != nil {
-				renderer.RenderExportedData(membership)
+				if len(memberships) == 1 {
+					renderer.RenderExportedData(memberships[0])
+					return nil
+				}
+				renderer.RenderExportedData(memberships)
 				return nil
 			}
-
-			fmt.Printf("Successfully added user '%s' to team '%s' with role '%s'.\n", username, teamSlug, *membership.Role)
+			for _, membership := range memberships {
+				username := membership.User.GetLogin()
+				fmt.Printf("Successfully added user '%s' to team '%s' with role '%s'.\n", username, teamSlug, *membership.Role)
+			}
 			return nil
 		},
 	}
