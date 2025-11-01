@@ -20,10 +20,11 @@ func NewListCmd() *cobra.Command {
 	var nameOnly bool
 
 	cmd := &cobra.Command{
-		Use:   "list [owner]",
-		Short: "List roles in the organization",
-		Long:  `List all roles available in the organization.`,
-		Args:  cobra.MaximumNArgs(1),
+		Use:     "list [owner]",
+		Short:   "List roles in the organization",
+		Long:    `List all roles available in the organization.`,
+		Aliases: []string{"ls"},
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var owner string
 			if len(args) > 0 {

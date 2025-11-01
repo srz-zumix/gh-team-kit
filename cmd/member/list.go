@@ -24,10 +24,11 @@ func NewListCmd() *cobra.Command {
 	var suspended, noSuspended bool
 
 	cmd := &cobra.Command{
-		Use:   "list <team-slug>",
-		Short: "List members of a team",
-		Long:  `List all members of the specified team in the organization.`,
-		Args:  cobra.ExactArgs(1),
+		Use:     "list <team-slug>",
+		Short:   "List members of a team",
+		Long:    `List all members of the specified team in the organization.`,
+		Aliases: []string{"ls"},
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			teamSlug := args[0]
 			if suspended || noSuspended {

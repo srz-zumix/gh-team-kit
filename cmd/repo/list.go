@@ -23,10 +23,11 @@ func NewListCmd() *cobra.Command {
 	var roles []string
 
 	cmd := &cobra.Command{
-		Use:   "list <team-slug>",
-		Short: "List repositories",
-		Long:  `List all repositories for the specified team in the organization.`,
-		Args:  cobra.ExactArgs(1),
+		Use:     "list <team-slug>",
+		Short:   "List repositories",
+		Long:    `List all repositories for the specified team in the organization.`,
+		Aliases: []string{"ls"},
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			teamSlug := args[0]
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
