@@ -1,8 +1,8 @@
-package org
+package orgrole
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/srz-zumix/gh-team-kit/cmd/org/user"
+	"github.com/srz-zumix/gh-team-kit/cmd/org-role/user"
 )
 
 func NewUserCmd() *cobra.Command {

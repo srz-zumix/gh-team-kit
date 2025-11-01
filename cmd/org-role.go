@@ -2,21 +2,20 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/srz-zumix/gh-team-kit/cmd/org"
+	orgrole "github.com/srz-zumix/gh-team-kit/cmd/org-role"
 )
 
 // NewOrgCmd creates the base command for org-related operations
 func NewOrgCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "org",
-		Short: "Manage organizations",
+		Use:   "org-role",
+		Short: "Manage organizations roles",
 		Long:  `Commands for managing GitHub organizations.`,
 	}
 
-	cmd.AddCommand(org.NewAddCmd())
-	cmd.AddCommand(org.NewListCmd())
-	cmd.AddCommand(org.NewRoleCmd())
-	cmd.AddCommand(org.NewUserCmd())
+	cmd.AddCommand(orgrole.NewListCmd())
+	cmd.AddCommand(orgrole.NewTeamCmd())
+	cmd.AddCommand(orgrole.NewUserCmd())
 
 	return cmd
 }
