@@ -345,10 +345,18 @@ Remove a specified user's access to a repository.
 
 ### Organization-Role Management
 
+#### List teams assigned to an organization role
+
+```sh
+gh team-kit org-role team list <org-role>
+```
+
+Retrieve and display a list of all teams assigned to a specific role in the organization.
+
 #### Add a team to an organization role
 
 ```sh
-gh team-kit org add <team-slug> <org-role>
+gh team-kit org-role team add <team-slug> <org-role>
 ```
 
 Add a specified team to the specified role in the organization.
@@ -356,7 +364,7 @@ Add a specified team to the specified role in the organization.
 #### Remove a team from an organization role
 
 ```sh
-gh team-kit org remove <team-slug> <org-role>
+gh team-kit org-role team remove <team-slug> <org-role>
 ```
 
 Remove a specified team from the specified role in the organization.
@@ -364,7 +372,7 @@ Remove a specified team from the specified role in the organization.
 #### List organization roles
 
 ```sh
-gh team-kit org role list [owner]
+gh team-kit org-role list [owner]
 ```
 
 List all roles available in the organization. Optionally, specify the owner to filter roles.
@@ -372,7 +380,7 @@ List all roles available in the organization. Optionally, specify the owner to f
 #### List users assigned to an organization role
 
 ```sh
-gh team-kit org user list [org-role-name]
+gh team-kit org-role user list [org-role-name]
 ```
 
 Retrieve and display a list of all users assigned to a specific role in the organization. Supports options for detailed information, suspended users, and filtering by owner.
@@ -380,7 +388,7 @@ Retrieve and display a list of all users assigned to a specific role in the orga
 #### Add a user to an organization role
 
 ```sh
-gh team-kit org user add <username> <org-role>
+gh team-kit org-role user add <username> <org-role>
 ```
 
 Assign a specified user to the specified role in the organization.
@@ -388,7 +396,7 @@ Assign a specified user to the specified role in the organization.
 #### Remove a user from an organization role
 
 ```sh
-gh team-kit org user remove <username> <org-role>
+gh team-kit org-role user remove <username> <org-role>
 ```
 
 Remove a specified user from the specified role in the organization.
