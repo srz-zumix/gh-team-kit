@@ -1,4 +1,4 @@
-package org
+package team
 
 import (
 	"context"
