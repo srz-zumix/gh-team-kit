@@ -23,10 +23,11 @@ func NewListCmd() *cobra.Command {
 	var suspended, noSuspended bool
 
 	cmd := &cobra.Command{
-		Use:   "list [owner]",
-		Short: "List organization members",
-		Long:  `List all members of the specified organization with optional role filtering`,
-		Args:  cobra.MaximumNArgs(1),
+		Use:     "list [owner]",
+		Short:   "List organization members",
+		Long:    `List all members of the specified organization with optional role filtering`,
+		Aliases: []string{"ls"},
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var owner string
 			if len(args) > 0 {

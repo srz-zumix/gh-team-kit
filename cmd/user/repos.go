@@ -15,7 +15,7 @@ type RepoOptions struct {
 	Exporter cmdutil.Exporter
 }
 
-func NewRepoCmd() *cobra.Command {
+func NewReposCmd() *cobra.Command {
 	opts := &RepoOptions{}
 	var archived, noArchived bool
 	var fork, noFork bool
@@ -28,10 +28,11 @@ func NewRepoCmd() *cobra.Command {
 	var sources bool
 
 	cmd := &cobra.Command{
-		Use:   "repo [username]",
-		Short: "List repositories of a user",
-		Long:  `List all repositories owned by the specified user`,
-		Args:  cobra.MaximumNArgs(1),
+		Use:     "repos [username]",
+		Short:   "List repositories of a user",
+		Long:    `List all repositories owned by the specified user`,
+		Aliases: []string{"ls-repo", "repo"},
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			username := ""
 			if len(args) > 0 {

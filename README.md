@@ -261,7 +261,7 @@ Retrieve and display a list of all users in the organization.
 #### List user repositories
 
 ```sh
-gh team-kit user repo [username]
+gh team-kit user repos [username]
 ```
 
 Retrieve and display a list of repositories that a specified user has access to, including their roles and permissions.

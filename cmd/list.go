@@ -21,10 +21,11 @@ func NewListCmd() *cobra.Command {
 	var repo string
 
 	var cmd = &cobra.Command{
-		Use:   "list [owner]",
-		Short: "List all teams in the organization",
-		Long:  `Retrieve and display a list of all teams in the specified organization. You can optionally filter the results by repository.`,
-		Args:  cobra.MaximumNArgs(1),
+		Use:     "list [owner]",
+		Short:   "List all teams in the organization",
+		Long:    `Retrieve and display a list of all teams in the specified organization. You can optionally filter the results by repository.`,
+		Aliases: []string{"ls"},
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			owner := ""
 			if len(args) > 0 {

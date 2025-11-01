@@ -27,10 +27,11 @@ func NewListCmd() *cobra.Command {
 	var withTeam bool
 
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List repository collaborators",
-		Long:  `List all collaborators for the specified repository. You can filter the results by affiliation and role.`,
-		Args:  cobra.NoArgs,
+		Use:     "list",
+		Short:   "List repository collaborators",
+		Long:    `List all collaborators for the specified repository. You can filter the results by affiliation and role.`,
+		Aliases: []string{"ls"},
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if suspended || noSuspended {
 				details = true

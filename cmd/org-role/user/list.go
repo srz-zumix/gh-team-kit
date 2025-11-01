@@ -22,10 +22,11 @@ func NewListCmd() *cobra.Command {
 	var details, suspended, noSuspended bool
 
 	cmd := &cobra.Command{
-		Use:   "list [org-role-name]",
-		Short: "List users assigned to a organization role",
-		Long:  `Retrieve and display a list of all users assigned to a specific role in the organization.`,
-		Args:  cobra.MaximumNArgs(1),
+		Use:     "list [org-role-name]",
+		Short:   "List users assigned to a organization role",
+		Long:    `Retrieve and display a list of all users assigned to a specific role in the organization.`,
+		Aliases: []string{"ls"},
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			role := ""
 			if len(args) > 0 {

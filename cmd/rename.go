@@ -20,10 +20,11 @@ func NewRenameCmd() *cobra.Command {
 	var owner string
 
 	cmd := &cobra.Command{
-		Use:   "rename <team-slug> <new-name>",
-		Short: "Rename an existing team",
-		Long:  `Rename an existing team in the specified organization to a new name.`,
-		Args:  cobra.ExactArgs(2),
+		Use:     "rename <team-slug> <new-name>",
+		Short:   "Rename an existing team",
+		Long:    `Rename an existing team in the specified organization to a new name.`,
+		Aliases: []string{"rn"},
+		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			teamSlug := args[0]
 			newName := args[1]
