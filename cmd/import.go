@@ -42,14 +42,15 @@ func NewImportCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("error importing teams: %w", err)
 			}
+			err = importer.Import(organizationConfig)
+			if err != nil {
+				return fmt.Errorf("error applying organization config: %w", err)
+			}
 			renderer := render.NewRenderer(opts.Exporter)
 			if opts.Exporter != nil {
 				renderer.RenderExportedData(organizationConfig)
 			} else {
-				err = importer.Import(organizationConfig)
-				if err != nil {
-					return fmt.Errorf("error applying organization config: %w", err)
-				}
+				fmt.Println("Teams imported successfully.")
 			}
 			return nil
 		},
