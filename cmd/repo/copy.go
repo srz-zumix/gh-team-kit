@@ -18,6 +18,7 @@ func NewCopyCmd() *cobra.Command {
 	opts := &CopyOptions{}
 	var force bool
 	var repo string
+	var dstHost string
 
 	cmd := &cobra.Command{
 		Use:   "copy <dst-repository...>",
@@ -31,7 +32,7 @@ func NewCopyCmd() *cobra.Command {
 			}
 
 			ctx := context.Background()
-			client, err := gh.NewGitHubClientWithRepo(repository)
+			srcClient, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
@@ -41,11 +42,18 @@ func NewCopyCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("error parsing destination repository: %w", err)
 				}
+				if dstHost != "" {
+					dstRepository.Host = dstHost
+				}
+				dstClient := srcClient
 				if repository.Host != dstRepository.Host {
-					return fmt.Errorf("source and destination repositories must be on the same host: %s vs %s", repository.Host, dstRepository.Host)
+					dstClient, err = gh.NewGitHubClientWithRepo(dstRepository)
+					if err != nil {
+						return fmt.Errorf("error creating GitHub client: %w", err)
+					}
 				}
 
-				if err := gh.CopyRepoTeamsAndPermissions(ctx, client, repository, dstRepository, force); err != nil {
+				if err := gh.CopyRepoTeamsAndPermissions(ctx, srcClient, repository, dstClient, dstRepository, force); err != nil {
 					return fmt.Errorf("failed to copy teams and permissions to %s: %w", dstArg, err)
 				}
 				fmt.Printf("Successfully copied teams and permissions to %s\n", dstArg)
@@ -58,6 +66,7 @@ func NewCopyCmd() *cobra.Command {
 	f := cmd.Flags()
 	f.BoolVarP(&force, "force", "f", false, "Force overwrite existing permissions if they exist")
 	f.StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
+	f.StringVar(&dstHost, "dst-host", "", "The destination host")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

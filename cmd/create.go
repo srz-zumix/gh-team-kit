@@ -52,7 +52,7 @@ func NewCreateCmd() *cobra.Command {
 				return fmt.Errorf("team '%s' already exists", name)
 			}
 
-			team, err := gh.CreateTeam(ctx, client, repository, name, description, privacy, !disableNotification, parentTeamSlug)
+			team, err := gh.CreateTeam(ctx, client, repository, name, description, privacy, !disableNotification, &parentTeamSlug)
 			if err != nil {
 				return fmt.Errorf("failed to create team: %w", err)
 			}
