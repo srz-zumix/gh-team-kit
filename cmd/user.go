@@ -8,8 +8,8 @@ import (
 func NewUserCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "user",
-		Short: "Manage users",
-		Long:  `Manage users in the organization.`,
+		Short: "Manage organization users",
+		Long:  `Manage organization users.`,
 	}
 
 	// Add subcommands to the user command

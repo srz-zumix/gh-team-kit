@@ -32,18 +32,9 @@ func NewRemoveCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			var errors []error
-			for _, username := range usernames {
-				if err := gh.RemoveTeamMember(ctx, client, repository, teamSlug, username); err != nil {
-					fmt.Printf("failed to remove member from team '%s': %v\n", teamSlug, err)
-					errors = append(errors, err)
-				} else {
-					fmt.Printf("Successfully removed user '%s' from team '%s'.\n", username, teamSlug)
-				}
-			}
-
-			if len(errors) > 0 {
-				return fmt.Errorf("failed to remove %d user(s) from organization", len(errors))
+			err = gh.RemoveTeamMembers(ctx, client, repository, teamSlug, usernames)
+			if err != nil {
+				return fmt.Errorf("failed to remove member from team: %w", err)
 			}
 			return nil
 		},

@@ -30,16 +30,13 @@ func NewSyncCmd() *cobra.Command {
 				return fmt.Errorf("error parsing destination team: %w", err)
 			}
 
-			if srcRepo.Host != dstRepo.Host {
-				return fmt.Errorf("source and destination teams must be on the same host (%s != %s)", srcRepo.Host, dstRepo.Host)
+			ctx := context.Background()
+			srcClient, dstClient, err := gh.NewGitHubClientWith2Repos(srcRepo, dstRepo)
+			if err != nil {
+				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			ctx := context.Background()
-			client, err := gh.NewGitHubClientWithRepo(srcRepo)
-			if err != nil {
-				return fmt.Errorf("failed to create GitHub client: %w", err)
-			}
-			if err := gh.SyncTeamMembers(ctx, client, srcRepo, srcTeamSlug, dstRepo, dstTeamSlug); err != nil {
+			if err := gh.SyncTeamMembers(ctx, srcClient, srcRepo, srcTeamSlug, dstClient, dstRepo, dstTeamSlug); err != nil {
 				return fmt.Errorf("failed to sync team members: %w", err)
 			}
 			fmt.Printf("Successfully synced members from %s to %s\n", srcTeam, dstTeam)

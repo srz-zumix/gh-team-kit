@@ -17,6 +17,7 @@ type SyncOptions struct {
 func NewSyncCmd() *cobra.Command {
 	opts := &SyncOptions{}
 	var repo string
+	var dstHost string
 
 	cmd := &cobra.Command{
 		Use:   "sync <dst-repository...>",
@@ -30,7 +31,7 @@ func NewSyncCmd() *cobra.Command {
 			}
 
 			ctx := context.Background()
-			client, err := gh.NewGitHubClientWithRepo(repository)
+			srcClient, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
@@ -40,11 +41,18 @@ func NewSyncCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("error parsing destination repository: %w", err)
 				}
+				if dstHost != "" {
+					dstRepository.Host = dstHost
+				}
+				dstClient := srcClient
 				if repository.Host != dstRepository.Host {
-					return fmt.Errorf("source and destination repositories must be on the same host: %s vs %s", repository.Host, dstRepository.Host)
+					dstClient, err = gh.NewGitHubClientWithRepo(dstRepository)
+					if err != nil {
+						return fmt.Errorf("error creating GitHub client: %w", err)
+					}
 				}
 
-				if err := gh.SyncRepoTeamsAndPermissions(ctx, client, repository, dstRepository); err != nil {
+				if err := gh.SyncRepoTeamsAndPermissions(ctx, srcClient, repository, dstClient, dstRepository); err != nil {
 					return fmt.Errorf("failed to sync teams and permissions to %s: %w", dstArg, err)
 				}
 				fmt.Printf("Successfully synced teams and permissions to %s\n", dstArg)
@@ -56,6 +64,7 @@ func NewSyncCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
+	f.StringVar(&dstHost, "dst-host", "", "The destination host")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

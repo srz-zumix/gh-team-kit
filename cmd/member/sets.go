@@ -86,7 +86,7 @@ func NewSetsCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("failed to update users after set operation: %w", err)
 				}
-				members2, err = gh.UpdateUsers(ctx, client1, members2)
+				members2, err = gh.UpdateUsers(ctx, client2, members2)
 				if err != nil {
 					return fmt.Errorf("failed to update users after set operation: %w", err)
 				}

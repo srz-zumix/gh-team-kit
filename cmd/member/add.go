@@ -66,7 +66,7 @@ func NewAddCmd() *cobra.Command {
 	f := cmd.Flags()
 	f.BoolVar(&allowNonOrganizationMember, "allow-non-organization-member", false, "Allow adding non-organization member to the team")
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
-	cmdutil.StringEnumFlag(cmd, &role, "role", "r", "member", gh.TeamMembershipList, "Role to assign to the user (default: member)").NoOptDefVal = "member"
+	cmdutil.StringEnumFlag(cmd, &role, "role", "r", gh.TeamMembershipRoleMember, gh.TeamMembershipList, "Role to assign to the user (default: member)")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd
