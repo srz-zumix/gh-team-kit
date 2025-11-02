@@ -14,7 +14,7 @@ func NewSyncCmd() *cobra.Command {
 	var owner string
 
 	cmd := &cobra.Command{
-		Use:   "sync <[owner/]src-team-slug> <[owner/]dst-team-slug>",
+		Use:   "sync <[[host/]owner/]src-team-slug> <[[host/]owner/]dst-team-slug>",
 		Short: "Sync members from source team to destination team",
 		Long:  `Sync members from the source team to the destination team. Members in the source team will be added to the destination team, and members not in the source team will be removed from the destination team.`,
 		Args:  cobra.ExactArgs(2),
