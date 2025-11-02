@@ -7,6 +7,7 @@ import (
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
 )
@@ -30,6 +31,7 @@ func NewCreateCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
+			logger.Info("Creating team", "name", name)
 
 			ctx := context.Background()
 
@@ -37,11 +39,13 @@ func NewCreateCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
+			logger.Debug("Repository parsed", "owner", repository.Owner)
 
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("failed to create GitHub client: %w", err)
 			}
+			logger.Debug("GitHub client created")
 
 			// Check if the team already exists
 			exists, err := gh.IsExistsTeam(ctx, client, repository, name)
