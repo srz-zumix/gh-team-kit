@@ -2,7 +2,7 @@ module github.com/srz-zumix/gh-team-kit
 
 go 1.24.2
 
-require github.com/cli/go-gh/v2 v2.12.2
+require github.com/cli/go-gh/v2 v2.12.2 // indirect
 
 require (
 	github.com/google/go-github/v73 v73.0.0
@@ -82,7 +82,7 @@ require (
 	github.com/cli/cli/v2 v2.82.0
 	github.com/cli/safeexec v1.0.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.7 // indirect
-	gopkg.in/yaml.v3 v3.0.1
+	github.com/spf13/cobra v1.10.1
+	github.com/spf13/pflag v1.0.9 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
