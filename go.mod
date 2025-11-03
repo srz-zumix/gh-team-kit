@@ -6,7 +6,7 @@ require github.com/cli/go-gh/v2 v2.12.2 // indirect
 
 require (
 	github.com/google/go-github/v73 v73.0.0
-	github.com/srz-zumix/go-gh-extension v0.1.26
+	github.com/srz-zumix/go-gh-extension v0.1.27
 )
 
 require (
