@@ -9,6 +9,7 @@ import (
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
 )
@@ -51,7 +52,7 @@ func NewAddCmd() *cobra.Command {
 				renderer.RenderExportedData(invitation)
 				return nil
 			}
-			fmt.Printf("Successfully added user '%s' to repository with '%s' permission\n", username, permission)
+			logger.Info("User added to repository successfully.", "username", username, "repository", parser.GetRepositoryFullName(repository), "permission", permission)
 			return nil
 		},
 	}

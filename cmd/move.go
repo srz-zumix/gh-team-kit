@@ -7,6 +7,7 @@ import (
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
 )
@@ -56,9 +57,9 @@ func NewMoveCmd() *cobra.Command {
 			}
 
 			if newParent == "" {
-				fmt.Printf("Team '%s' moved to root level successfully.\n", teamSlug)
+				logger.Info("Team moved to root level successfully.", "team-slug", teamSlug)
 			} else {
-				fmt.Printf("Team '%s' parent changed to '%s' successfully.\n", teamSlug, newParent)
+				logger.Info("Team parent changed successfully.", "team-slug", teamSlug, "new-parent", newParent)
 			}
 			return nil
 		},

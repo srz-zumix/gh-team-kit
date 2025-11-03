@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 )
 
@@ -41,7 +42,7 @@ func NewAddCmd() *cobra.Command {
 				return fmt.Errorf("failed to add repository to team: %w", err)
 			}
 
-			fmt.Printf("Successfully added %s permission for repository '%s' to team '%s'.\n", permission, parser.GetRepositoryFullName(repository), teamSlug)
+			logger.Info("Repository added to team successfully.", "repository", parser.GetRepositoryFullName(repository), "team-slug", teamSlug, "permission", permission)
 			return nil
 		},
 	}

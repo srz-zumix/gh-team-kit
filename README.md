@@ -19,6 +19,7 @@ The following commands are available in `gh-team-kit`. Each command is designed 
 - **Repository Management**: Add, remove, list, and compare repositories associated with teams.
 - **User Management**: Add, remove, list, and check users in the organization or repositories.
 - **Organization-Role Management**: Manage roles within the organization, including listing available roles.
+- **Code Review Management**: Get and set code review assignment settings for teams.
 - **Permission Management**: Check and synchronize permissions for teams and users across repositories.
 - **Comparison Tools**: Compare teams, repositories, and permissions to identify differences.
 
@@ -410,3 +411,21 @@ gh team-kit copilot metrics <team-slug> [--org <org>] [--since <RFC3339>] [--unt
 ```
 
 Display GitHub Copilot usage metrics for the specified team. You can optionally specify the organization and date range.
+
+### Code Review Management
+
+#### Get code review settings
+
+```sh
+gh team-kit code-review get <team-slug> [--owner <org>] [--format <json|table>]
+```
+
+Retrieve code review assignment settings for the specified team, including auto-assignment status, algorithm, member count, and notification preferences.
+
+#### Set code review settings
+
+```sh
+gh team-kit code-review set <team-slug> [--owner <org>] [--enabled|--disable-enabled] [--algorithm <ROUND_ROBIN|LOAD_BALANCE>] [--member-count <int>] [--notify-team|--disable-notify-team]
+```
+
+Update code review assignment settings for the specified team. You can enable/disable auto-assignment, set the assignment algorithm, configure the number of members to assign, and control team notifications.

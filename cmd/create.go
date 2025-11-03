@@ -7,6 +7,7 @@ import (
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
 )
@@ -63,7 +64,7 @@ func NewCreateCmd() *cobra.Command {
 				return nil
 			}
 
-			fmt.Printf("Team '%s' created successfully.\n", team.GetName())
+			logger.Info("Team created successfully.", "team-slug", team.GetSlug())
 			return nil
 		},
 	}

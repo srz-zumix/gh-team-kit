@@ -1,4 +1,4 @@
-package cmd
+package codereview
 
 import (
 	"context"
@@ -17,17 +17,15 @@ type GetOptions struct {
 
 func NewGetCmd() *cobra.Command {
 	opts := &GetOptions{}
-
 	var owner string
-	var repo string
-	var child bool
-	var recursive bool
+
 	var cmd = &cobra.Command{
-		Use:   "get <team-slug...>",
-		Short: "Gets a team using the team's slug",
-		Long:  `Retrieve and display a team using the team's slug.`,
-		Args:  cobra.MinimumNArgs(1),
+		Use:   "get <team-slug>",
+		Short: "Get code reviews settings",
+		Long:  `Get code reviews settings.`,
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			teamSlug := args[0]
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
@@ -39,13 +37,13 @@ func NewGetCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			teams, err := gh.ListTeamByName(ctx, client, repository, args, child, recursive)
+			s, err := gh.GetTeamCodeReviewSettings(ctx, client, repository, teamSlug)
 			if err != nil {
-				return fmt.Errorf("error retrieving child teams: %w", err)
+				return fmt.Errorf("failed to get code review settings: %w", err)
 			}
 
 			renderer := render.NewRenderer(opts.Exporter)
-			renderer.RenderTeamsDefault(teams)
+			renderer.RenderTeamCodeReviewSettingsDefault(s)
 
 			return nil
 		},
@@ -53,14 +51,7 @@ func NewGetCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
-	f.StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
-	f.BoolVarP(&child, "child", "c", false, "Retrieve and display the parent team if it exists")
-	f.BoolVarP(&recursive, "recursive", "r", false, "Retrieve teams recursively")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd
-}
-
-func init() {
-	rootCmd.AddCommand(NewGetCmd())
 }

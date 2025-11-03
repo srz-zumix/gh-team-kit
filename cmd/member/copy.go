@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 )
 
@@ -39,7 +40,7 @@ func NewCopyCmd() *cobra.Command {
 			if err := gh.CopyTeamMembers(ctx, srcClient, srcRepo, srcTeamSlug, dstClient, dstRepo, dstTeamSlug); err != nil {
 				return fmt.Errorf("failed to copy team members: %w", err)
 			}
-			fmt.Printf("Successfully copied members from %s to %s\n", srcTeam, dstTeam)
+			logger.Info("Members copied successfully.", "from", srcTeam, "to", dstTeam)
 			return nil
 		},
 	}
