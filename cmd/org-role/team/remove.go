@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 )
 
@@ -21,7 +22,7 @@ func NewRemoveCmd() *cobra.Command {
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			teamSlug := args[0]
-			role := args[1]
+			orgRole := args[1]
 
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
@@ -34,11 +35,11 @@ func NewRemoveCmd() *cobra.Command {
 				return fmt.Errorf("failed to create GitHub client: %w", err)
 			}
 
-			if err := gh.RemoveOrgRoleFromTeam(ctx, client, repository, teamSlug, role); err != nil {
-				return fmt.Errorf("failed to remove role '%s' from team '%s': %w", role, teamSlug, err)
+			if err := gh.RemoveOrgRoleFromTeam(ctx, client, repository, teamSlug, orgRole); err != nil {
+				return fmt.Errorf("failed to remove org-role '%s' from team '%s': %w", orgRole, teamSlug, err)
 			}
 
-			fmt.Printf("Successfully removed role '%s' from team '%s'.\n", role, teamSlug)
+			logger.Info("Org-role removed from team successfully.", "team-slug", teamSlug, "owner", owner, "org-role", orgRole)
 			return nil
 		},
 	}

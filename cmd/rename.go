@@ -7,6 +7,7 @@ import (
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
 )
@@ -52,7 +53,7 @@ func NewRenameCmd() *cobra.Command {
 				return nil
 			}
 
-			fmt.Printf("Team '%s' renamed to '%s' successfully.\n", teamSlug, newName)
+			logger.Info("Team renamed successfully.", "before", teamSlug, "after", newName)
 			return nil
 		},
 	}

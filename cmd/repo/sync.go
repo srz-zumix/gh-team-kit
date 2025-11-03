@@ -7,6 +7,7 @@ import (
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 )
 
@@ -55,7 +56,7 @@ func NewSyncCmd() *cobra.Command {
 				if err := gh.SyncRepoTeamsAndPermissions(ctx, srcClient, repository, dstClient, dstRepository); err != nil {
 					return fmt.Errorf("failed to sync teams and permissions to %s: %w", dstArg, err)
 				}
-				fmt.Printf("Successfully synced teams and permissions to %s\n", dstArg)
+				logger.Info("Teams and permissions synced successfully.", "from", parser.GetRepositoryFullName(repository), "to", parser.GetRepositoryFullName(dstRepository))
 			}
 
 			return nil

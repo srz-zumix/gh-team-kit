@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 )
 
@@ -37,7 +38,7 @@ func NewRemoveCmd() *cobra.Command {
 				return fmt.Errorf("failed to remove collaborator from repository: %w", err)
 			}
 
-			fmt.Printf("Successfully removed user '%s' from repository '%s'.\n", username, parser.GetRepositoryFullName(repository))
+			logger.Info("User removed from repository successfully.", "username", username, "repository", parser.GetRepositoryFullName(repository))
 			return nil
 		},
 	}
