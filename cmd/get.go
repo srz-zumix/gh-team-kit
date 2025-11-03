@@ -23,7 +23,7 @@ func NewGetCmd() *cobra.Command {
 	var child bool
 	var recursive bool
 	var cmd = &cobra.Command{
-		Use:   "get [team-slug...]",
+		Use:   "get <team-slug...>",
 		Short: "Gets a team using the team's slug",
 		Long:  `Retrieve and display a team using the team's slug.`,
 		Args:  cobra.MinimumNArgs(1),

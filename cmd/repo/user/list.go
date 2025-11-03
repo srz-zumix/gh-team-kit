@@ -6,6 +6,7 @@ import (
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
+	"github.com/srz-zumix/go-gh-extension/pkg/cmdflags"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
@@ -21,7 +22,7 @@ func NewListCmd() *cobra.Command {
 	var nameOnly bool
 	var roles []string
 	var repo string
-	var suspended, noSuspended bool
+	var suspended cmdflags.MutuallyExclusiveBoolFlags
 	var affiliations []string
 	var excludeOrgAdmin bool
 	var withTeam bool
@@ -33,11 +34,8 @@ func NewListCmd() *cobra.Command {
 		Aliases: []string{"ls"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if suspended || noSuspended {
+			if suspended.IsSet() {
 				details = true
-			}
-			if suspended && noSuspended {
-				return fmt.Errorf("both 'suspended' and 'no-suspended' options cannot be true at the same time")
 			}
 
 			repository, err := parser.Repository(parser.RepositoryInput(repo))
@@ -63,10 +61,10 @@ func NewListCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("failed to update collaborators: %w", err)
 				}
-				if suspended {
+				if suspended.IsEnabled() {
 					collaborators = gh.CollectSuspendedUsers(collaborators)
 				}
-				if noSuspended {
+				if suspended.IsDisabled() {
 					collaborators = gh.ExcludeSuspendedUsers(collaborators)
 				}
 			}
@@ -109,8 +107,7 @@ func NewListCmd() *cobra.Command {
 	f.StringVarP(&repo, "repo", "R", "", "Repository in the format 'owner/name'")
 	f.BoolVar(&nameOnly, "name-only", false, "Output only collaborator names")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.PermissionsList, "List of permissions to filter users")
-	f.BoolVar(&suspended, "suspended", false, "Output only suspended members")
-	f.BoolVar(&noSuspended, "no-suspended", false, "Exclude suspended members")
+	suspended.AddNoPrefixFlag(cmd, "suspended", "Output only suspended members", "Exclude suspended members")
 	f.BoolVar(&withTeam, "with-team", false, "Detect and display team for each user")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

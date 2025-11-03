@@ -6,6 +6,7 @@ import (
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
+	"github.com/srz-zumix/go-gh-extension/pkg/cmdflags"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
@@ -17,10 +18,10 @@ type RepoOptions struct {
 
 func NewReposCmd() *cobra.Command {
 	opts := &RepoOptions{}
-	var archived, noArchived bool
-	var fork, noFork bool
-	var mirror, noMirror bool
-	var template, noTemplate bool
+	var archived cmdflags.MutuallyExclusiveBoolFlags
+	var fork cmdflags.MutuallyExclusiveBoolFlags
+	var mirror cmdflags.MutuallyExclusiveBoolFlags
+	var template cmdflags.MutuallyExclusiveBoolFlags
 	var nameOnly bool
 	var owner string
 	var roles []string
@@ -39,23 +40,7 @@ func NewReposCmd() *cobra.Command {
 				username = args[0]
 			}
 
-			if archived && noArchived {
-				return fmt.Errorf("both 'archived' and 'no-archived' options cannot be true at the same time")
-			}
-
-			if fork && noFork {
-				return fmt.Errorf("both 'fork' and 'no-fork' options cannot be true at the same time")
-			}
-
-			if mirror && noMirror {
-				return fmt.Errorf("both 'mirror' and 'no-mirror' options cannot be true at the same time")
-			}
-
-			if template && noTemplate {
-				return fmt.Errorf("both 'template' and 'no-template' options cannot be true at the same time")
-			}
-
-			if sources && (fork || mirror || archived) {
+			if sources && (fork.IsEnabled() || mirror.IsEnabled() || archived.IsEnabled()) {
 				return fmt.Errorf("the 'sources' option cannot be used with 'fork', 'mirror', or 'archived' options")
 			}
 
@@ -73,24 +58,24 @@ func NewReposCmd() *cobra.Command {
 			searchOptions := gh.RespositorySearchOptions{
 				Visibility: visibilities,
 			}
-			if archived {
+			if archived.IsEnabled() {
 				searchOptions.SetArchived(true)
-			} else if noArchived {
+			} else if archived.IsDisabled() {
 				searchOptions.SetArchived(false)
 			}
-			if fork {
+			if fork.IsEnabled() {
 				searchOptions.SetFork(true)
-			} else if noFork {
+			} else if fork.IsDisabled() {
 				searchOptions.SetFork(false)
 			}
-			if mirror {
+			if mirror.IsEnabled() {
 				searchOptions.SetMirror(true)
-			} else if noMirror {
+			} else if mirror.IsDisabled() {
 				searchOptions.SetMirror(false)
 			}
-			if template {
+			if template.IsEnabled() {
 				searchOptions.SetTemplate(true)
-			} else if noTemplate {
+			} else if template.IsDisabled() {
 				searchOptions.SetTemplate(false)
 			}
 			if sources {
@@ -120,14 +105,10 @@ func NewReposCmd() *cobra.Command {
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	f.BoolVar(&sources, "sources", false, "Include only source repositories")
-	f.BoolVar(&archived, "archived", false, "Include only archived repositories")
-	f.BoolVar(&noArchived, "no-archived", false, "Exclude archived repositories")
-	f.BoolVar(&fork, "fork", false, "Include only forked repositories")
-	f.BoolVar(&noFork, "no-fork", false, "Exclude forked repositories")
-	f.BoolVar(&mirror, "mirror", false, "Include only mirrored repositories")
-	f.BoolVar(&noMirror, "no-mirror", false, "Exclude mirrored repositories")
-	f.BoolVar(&template, "is-template", false, "Include only template repositories")
-	f.BoolVar(&noTemplate, "no-template", false, "Exclude template repositories")
+	archived.AddNoPrefixFlag(cmd, "archived", "Include only archived repositories", "Exclude archived repositories")
+	fork.AddNoPrefixFlag(cmd, "fork", "Include only forked repositories", "Exclude forked repositories")
+	mirror.AddNoPrefixFlag(cmd, "mirror", "Include only mirrored repositories", "Exclude mirrored repositories")
+	template.AddFlag(cmd, "is-template", "no-template", "Include only template repositories", "Exclude template repositories")
 
 	return cmd
 }
