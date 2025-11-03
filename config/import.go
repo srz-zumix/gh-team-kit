@@ -102,8 +102,14 @@ func (i *Importer) ReadFile(input string) (c *OrganizationConfig, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("error opening input file: %w", err)
 	}
+	// Ensure that file close errors do not overwrite previous errors
 	defer func() {
-		err = f.Close()
+		closeErr := f.Close()
+		if err == nil {
+			err = closeErr
+		} else if closeErr != nil {
+			err = fmt.Errorf("read error: %w; additionally, error closing file: %v", err, closeErr)
+		}
 	}()
 	return i.Read(f)
 }
