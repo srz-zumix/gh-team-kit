@@ -67,7 +67,7 @@ func NewImportCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVarP(&repo, "repo", "R", "", "Specify a repository to filter teams")
-	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: do not actually set labels")
+	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: do not actually apply team changes")
 	f.StringVarP(&input, "input", "i", "teams.yml", "Input file for imported team data")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
