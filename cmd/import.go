@@ -16,7 +16,7 @@ type ImportOptions struct {
 }
 
 func NewImportCmd() *cobra.Command {
-	opts := &ExportOptions{}
+	opts := &ImportOptions{}
 	var repo string
 	var input string
 	var dryrun bool
