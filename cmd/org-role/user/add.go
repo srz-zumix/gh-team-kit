@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 )
 
@@ -36,7 +37,7 @@ func NewAddCmd() *cobra.Command {
 				return fmt.Errorf("failed to assign user '%s' to role '%s' in organization '%s': %w", username, orgRole, owner, err)
 			}
 
-			fmt.Printf("Successfully assigned user '%s' to role '%s' in organization '%s'.\n", username, orgRole, owner)
+			logger.Info("User assigned to organization role successfully.", "username", username, "owner", owner, "org-role", orgRole)
 			return nil
 		},
 	}

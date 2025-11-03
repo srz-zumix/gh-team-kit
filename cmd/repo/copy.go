@@ -7,6 +7,7 @@ import (
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 )
 
@@ -56,7 +57,7 @@ func NewCopyCmd() *cobra.Command {
 				if err := gh.CopyRepoTeamsAndPermissions(ctx, srcClient, repository, dstClient, dstRepository, force); err != nil {
 					return fmt.Errorf("failed to copy teams and permissions to %s: %w", dstArg, err)
 				}
-				fmt.Printf("Successfully copied teams and permissions to %s\n", dstArg)
+				logger.Info("Teams and permissions copied successfully.", "from", parser.GetRepositoryFullName(repository), "to", parser.GetRepositoryFullName(dstRepository))
 			}
 
 			return nil

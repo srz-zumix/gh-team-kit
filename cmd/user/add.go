@@ -7,6 +7,7 @@ import (
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
 )
@@ -49,7 +50,7 @@ func NewAddCmd() *cobra.Command {
 				renderer.RenderExportedData(user)
 				return nil
 			}
-			fmt.Printf("Successfully added user '%s' to the organization with role '%s'.\n", *user.Login, *user.RoleName)
+			logger.Info("User added to organization successfully.", "username", *user.Login, "owner", owner, "role", *user.RoleName)
 			return nil
 		},
 	}

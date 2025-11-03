@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 )
 
@@ -36,10 +37,10 @@ func NewRemoveCmd() *cobra.Command {
 			var errors []error
 			for _, username := range usernames {
 				if err = gh.RemoveOrgMember(ctx, client, repository, username); err != nil {
-					fmt.Printf("Error: failed to remove user '%s': %s\n", username, err.Error())
+					logger.Error("Failed to remove user from organization.", "username", username, "error", err)
 					errors = append(errors, err)
 				} else {
-					fmt.Printf("Successfully removed user '%s' from the organization.\n", username)
+					logger.Info("User removed from organization successfully.", "username", username, "owner", owner)
 				}
 			}
 

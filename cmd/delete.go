@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 )
 
@@ -67,7 +68,7 @@ func NewDeleteCmd() *cobra.Command {
 				return fmt.Errorf("failed to delete team '%s': %w", team, err)
 			}
 
-			fmt.Printf("Team '%s' deleted successfully\n", team)
+			logger.Info("Team deleted successfully.", "team-slug", team)
 			return nil
 		},
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
 )
@@ -64,7 +65,7 @@ func NewRoleCmd() *cobra.Command {
 				return nil
 			}
 
-			fmt.Printf("Successfully updated user '%s' role to '%s' in the organization.\n", *user.Login, *user.RoleName)
+			logger.Info("User role updated in organization successfully.", "username", *user.Login, "owner", owner, "role", *user.RoleName)
 			return nil
 		},
 	}

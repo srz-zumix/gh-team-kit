@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 )
 
@@ -37,7 +38,7 @@ func NewRemoveCmd() *cobra.Command {
 				return fmt.Errorf("failed to remove user '%s' from role '%s' in organization '%s': %w", username, orgRole, owner, err)
 			}
 
-			fmt.Printf("Successfully removed user '%s' from role '%s' in organization '%s'.\n", username, orgRole, owner)
+			logger.Info("User removed from organization role successfully.", "username", username, "owner", owner, "org-role", orgRole)
 			return nil
 		},
 	}

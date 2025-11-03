@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 )
 
@@ -36,7 +37,7 @@ func NewAddCmd() *cobra.Command {
 				return fmt.Errorf("failed to add team '%s' to role '%s' in organization '%s': %w", teamSlug, orgRole, owner, err)
 			}
 
-			fmt.Printf("Successfully added team '%s' to role '%s' in organization '%s'.\n", teamSlug, orgRole, owner)
+			logger.Info("Team added to organization role successfully.", "team-slug", teamSlug, "owner", owner, "org-role", orgRole)
 			return nil
 		},
 	}
