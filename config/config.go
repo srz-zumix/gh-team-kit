@@ -34,9 +34,9 @@ type TeamHierarchy struct {
 }
 
 func (c *OrganizationConfig) FindTeamConfigBySlug(slug string) *TeamConfig {
-	for _, team := range c.Teams {
+	for i, team := range c.Teams {
 		if team.Slug == slug {
-			return &team
+			return &c.Teams[i]
 		}
 	}
 	return nil

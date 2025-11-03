@@ -39,7 +39,7 @@ func NewExportCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("error creating exporter: %w", err)
 			}
-			organizationConfig, err := exporter.Export(output)
+			organizationConfig, err := exporter.Export()
 			if err != nil {
 				return fmt.Errorf("error exporting teams: %w", err)
 			}

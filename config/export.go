@@ -41,7 +41,7 @@ func extractUserLogins(users []*github.User) []string {
 	return logins
 }
 
-func (e *Exporter) Export(output string) (*OrganizationConfig, error) {
+func (e *Exporter) Export() (*OrganizationConfig, error) {
 	teams, err := gh.ListTeams(e.ctx, e.client, e.Owner)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving teams: %w", err)
@@ -138,7 +138,12 @@ func (e *Exporter) WriteFile(organizationConfig *OrganizationConfig, output stri
 func (e *Exporter) Write(organizationConfig *OrganizationConfig, w io.Writer) (err error) {
 	encoder := yaml.NewEncoder(w)
 	defer func() {
-		err = encoder.Close()
+		closeErr := encoder.Close()
+		if err == nil {
+			err = closeErr
+		} else if closeErr != nil {
+			err = fmt.Errorf("write error: %w; encoder close error: %v", err, closeErr)
+		}
 	}()
 	return encoder.Encode(organizationConfig)
 }
