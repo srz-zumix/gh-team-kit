@@ -6,6 +6,7 @@ import (
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/config"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
 )
@@ -50,6 +51,7 @@ func NewExportCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("error writing organization config to file: %w", err)
 				}
+				logger.Info("Exported team data to %s\n", output)
 			}
 			return nil
 		},

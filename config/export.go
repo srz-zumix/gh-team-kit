@@ -60,6 +60,11 @@ func (e *Exporter) Export(output string) (*OrganizationConfig, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving team maintainers for team %s: %w", *team.Slug, err)
 		}
+		codeReviewSettings, err := gh.GetTeamCodeReviewSettings(e.ctx, e.client, e.Owner, *team.Slug)
+		if err != nil {
+			return nil, fmt.Errorf("error retrieving code review settings for team %s: %w", *team.Slug, err)
+		}
+
 		slug := *team.Slug
 		if _, ok := childTeams[slug]; !ok {
 			childTeams[slug] = &TeamHierarchy{
@@ -81,7 +86,7 @@ func (e *Exporter) Export(output string) (*OrganizationConfig, error) {
 			teamHierarchy = append(teamHierarchy, childTeams[slug])
 		}
 
-		teamConfigs = append(teamConfigs, TeamConfig{
+		teamConfig := TeamConfig{
 			Name:                *team.Name,
 			Slug:                slug,
 			Description:         *team.Description,
@@ -90,7 +95,20 @@ func (e *Exporter) Export(output string) (*OrganizationConfig, error) {
 			NotificationSetting: *team.NotificationSetting,
 			Maintainers:         extractUserLogins(maintainers),
 			Members:             extractUserLogins(members),
-		})
+		}
+		if codeReviewSettings != nil && codeReviewSettings.Enabled {
+			teamConfig.CodeReviewSettings = &TeamCodeReviewSettings{
+				Enabled:                      codeReviewSettings.Enabled,
+				Algorithm:                    codeReviewSettings.Algorithm,
+				TeamMemberCount:              codeReviewSettings.TeamMemberCount,
+				NotifyTeam:                   codeReviewSettings.NotifyTeam,
+				ExcludedTeamMembers:          codeReviewSettings.ExcludedTeamMembers,
+				IncludeChildTeamMembers:      codeReviewSettings.IncludeChildTeamMembers,
+				CountMembersAlreadyRequested: codeReviewSettings.CountMembersAlreadyRequested,
+				RemoveTeamRequest:            codeReviewSettings.RemoveTeamRequest,
+			}
+		}
+		teamConfigs = append(teamConfigs, teamConfig)
 	}
 
 	organizationConfig := &OrganizationConfig{

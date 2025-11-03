@@ -61,6 +61,22 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 			errorList = append(errorList, err)
 		}
 
+		if teamConfig.CodeReviewSettings != nil {
+			err = gh.SetTeamCodeReviewSettings(i.ctx, i.client, i.Owner, teamConfig.Slug, &gh.TeamCodeReviewSettings{
+				TeamSlug:                     teamConfig.Slug,
+				Enabled:                      teamConfig.CodeReviewSettings.Enabled,
+				Algorithm:                    teamConfig.CodeReviewSettings.Algorithm,
+				NotifyTeam:                   teamConfig.CodeReviewSettings.NotifyTeam,
+				ExcludedTeamMembers:          teamConfig.CodeReviewSettings.ExcludedTeamMembers,
+				IncludeChildTeamMembers:      teamConfig.CodeReviewSettings.IncludeChildTeamMembers,
+				CountMembersAlreadyRequested: teamConfig.CodeReviewSettings.CountMembersAlreadyRequested,
+				RemoveTeamRequest:            teamConfig.CodeReviewSettings.RemoveTeamRequest,
+			})
+			if err != nil {
+				errorList = append(errorList, fmt.Errorf("error updating code review settings for team %s: %w", teamConfig.Slug, err))
+			}
+		}
+
 		childErrorList, err := i.importTeam(organizationConfig, hierarchy.Child)
 		if err != nil {
 			return errorList, err

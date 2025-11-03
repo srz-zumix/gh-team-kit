@@ -6,6 +6,7 @@ import (
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/config"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
 )
@@ -18,6 +19,7 @@ func NewImportCmd() *cobra.Command {
 	opts := &ExportOptions{}
 	var repo string
 	var input string
+	var dryrun bool
 
 	var cmd = &cobra.Command{
 		Use:   "import [owner]",
@@ -42,15 +44,22 @@ func NewImportCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("error importing teams: %w", err)
 			}
-			err = importer.Import(organizationConfig)
-			if err != nil {
-				return fmt.Errorf("error applying organization config: %w", err)
+			if !dryrun {
+				err = importer.Import(organizationConfig)
+				if err != nil {
+					return fmt.Errorf("error applying organization config: %w", err)
+				}
 			}
 			renderer := render.NewRenderer(opts.Exporter)
 			if opts.Exporter != nil {
 				renderer.RenderExportedData(organizationConfig)
+				return nil
+			}
+
+			if dryrun {
+				logger.Info("Dry run completed. No changes were made.")
 			} else {
-				fmt.Println("Teams imported successfully.")
+				logger.Info("Teams imported successfully.")
 			}
 			return nil
 		},
@@ -58,6 +67,7 @@ func NewImportCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVarP(&repo, "repo", "R", "", "Specify a repository to filter teams")
+	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: do not actually set labels")
 	f.StringVarP(&input, "input", "i", "teams.yml", "Input file for imported team data")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
