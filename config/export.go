@@ -125,7 +125,12 @@ func (e *Exporter) WriteFile(organizationConfig *OrganizationConfig, output stri
 		return fmt.Errorf("error creating output file: %w", err)
 	}
 	defer func() {
-		err = f.Close()
+		closeErr := f.Close()
+		if err == nil {
+			err = closeErr
+		} else if closeErr != nil {
+			err = fmt.Errorf("write error: %w; close error: %v", err, closeErr)
+		}
 	}()
 	return e.Write(organizationConfig, f)
 }
