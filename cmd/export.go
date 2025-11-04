@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
@@ -18,17 +19,14 @@ type ExportOptions struct {
 func NewExportCmd() *cobra.Command {
 	opts := &ExportOptions{}
 	var output string
+	var owner string
 
 	var cmd = &cobra.Command{
-		Use:   "export [owner]",
+		Use:   "export",
 		Short: "Export team information",
 		Long:  `Retrieve and display team information from the specified organization.`,
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			owner := ""
-			if len(args) > 0 {
-				owner = args[0]
-			}
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
@@ -46,7 +44,11 @@ func NewExportCmd() *cobra.Command {
 			if opts.Exporter != nil {
 				renderer.RenderExportedData(organizationConfig)
 			} else {
-				err = exporter.WriteFile(organizationConfig, output)
+				if output == "" || output == "-" {
+					err = exporter.Write(organizationConfig, os.Stdout)
+				} else {
+					err = exporter.WriteFile(organizationConfig, output)
+				}
 				if err != nil {
 					return fmt.Errorf("error writing organization config to file: %w", err)
 				}
@@ -57,7 +59,8 @@ func NewExportCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVarP(&output, "output", "o", "teams.yml", "Output file for exported team data")
+	f.StringVarP(&output, "output", "o", "", "Output file for exported team data")
+	f.StringVar(&owner, "owner", "", "Specify the organization name")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

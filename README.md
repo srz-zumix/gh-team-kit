@@ -15,6 +15,7 @@ gh extension install srz-zumix/gh-team-kit
 The following commands are available in `gh-team-kit`. Each command is designed to help manage GitHub teams, repositories, and users efficiently.
 
 - **Team Management**: Create, update, delete, move, and display team hierarchies.
+- **Configuration Management**: Export and import team information for backup and bulk operations.
 - **Member Management**: Add, remove, check, and modify roles of team members.
 - **Repository Management**: Add, remove, list, and compare repositories associated with teams.
 - **User Management**: Add, remove, list, and check users in the organization or repositories.
@@ -429,3 +430,21 @@ gh team-kit code-review set <team-slug> [--owner <org>] [--enabled|--disable-ena
 ```
 
 Update code review assignment settings for the specified team. You can enable/disable auto-assignment, set the assignment algorithm, configure the number of members to assign, and control team notifications.
+
+### Configuration Management
+
+#### Export team information
+
+```sh
+gh team-kit export [--output <file>] [--owner <org>]
+```
+
+Retrieve and display team information from the specified organization. Exports team structure, members, and configurations to a file or stdout. Use `--output` to specify the output file (default: stdout).
+
+#### Import team information
+
+```sh
+gh team-kit import <input> [--dryrun] [--owner <org>]
+```
+
+Read and apply team information to the specified organization from a file or stdin. Use `--dryrun` to preview changes without applying them. Specify `-` as input to read from stdin.

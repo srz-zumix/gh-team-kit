@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
@@ -17,19 +18,16 @@ type ImportOptions struct {
 
 func NewImportCmd() *cobra.Command {
 	opts := &ImportOptions{}
-	var input string
 	var dryrun bool
+	var owner string
 
 	var cmd = &cobra.Command{
-		Use:   "import [owner]",
+		Use:   "import <input>",
 		Short: "Import team information",
 		Long:  `Read and apply team information to the specified organization.`,
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			owner := ""
-			if len(args) > 0 {
-				owner = args[0]
-			}
+			input := args[0]
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
@@ -39,7 +37,12 @@ func NewImportCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("error creating importer: %w", err)
 			}
-			organizationConfig, err := importer.ReadFile(input)
+			var organizationConfig *config.OrganizationConfig
+			if input == "-" {
+				organizationConfig, err = importer.Read(os.Stdin)
+			} else {
+				organizationConfig, err = importer.ReadFile(input)
+			}
 			if err != nil {
 				return fmt.Errorf("error importing teams: %w", err)
 			}
@@ -66,7 +69,7 @@ func NewImportCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: do not actually apply team changes")
-	f.StringVarP(&input, "input", "i", "teams.yml", "Input file for imported team data")
+	f.StringVar(&owner, "owner", "", "Specify the organization name")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd
