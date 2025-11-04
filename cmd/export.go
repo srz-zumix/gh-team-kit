@@ -50,8 +50,7 @@ func NewExportCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("error writing organization config to file: %w", err)
 				}
-				logger.Info(
-				fmt.Printf("Exported team data to %s\n", output)
+				logger.Info("Export completed successfully.", "output", output)
 			}
 			return nil
 		},
