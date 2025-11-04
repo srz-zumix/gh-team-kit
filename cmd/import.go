@@ -17,7 +17,6 @@ type ImportOptions struct {
 
 func NewImportCmd() *cobra.Command {
 	opts := &ImportOptions{}
-	var repo string
 	var input string
 	var dryrun bool
 
@@ -31,7 +30,7 @@ func NewImportCmd() *cobra.Command {
 			if len(args) > 0 {
 				owner = args[0]
 			}
-			repository, err := parser.Repository(parser.RepositoryOwner(owner), parser.RepositoryInput(repo))
+			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -66,7 +65,6 @@ func NewImportCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVarP(&repo, "repo", "R", "", "Specify a repository to filter teams")
 	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: do not actually apply team changes")
 	f.StringVarP(&input, "input", "i", "teams.yml", "Input file for imported team data")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)

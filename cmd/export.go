@@ -17,7 +17,6 @@ type ExportOptions struct {
 
 func NewExportCmd() *cobra.Command {
 	opts := &ExportOptions{}
-	var repo string
 	var output string
 
 	var cmd = &cobra.Command{
@@ -30,7 +29,7 @@ func NewExportCmd() *cobra.Command {
 			if len(args) > 0 {
 				owner = args[0]
 			}
-			repository, err := parser.Repository(parser.RepositoryOwner(owner), parser.RepositoryInput(repo))
+			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -51,14 +50,14 @@ func NewExportCmd() *cobra.Command {
 				if err != nil {
 					return fmt.Errorf("error writing organization config to file: %w", err)
 				}
-				logger.Info("Exported team data to %s\n", output)
+				logger.Info(
+				fmt.Printf("Exported team data to %s\n", output)
 			}
 			return nil
 		},
 	}
 
 	f := cmd.Flags()
-	f.StringVarP(&repo, "repo", "R", "", "Specify a repository to filter teams")
 	f.StringVarP(&output, "output", "o", "teams.yml", "Output file for exported team data")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

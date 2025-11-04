@@ -129,7 +129,7 @@ func (e *Exporter) WriteFile(organizationConfig *OrganizationConfig, output stri
 		if err == nil {
 			err = closeErr
 		} else if closeErr != nil {
-			err = fmt.Errorf("write error: %w; close error: %v", err, closeErr)
+			err = fmt.Errorf("write error: %w; error closing file: %v", err, closeErr)
 		}
 	}()
 	return e.Write(organizationConfig, f)
@@ -142,7 +142,7 @@ func (e *Exporter) Write(organizationConfig *OrganizationConfig, w io.Writer) (e
 		if err == nil {
 			err = closeErr
 		} else if closeErr != nil {
-			err = fmt.Errorf("write error: %w; encoder close error: %v", err, closeErr)
+			err = fmt.Errorf("write error: %w; error closing encoder: %v", err, closeErr)
 		}
 	}()
 	return encoder.Encode(organizationConfig)
