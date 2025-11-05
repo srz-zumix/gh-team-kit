@@ -19,6 +19,7 @@ type ImportOptions struct {
 func NewImportCmd() *cobra.Command {
 	opts := &ImportOptions{}
 	var dryrun bool
+	var host string
 	var owner string
 
 	var cmd = &cobra.Command{
@@ -31,6 +32,10 @@ func NewImportCmd() *cobra.Command {
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
+			}
+
+			if host != "" {
+				repository.Host = host
 			}
 
 			importer, err := config.NewImporter(repository)
@@ -70,6 +75,7 @@ func NewImportCmd() *cobra.Command {
 	f := cmd.Flags()
 	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: do not actually apply team changes")
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVarP(&host, "host", "H", "", "Specify the GitHub host")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

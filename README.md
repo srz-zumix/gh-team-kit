@@ -436,7 +436,7 @@ Update code review assignment settings for the specified team. You can enable/di
 #### Export team information
 
 ```sh
-gh team-kit export [--output <file>] [--owner <org>]
+gh team-kit export [--output <file>] [--owner <org>] [--host <host>]
 ```
 
 Retrieve and display team information from the specified organization. Exports team structure, members, and configurations to a file or stdout. Use `--output` to specify the output file (default: stdout).
@@ -444,7 +444,7 @@ Retrieve and display team information from the specified organization. Exports t
 #### Import team information
 
 ```sh
-gh team-kit import <input> [--dryrun] [--owner <org>]
+gh team-kit import <input> [--dryrun] [--owner <org>] [--host <host>]
 ```
 
 Read and apply team information to the specified organization from a file or stdin. Use `--dryrun` to preview changes without applying them. Specify `-` as input to read from stdin.

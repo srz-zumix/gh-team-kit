@@ -19,6 +19,7 @@ type ExportOptions struct {
 func NewExportCmd() *cobra.Command {
 	opts := &ExportOptions{}
 	var output string
+	var host string
 	var owner string
 
 	var cmd = &cobra.Command{
@@ -30,6 +31,10 @@ func NewExportCmd() *cobra.Command {
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
+			}
+
+			if host != "" {
+				repository.Host = host
 			}
 
 			exporter, err := config.NewExporter(repository)
@@ -61,6 +66,7 @@ func NewExportCmd() *cobra.Command {
 	f := cmd.Flags()
 	f.StringVarP(&output, "output", "o", "", "Output file for exported team data")
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVarP(&host, "host", "H", "", "Specify the GitHub host")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd
