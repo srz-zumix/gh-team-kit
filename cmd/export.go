@@ -50,6 +50,7 @@ func NewExportCmd() *cobra.Command {
 				renderer.RenderExportedData(organizationConfig)
 			} else {
 				if output == "" || output == "-" {
+					output = "stdout"
 					err = exporter.Write(organizationConfig, os.Stdout)
 				} else {
 					err = exporter.WriteFile(organizationConfig, output)
