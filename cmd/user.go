@@ -21,6 +21,7 @@ func NewUserCmd() *cobra.Command {
 	cmd.AddCommand(user.NewReposCmd())
 	cmd.AddCommand(user.NewRoleCmd())
 	cmd.AddCommand(user.NewSearchCmd())
+	cmd.AddCommand(user.NewTeamsCmd())
 
 	return cmd
 }
