@@ -45,15 +45,19 @@
     * cmd/直下に主要コマンド（create.go, delete.go, diff.go, get.go, list.go, member.go, move.go, org.go, rename.go, repo.go, root.go, tree.go, update.go, user.go など）を配置
     * cmd/member/, cmd/org/, cmd/repo/, cmd/user/ などのサブディレクトリに、各コマンドのサブコマンドを配置
     * サブディレクトリ内にもさらに role/, sets/, sync/ などの細分化されたコマンドを配置する場合がある
-  * gh/: GitHub APIラッパー・ビジネスロジック層。API呼び出しはgh/client/配下で行い、gh/直下はラッパー・ユーティリティ関数のみ
-  * gh/client/: go-github等の外部APIクライアント呼び出し専用。APIレスポンスの整形やエラーラップは行わない
-  * render/: 表示用の整形・出力処理（テーブル/JSON/hovercard等）
-  * parser/: 入力値のパース・バリデーション等
+  * go-gh-extension/pkg: 共通パッケージ群
+    * actions/: GitHub Actions関連のユーティリティ
+    * cmdflags/: コマンドラインフラグの共通処理
+    * gh/: GitHub APIラッパー・ビジネスロジック層。API呼び出しはgh/client/配下で行い、gh/直下はラッパー・ユーティリティ関数のみ
+      * gh/配下のラッパー関数は必ずctx context.Context, g *GitHubClientを先頭引数に取り、repository.Repository型等を利用する
+    * gh/client/: go-github等の外部APIクライアント呼び出し専用。APIレスポンスの整形やエラーラップは行わない
+    * logger/: ロギング関連
+    * parser/: 入力値のパース・バリデーション等
+    * render/: 表示用の整形・出力処理（テーブル/JSON/hovercard等）
   * config/: 設定ファイル関連
   * version/: バージョン情報管理
-* コマンド追加時はcmd/配下にcobra.Commandを返すNew<Cmd名>Cmd関数を新設し、親コマンドで登録する
-* gh/配下のラッパー関数は必ずctx context.Context, g *GitHubClientを先頭引数に取り、repository.Repository型等を利用する
 * importはローカルパッケージをgithub.com/srz-zumix/go-gh-extension/pkg/<path>で記述し、cmd/から直接github/client/やgo-githubをimportしない
+* コマンド追加時はcmd/配下にcobra.Commandを返すNew<Cmd名>Cmd関数を新設し、親コマンドで登録する
 * コメントは英語で記載し、関数・構造体・パッケージの責務が明確になるよう記述する
 * エラーはcmd/では操作内容を含めてラップし、gh/client/ではラップせずそのまま返す
 * テストコードは*_test.goで実装し、各責務ごとに配置する
@@ -80,9 +84,9 @@
   * cmd/member/add.go, cmd/member/list.go, cmd/member/role.go など
   * cmd/org/role/list.go などの多階層構成も可
 
-#### gh
+#### go-gh-extension/pkg/gh
 
 * gh/client/*.go では API 呼び出しのエラーはフォーマットせずそのまま返します
-* gh/member.go, gh/organizaion.go, gh/repo.go, gh/team.go, gh/user.go には github/client/*.go の関数のラッパーを記述します
+* gh/*.go には github/client/*.go の関数のラッパーを記述します
   * owner/repo などの string は使わず repository.Repository 型を引数に取ります
   * ラッパー関数は ctx context.Context を第一、 g *GitHubClient を第二引数に取ります
