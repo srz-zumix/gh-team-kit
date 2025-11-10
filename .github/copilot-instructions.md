@@ -1,4 +1,4 @@
-# instrctions
+# instructions
 
 指示が曖昧な場合は編集せずに曖昧な箇所を指摘してください。
 
