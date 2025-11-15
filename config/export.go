@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/cli/go-gh/v2/pkg/repository"
-	"github.com/google/go-github/v73/github"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh/client"
 	"gopkg.in/yaml.v3"
@@ -31,14 +30,6 @@ func NewExporter(repository repository.Repository) (*Exporter, error) {
 		client: client,
 		Owner:  repository,
 	}, nil
-}
-
-func extractUserLogins(users []*github.User) []string {
-	logins := make([]string, 0, len(users))
-	for _, user := range users {
-		logins = append(logins, *user.Login)
-	}
-	return logins
 }
 
 func (e *Exporter) Export() (*OrganizationConfig, error) {
@@ -93,8 +84,8 @@ func (e *Exporter) Export() (*OrganizationConfig, error) {
 			Privacy:             *team.Privacy,
 			ParentTeam:          parentSlug,
 			NotificationSetting: *team.NotificationSetting,
-			Maintainers:         extractUserLogins(maintainers),
-			Members:             extractUserLogins(members),
+			Maintainers:         gh.GetUserNames(maintainers),
+			Members:             gh.GetUserNames(members),
 		}
 		if codeReviewSettings != nil && codeReviewSettings.Enabled {
 			teamConfig.CodeReviewSettings = &TeamCodeReviewSettings{
