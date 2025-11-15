@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
-	"github.com/google/go-github/v73/github"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/cmdflags"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
@@ -73,22 +72,7 @@ func NewPickCmd() *cobra.Command {
 
 			// Apply exclude filter first
 			if len(excludeMembers) > 0 {
-				var filteredMembers []*github.User
-				for _, member := range members {
-					excluded := false
-					for _, excludeName := range excludeMembers {
-						if member.Login != nil && *member.Login == excludeName {
-							excluded = true
-							break
-						}
-					}
-					if !excluded {
-						filteredMembers = append(filteredMembers, member)
-					}
-				}
-				members = filteredMembers
-
-				// Re-check count after excluding members
+				members = gh.ExcludeUsers(members, excludeMembers)
 				if len(members) == 0 {
 					return fmt.Errorf("no members found after excluding specified members")
 				}
