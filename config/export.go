@@ -77,6 +77,21 @@ func (e *Exporter) Export() (*OrganizationConfig, error) {
 			teamHierarchy = append(teamHierarchy, childTeams[slug])
 		}
 
+		repos, err := gh.ListTeamRepos(e.ctx, e.client, e.Owner, *team.Slug, nil, false)
+		if err != nil {
+			return nil, fmt.Errorf("error retrieving team repositories for team %s: %w", *team.Slug, err)
+		}
+		repoPermissions := make([]TeamRepoisotryPermission, 0, len(repos))
+		for _, repo := range repos {
+			if repo.GetArchived() || repo.GetDisabled() {
+				continue
+			}
+			repoPermissions = append(repoPermissions, TeamRepoisotryPermission{
+				Name:       *repo.Name,
+				Permission: gh.GetRepositoryPermissions(repo),
+			})
+		}
+
 		teamConfig := TeamConfig{
 			Name:                *team.Name,
 			Slug:                slug,
@@ -86,6 +101,7 @@ func (e *Exporter) Export() (*OrganizationConfig, error) {
 			NotificationSetting: *team.NotificationSetting,
 			Maintainers:         gh.GetUserNames(maintainers),
 			Members:             gh.GetUserNames(members),
+			Repositories:        repoPermissions,
 		}
 		if codeReviewSettings != nil && codeReviewSettings.Enabled {
 			teamConfig.CodeReviewSettings = &TeamCodeReviewSettings{

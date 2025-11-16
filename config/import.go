@@ -61,6 +61,15 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 			errorList = append(errorList, err)
 		}
 
+		if len(teamConfig.Repositories) > 0 {
+			for _, repoPerm := range teamConfig.Repositories {
+				err = gh.AddTeamRepo(i.ctx, i.client, repository.Repository{Owner: i.Owner.Owner, Name: repoPerm.Name}, teamConfig.Slug, repoPerm.Permission)
+				if err != nil {
+					errorList = append(errorList, fmt.Errorf("error adding repository %s to team %s: %w", repoPerm.Name, teamConfig.Slug, err))
+				}
+			}
+		}
+
 		if teamConfig.CodeReviewSettings != nil {
 			err = gh.SetTeamCodeReviewSettings(i.ctx, i.client, i.Owner, teamConfig.Slug, &gh.TeamCodeReviewSettings{
 				TeamSlug:                     teamConfig.Slug,
