@@ -436,7 +436,7 @@ Update code review assignment settings for the specified team. You can enable/di
 #### Export team information
 
 ```sh
-gh team-kit export [--output <file>] [--owner <org>] [--host <host>]
+gh team-kit export [--output <file>] [--owner <org>] [--host <host>] [--no-export-repositories]
 ```
 
 Retrieve and display team information from the specified organization. Exports team structure, members, and configurations to a file or stdout. Use `--output` to specify the output file (default: stdout).
