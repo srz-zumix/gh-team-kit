@@ -21,6 +21,7 @@ func NewExportCmd() *cobra.Command {
 	var output string
 	var host string
 	var owner string
+	var noExportRepositories bool
 
 	var cmd = &cobra.Command{
 		Use:   "export",
@@ -41,7 +42,9 @@ func NewExportCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("error creating exporter: %w", err)
 			}
-			organizationConfig, err := exporter.Export()
+			organizationConfig, err := exporter.Export(&config.ExportOptions{
+				IsExportRepositories: !noExportRepositories,
+			})
 			if err != nil {
 				return fmt.Errorf("error exporting teams: %w", err)
 			}
@@ -68,6 +71,7 @@ func NewExportCmd() *cobra.Command {
 	f.StringVarP(&output, "output", "o", "", "Output file for exported team data")
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
 	f.StringVarP(&host, "host", "H", "", "Specify the GitHub host")
+	f.BoolVar(&noExportRepositories, "no-export-repositories", false, "Specify whether to export repositories")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

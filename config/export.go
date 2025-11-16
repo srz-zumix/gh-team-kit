@@ -18,6 +18,17 @@ type Exporter struct {
 	Owner  repository.Repository
 }
 
+type ExportOptions struct {
+	IsExportRepositories bool
+}
+
+func (opt *ExportOptions) GetIsExportRepositories() bool {
+	if opt == nil {
+		return true
+	}
+	return opt.IsExportRepositories
+}
+
 func NewExporter(repository repository.Repository) (*Exporter, error) {
 	repository.Name = "" // Clear repository name to focus on organization level
 	ctx := context.Background()
@@ -32,7 +43,7 @@ func NewExporter(repository repository.Repository) (*Exporter, error) {
 	}, nil
 }
 
-func (e *Exporter) Export() (*OrganizationConfig, error) {
+func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 	teams, err := gh.ListTeams(e.ctx, e.client, e.Owner)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving teams: %w", err)
@@ -77,6 +88,24 @@ func (e *Exporter) Export() (*OrganizationConfig, error) {
 			teamHierarchy = append(teamHierarchy, childTeams[slug])
 		}
 
+		var repoPermissions []TeamRepositoryPermission
+		if options.GetIsExportRepositories() {
+			repos, err := gh.ListTeamRepos(e.ctx, e.client, e.Owner, *team.Slug, nil, false)
+			if err != nil {
+				return nil, fmt.Errorf("error retrieving team repositories for team %s: %w", *team.Slug, err)
+			}
+			repoPermissions = make([]TeamRepositoryPermission, 0, len(repos))
+			for _, repo := range repos {
+				if repo.GetArchived() || repo.GetDisabled() {
+					continue
+				}
+				repoPermissions = append(repoPermissions, TeamRepositoryPermission{
+					Name:       *repo.Name,
+					Permission: gh.GetRepositoryPermissions(repo),
+				})
+			}
+		}
+
 		teamConfig := TeamConfig{
 			Name:                *team.Name,
 			Slug:                slug,
@@ -86,6 +115,7 @@ func (e *Exporter) Export() (*OrganizationConfig, error) {
 			NotificationSetting: *team.NotificationSetting,
 			Maintainers:         gh.GetUserNames(maintainers),
 			Members:             gh.GetUserNames(members),
+			Repositories:        repoPermissions,
 		}
 		if codeReviewSettings != nil && codeReviewSettings.Enabled {
 			teamConfig.CodeReviewSettings = &TeamCodeReviewSettings{

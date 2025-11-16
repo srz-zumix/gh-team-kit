@@ -5,16 +5,22 @@ type OrganizationConfig struct {
 	Hierarchy []*TeamHierarchy `yaml:"hierarchy,omitempty" json:"hierarchy,omitempty"`
 }
 
+type TeamRepositoryPermission struct {
+	Name       string `yaml:"name" json:"name"`
+	Permission string `yaml:"permission,omitempty" json:"permission,omitempty"`
+}
+
 type TeamConfig struct {
-	Name                string                  `yaml:"name" json:"name"`
-	Slug                string                  `yaml:"slug" json:"slug"`
-	Description         string                  `yaml:"description,omitempty" json:"description,omitempty"`
-	Privacy             string                  `yaml:"privacy,omitempty" json:"privacy,omitempty"`
-	ParentTeam          *string                 `yaml:"parent_team_slug,omitempty" json:"parent_team_slug,omitempty"`
-	NotificationSetting string                  `yaml:"notification_setting,omitempty" json:"notification_setting,omitempty"`
-	Maintainers         []string                `yaml:"maintainers,omitempty" json:"maintainers,omitempty"`
-	Members             []string                `yaml:"members,omitempty" json:"members,omitempty"`
-	CodeReviewSettings  *TeamCodeReviewSettings `yaml:"code_review_settings,omitempty" json:"code_review_settings,omitempty"`
+	Name                string                     `yaml:"name" json:"name"`
+	Slug                string                     `yaml:"slug" json:"slug"`
+	Description         string                     `yaml:"description,omitempty" json:"description,omitempty"`
+	Privacy             string                     `yaml:"privacy,omitempty" json:"privacy,omitempty"`
+	ParentTeam          *string                    `yaml:"parent_team_slug,omitempty" json:"parent_team_slug,omitempty"`
+	NotificationSetting string                     `yaml:"notification_setting,omitempty" json:"notification_setting,omitempty"`
+	Maintainers         []string                   `yaml:"maintainers,omitempty" json:"maintainers,omitempty"`
+	Members             []string                   `yaml:"members,omitempty" json:"members,omitempty"`
+	CodeReviewSettings  *TeamCodeReviewSettings    `yaml:"code_review_settings,omitempty" json:"code_review_settings,omitempty"`
+	Repositories        []TeamRepositoryPermission `yaml:"repositories,omitempty" json:"repositories,omitempty"`
 }
 
 type TeamCodeReviewSettings struct {
