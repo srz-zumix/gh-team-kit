@@ -5,7 +5,7 @@ type OrganizationConfig struct {
 	Hierarchy []*TeamHierarchy `yaml:"hierarchy,omitempty" json:"hierarchy,omitempty"`
 }
 
-type TeamRepoisotryPermission struct {
+type TeamRepositoryPermission struct {
 	Name       string `yaml:"name" json:"name"`
 	Permission string `yaml:"permission,omitempty" json:"permission,omitempty"`
 }
@@ -20,7 +20,7 @@ type TeamConfig struct {
 	Maintainers         []string                   `yaml:"maintainers,omitempty" json:"maintainers,omitempty"`
 	Members             []string                   `yaml:"members,omitempty" json:"members,omitempty"`
 	CodeReviewSettings  *TeamCodeReviewSettings    `yaml:"code_review_settings,omitempty" json:"code_review_settings,omitempty"`
-	Repositories        []TeamRepoisotryPermission `yaml:"repositories,omitempty" json:"repositories,omitempty"`
+	Repositories        []TeamRepositoryPermission `yaml:"repositories,omitempty" json:"repositories,omitempty"`
 }
 
 type TeamCodeReviewSettings struct {

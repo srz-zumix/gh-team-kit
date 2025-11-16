@@ -88,18 +88,18 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 			teamHierarchy = append(teamHierarchy, childTeams[slug])
 		}
 
-		var repoPermissions []TeamRepoisotryPermission
+		var repoPermissions []TeamRepositoryPermission
 		if options.GetIsExportRepositories() {
 			repos, err := gh.ListTeamRepos(e.ctx, e.client, e.Owner, *team.Slug, nil, false)
 			if err != nil {
 				return nil, fmt.Errorf("error retrieving team repositories for team %s: %w", *team.Slug, err)
 			}
-			repoPermissions = make([]TeamRepoisotryPermission, 0, len(repos))
+			repoPermissions = make([]TeamRepositoryPermission, 0, len(repos))
 			for _, repo := range repos {
 				if repo.GetArchived() || repo.GetDisabled() {
 					continue
 				}
-				repoPermissions = append(repoPermissions, TeamRepoisotryPermission{
+				repoPermissions = append(repoPermissions, TeamRepositoryPermission{
 					Name:       *repo.Name,
 					Permission: gh.GetRepositoryPermissions(repo),
 				})
