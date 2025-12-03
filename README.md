@@ -28,6 +28,26 @@ Refer to the specific command sections below for detailed usage and examples.
 
 ## Usage
 
+### Global Options
+
+#### Read-Only Mode
+
+```sh
+gh team-kit <command> --read-only
+```
+
+Run any command in read-only mode to prevent write operations. This option is useful for safely testing commands or verifying what changes would be made without actually applying them. When enabled, all API calls that would modify data (create, update, delete operations) will be blocked.
+
+Example:
+
+```sh
+# Test member addition without actually adding
+gh team-kit member add my-team username --read-only
+
+# Verify import operations without applying changes
+gh team-kit --read-only import config.yaml
+```
+
 ### Team Management
 
 #### Create a new team
