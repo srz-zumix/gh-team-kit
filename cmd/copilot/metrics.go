@@ -13,7 +13,6 @@ import (
 )
 
 type MetricsOptions struct {
-	Org      string
 	Since    string
 	Until    string
 	Exporter cmdutil.Exporter
@@ -21,13 +20,13 @@ type MetricsOptions struct {
 
 func NewMetricsCmd() *cobra.Command {
 	opts := &MetricsOptions{}
+	var owner string
 	cmd := &cobra.Command{
 		Use:   "metrics <team-slug>",
 		Short: "Show Copilot metrics for a team",
 		Long:  "Show GitHub Copilot metrics for a specific team in an organization.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			team := args[0]
 			var since, until *time.Time
 			if opts.Since != "" {
 				t, err := time.Parse(time.RFC3339, opts.Since)
@@ -43,17 +42,18 @@ func NewMetricsCmd() *cobra.Command {
 				}
 				until = &t
 			}
-			ctx := context.Background()
-			repository, err := parser.Repository(parser.RepositoryOwner(opts.Org))
+			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
 			if err != nil {
-				return fmt.Errorf("failed to parse repository: %w", err)
+				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
+
+			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("failed to create GitHub client: %w", err)
 			}
 
-			metrics, err := gh.GetCopilotTeamMetrics(ctx, client, repository.Owner, team, since, until)
+			metrics, err := gh.GetCopilotTeamMetrics(ctx, client, repository.Owner, teamSlug, since, until)
 			if err != nil {
 				return fmt.Errorf("failed to get Copilot metrics: %w", err)
 			}
@@ -63,7 +63,7 @@ func NewMetricsCmd() *cobra.Command {
 		},
 	}
 	f := cmd.Flags()
-	f.StringVar(&opts.Org, "org", "", "Organization name (required)")
+	f.StringVar(&owner, "owner", "", "Organization name (required)")
 	f.StringVar(&opts.Since, "since", "", "Start date (RFC3339, optional)")
 	f.StringVar(&opts.Until, "until", "", "End date (RFC3339, optional)")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)

@@ -27,19 +27,17 @@ func NewMoveCmd() *cobra.Command {
 		Aliases: []string{"mv"},
 		Args:    cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			teamSlug := args[0]
 			newParent := ""
 			if len(args) > 1 {
 				newParent = args[1]
 			}
 
-			ctx := context.Background()
-
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
 			if err != nil {
-				return fmt.Errorf("error parsing repository: %w", err)
+				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
+			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)

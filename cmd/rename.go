@@ -27,16 +27,14 @@ func NewRenameCmd() *cobra.Command {
 		Aliases: []string{"rn"},
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			teamSlug := args[0]
 			newName := args[1]
 
-			ctx := context.Background()
-
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
 			if err != nil {
-				return fmt.Errorf("error parsing repository: %w", err)
+				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
+			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)

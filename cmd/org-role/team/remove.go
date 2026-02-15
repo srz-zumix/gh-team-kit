@@ -21,12 +21,11 @@ func NewRemoveCmd() *cobra.Command {
 		Aliases: []string{"rm"},
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			teamSlug := args[0]
 			orgRole := args[1]
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
 			if err != nil {
-				return fmt.Errorf("failed to parse owner: %w", err)
+				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
 			ctx := context.Background()
