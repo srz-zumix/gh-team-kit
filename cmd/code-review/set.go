@@ -30,10 +30,9 @@ func NewSetCmd() *cobra.Command {
 		Long:  `Set code review settings for a team.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			teamSlug := args[0]
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
 			if err != nil {
-				return fmt.Errorf("error parsing repository: %w", err)
+				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
 			ctx := context.Background()

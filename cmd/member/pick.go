@@ -34,7 +34,6 @@ func NewPickCmd() *cobra.Command {
 		Long:  `Randomly select a specified number of members from the team. The count parameter specifies how many members to pick. If count is 0 (default), all members are returned. If count is negative, it picks (total members - |count|) members.`,
 		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			teamSlug := args[0]
 			count := 0 // Default value
 
 			if len(args) > 1 {
@@ -50,9 +49,9 @@ func NewPickCmd() *cobra.Command {
 				details = true
 			}
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
 			if err != nil {
-				return fmt.Errorf("error parsing repository: %w", err)
+				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
 			ctx := context.Background()

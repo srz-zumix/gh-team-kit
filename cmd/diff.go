@@ -32,39 +32,42 @@ func NewDiffCmd() *cobra.Command {
 		Long:  `The diff command compares the repositories associated with two teams and displays the differences.`,
 		Args:  cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			teamSlug1 := args[0]
-			teamSlug2 := args[1]
-
 			if exitCode {
 				cmd.SilenceUsage = true
 			}
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			team1 := args[0]
+			team2 := args[1]
+			repo1, teamSlug1, err := parser.RepositoryFromTeamSlugs(owner, team1)
 			if err != nil {
-				return fmt.Errorf("error parsing repository owner: %w", err)
+				return fmt.Errorf("error parsing source team: %w", err)
+			}
+			repo2, teamSlug2, err := parser.RepositoryFromTeamSlugs(owner, team2)
+			if err != nil {
+				return fmt.Errorf("error parsing destination team: %w", err)
 			}
 
-			client, err := gh.NewGitHubClientWithRepo(repository)
+			client1, client2, err := gh.NewGitHubClientWith2Repos(repo1, repo2)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
 			ctx := context.Background()
 
-			repos1, err := gh.ListTeamRepos(ctx, client, repository, teamSlug1, nil, true)
+			repos1, err := gh.ListTeamRepos(ctx, client1, repo1, teamSlug1, nil, true)
 			if err != nil {
 				return fmt.Errorf("error fetching repositories for team %s: %w", teamSlug1, err)
 			}
 
-			repos2, err := gh.ListTeamRepos(ctx, client, repository, teamSlug2, nil, true)
+			repos2, err := gh.ListTeamRepos(ctx, client2, repo2, teamSlug2, nil, true)
 			if err != nil {
 				return fmt.Errorf("error fetching repositories for team %s: %w", teamSlug2, err)
 			}
 
 			if len(args) > 2 {
 				repositories := args[2:]
-				repos1 = gh.FilterRepositoriesByNames(repos1, repositories, repository.Owner)
-				repos2 = gh.FilterRepositoriesByNames(repos2, repositories, repository.Owner)
+				repos1 = gh.FilterRepositoriesByNames(repos1, repositories, repo1.Owner)
+				repos2 = gh.FilterRepositoriesByNames(repos2, repositories, repo2.Owner)
 			}
 
 			differences := gh.CompareRepositories(repos1, repos2)

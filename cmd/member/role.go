@@ -37,13 +37,12 @@ func NewRoleCmd() *cobra.Command {
 			return fmt.Errorf("invalid role '%s', valid roles are: {%s}", role, strings.Join(gh.TeamMembershipList, "|"))
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			teamSlug := args[0]
 			username := args[1]
 			role := args[2]
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
 			if err != nil {
-				return fmt.Errorf("error parsing repository: %w", err)
+				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
 			ctx := context.Background()

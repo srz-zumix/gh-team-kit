@@ -22,9 +22,9 @@ func NewAddCmd() *cobra.Command {
 			teamSlug := args[0]
 			orgRole := args[1]
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
 			if err != nil {
-				return fmt.Errorf("error parsing repository owner: %w", err)
+				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
 			ctx := context.Background()

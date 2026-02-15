@@ -22,53 +22,50 @@ func NewDeleteCmd() *cobra.Command {
 		Aliases: []string{"del"},
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			team := args[0]
-
-			ctx := context.Background()
-
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
 			if err != nil {
-				return fmt.Errorf("failed to parse repository: %w", err)
+				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
+			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("failed to create GitHub client: %w", err)
 			}
 
 			// Find the team by slug
-			teamDetails, err := gh.FindTeamBySlug(ctx, client, repository, team)
+			teamDetails, err := gh.FindTeamBySlug(ctx, client, repository, teamSlug)
 			if err != nil {
-				return fmt.Errorf("failed to find team '%s': %w", team, err)
+				return fmt.Errorf("failed to find team '%s': %w", teamSlug, err)
 			}
 			if teamDetails == nil {
-				return fmt.Errorf("team '%s' does not exist", team)
+				return fmt.Errorf("team '%s' does not exist", teamSlug)
 			}
 
 			// Check member count and repository count if force is not enabled
 			if !force {
 				if teamDetails.ReposCount != nil && *teamDetails.ReposCount > 0 {
-					return fmt.Errorf("team '%s' has %d repositories. Use --force to skip this check", team, *teamDetails.ReposCount)
+					return fmt.Errorf("team '%s' has %d repositories. Use --force to skip this check", teamSlug, *teamDetails.ReposCount)
 				}
 				if teamDetails.MembersCount != nil && *teamDetails.MembersCount > 0 {
-					return fmt.Errorf("team '%s' has %d members. Use --force to skip this check", team, *teamDetails.MembersCount)
+					return fmt.Errorf("team '%s' has %d members. Use --force to skip this check", teamSlug, *teamDetails.MembersCount)
 				}
 			}
 
 			// Check if the team has child teams
-			hasChildTeams, err := gh.HasChildTeams(ctx, client, repository, team)
+			hasChildTeams, err := gh.HasChildTeams(ctx, client, repository, teamSlug)
 			if err != nil {
-				return fmt.Errorf("failed to check child teams for '%s': %w", team, err)
+				return fmt.Errorf("failed to check child teams for '%s': %w", teamSlug, err)
 			}
 			if hasChildTeams && !withChild {
-				return fmt.Errorf("team '%s' has child teams. Use --with-child to delete", team)
+				return fmt.Errorf("team '%s' has child teams. Use --with-child to delete", teamSlug)
 			}
 
-			if err := gh.DeleteTeam(ctx, client, repository, team); err != nil {
-				return fmt.Errorf("failed to delete team '%s': %w", team, err)
+			if err := gh.DeleteTeam(ctx, client, repository, teamSlug); err != nil {
+				return fmt.Errorf("failed to delete team '%s': %w", teamSlug, err)
 			}
 
-			logger.Info("Team deleted successfully.", "team-slug", team)
+			logger.Info("Team deleted successfully.", "team-slug", teamSlug)
 			return nil
 		},
 	}
