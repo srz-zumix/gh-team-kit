@@ -20,6 +20,7 @@ type Exporter struct {
 
 type ExportOptions struct {
 	IsExportRepositories bool
+	ExcludeSuspended     bool
 }
 
 func (opt *ExportOptions) GetIsExportRepositories() bool {
@@ -27,6 +28,13 @@ func (opt *ExportOptions) GetIsExportRepositories() bool {
 		return true
 	}
 	return opt.IsExportRepositories
+}
+
+func (opt *ExportOptions) GetExcludeSuspended() bool {
+	if opt == nil {
+		return false
+	}
+	return opt.ExcludeSuspended
 }
 
 func NewExporter(repository repository.Repository) (*Exporter, error) {
@@ -58,9 +66,15 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving team members for team %s: %w", *team.Slug, err)
 		}
+		if options.GetExcludeSuspended() {
+			members = gh.ExcludeSuspendedUsers(members)
+		}
 		maintainers, err := gh.ListTeamMembers(e.ctx, e.client, e.Owner, *team.Slug, []string{gh.TeamMembershipRoleMaintainer}, false)
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving team maintainers for team %s: %w", *team.Slug, err)
+		}
+		if options.GetExcludeSuspended() {
+			maintainers = gh.ExcludeSuspendedUsers(maintainers)
 		}
 		codeReviewSettings, err := gh.GetTeamCodeReviewSettings(e.ctx, e.client, e.Owner, *team.Slug)
 		if err != nil {
