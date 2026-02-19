@@ -10,6 +10,14 @@ To install the tool, you can use the following command:
 gh extension install srz-zumix/gh-team-kit
 ```
 
+## Shell Completion
+
+**Workaround Available!** While gh CLI doesn't natively support extension completion, we provide a patch script that enables it.
+
+**Prerequisites:** Before setting up gh-team-kit completion, ensure gh CLI completion is configured for your shell. See [gh completion documentation](https://cli.github.com/manual/gh_completion) for setup instructions.
+
+For detailed installation instructions and setup for each shell, see the [Shell Completion Guide](docs/shell-completion.md).
+
 ## Commands Overview
 
 The following commands are available in `gh-team-kit`. Each command is designed to help manage GitHub teams, repositories, and users efficiently.
@@ -47,6 +55,35 @@ gh team-kit member add my-team username --read-only
 # Verify import operations without applying changes
 gh team-kit --read-only import config.yaml
 ```
+
+### Shell Completion Commands
+
+#### Generate shell completion script
+
+```sh
+gh team-kit completion -s <shell>
+```
+
+Generate shell completion patch for gh-team-kit. This patches gh's existing completion system to support the extension.
+
+**Flags:**
+
+- `-s, --shell string`: Shell type: {bash|zsh|fish|powershell}
+
+**Prerequisites:** gh completion must be configured first. See [gh completion documentation](https://cli.github.com/manual/gh_completion).
+
+**Examples:**
+
+```sh
+# Bash
+eval "$(gh team-kit completion -s bash)"
+
+# PowerShell (load gh completion first)
+Invoke-Expression $(gh completion -s powershell | Out-String)
+Invoke-Expression $(gh team-kit completion -s powershell | Out-String)
+```
+
+For detailed setup instructions, see the [Shell Completion guide in go-gh-extension](https://github.com/srz-zumix/go-gh-extension/blob/main/docs/shell-completion.md).
 
 ### Team Management
 

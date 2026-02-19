@@ -192,8 +192,8 @@ github.com/spf13/cobra v1.10.2/go.mod h1:7C1pvHqHw5A4vrJfjNwvOdzYu0Gml16OCs2GRiT
 github.com/spf13/pflag v1.0.9/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
 github.com/spf13/pflag v1.0.10 h1:4EBh2KAYBwaONj6b2Ye1GiHfwjqyROoF4RwYO+vPwFk=
 github.com/spf13/pflag v1.0.10/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
-github.com/srz-zumix/go-gh-extension v0.3.0 h1:aNswUufSVO8onHmfdVukgg7Hr10nzp7O7O4Rtmu5SHk=
-github.com/srz-zumix/go-gh-extension v0.3.0/go.mod h1:3yHgP8rWTgW21p5+/rLh7s72LrUSX/s8Xrv94ja/iOk=
+github.com/srz-zumix/go-gh-extension v0.3.2 h1:oSYYwN7Bt9MJTP7ImxEg+Uj7CC0SY/UtiUQYHqXvPbo=
+github.com/srz-zumix/go-gh-extension v0.3.2/go.mod h1:3yHgP8rWTgW21p5+/rLh7s72LrUSX/s8Xrv94ja/iOk=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
