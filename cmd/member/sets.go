@@ -27,10 +27,14 @@ func NewSetsCmd() *cobra.Command {
 	var suspended cmdflags.MutuallyExclusiveBoolFlags
 
 	cmd := &cobra.Command{
-		Use:   "sets <[owner]/team-slug1> <|,&,-,^> <[owner]/team-slug2>",
+		Use:   "sets <[owner]/team-slug1|@any|@all> <|,&,-,^> <[owner]/team-slug2|@any|@all>",
 		Short: "Perform set operations on two teams' members",
-		Long:  `Perform set operations on the members of two teams. The operation can be union, intersection, difference, or symmetric difference.`,
-		Args:  cobra.ExactArgs(3),
+		Long: `Perform set operations on the members of two teams. The operation can be union, intersection, difference, or symmetric difference.
+
+Special team slugs:
+  @any  - All members who belong to any team in the organization (union of all teams)
+  @all  - All members of the organization`,
+		Args: cobra.ExactArgs(3),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			operation := args[1]
 			sets, err := gh.GetSetsOperationFunc(operation)
@@ -68,12 +72,12 @@ func NewSetsCmd() *cobra.Command {
 			}
 
 			// Fetch members for team1 and team2 using the correct teamSlug
-			members1, err := gh.ListTeamMembers(ctx, client1, repo1, teamSlug1, roles, !nameOnly)
+			members1, err := gh.ListMembersByTeamSpec(ctx, client1, repo1, teamSlug1, roles, !nameOnly)
 			if err != nil {
 				return fmt.Errorf("failed to list members of team1 '%s': %w", team1, err)
 			}
 
-			members2, err := gh.ListTeamMembers(ctx, client2, repo2, teamSlug2, roles, !nameOnly)
+			members2, err := gh.ListMembersByTeamSpec(ctx, client2, repo2, teamSlug2, roles, !nameOnly)
 			if err != nil {
 				return fmt.Errorf("failed to list members of team2 '%s': %w", team2, err)
 			}
