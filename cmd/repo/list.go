@@ -50,7 +50,7 @@ func NewListCmd() *cobra.Command {
 			if nameOnly {
 				renderer.RenderNames(repos)
 			} else {
-				renderer.RenderRepository(repos)
+				renderer.RenderRepository(repos, nil)
 			}
 			return nil
 		},
