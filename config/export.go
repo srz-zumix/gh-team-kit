@@ -110,7 +110,7 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 			}
 			repoPermissions = make([]TeamRepositoryPermission, 0, len(repos))
 			for _, repo := range repos {
-				if repo.GetArchived() || repo.GetDisabled() {
+				if repo.GetDisabled() {
 					continue
 				}
 				repoPermissions = append(repoPermissions, TeamRepositoryPermission{
