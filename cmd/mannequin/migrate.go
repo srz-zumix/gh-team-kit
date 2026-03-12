@@ -117,12 +117,12 @@ Example:
 				if err := gh.ReattributeMannequinToUser(ctx, dstClient, dstRepository, orgNodeID, mannequinNodeID, targetUserNodeID); err != nil {
 					return fmt.Errorf("failed to reattribute mannequin to user: %w", err)
 				}
-				logger.Info("Mannequin reattributed successfully.", "mannequin", mannequinLogin, "target-user", targetUserLogin, "email", email)
+				logger.Info("Mannequin reattributed successfully.", "mannequin", mannequinLogin, "target-user", targetUserLogin)
 			} else {
 				if err := gh.CreateAttributionInvitation(ctx, dstClient, dstRepository, orgNodeID, mannequinNodeID, targetUserNodeID); err != nil {
 					return fmt.Errorf("failed to invite user to claim mannequin: %w", err)
 				}
-				logger.Info("Attribution invitation sent.", "mannequin", mannequinLogin, "target-user", targetUserLogin, "email", email)
+				logger.Info("Attribution invitation sent.", "mannequin", mannequinLogin, "target-user", targetUserLogin)
 			}
 			return nil
 		},
