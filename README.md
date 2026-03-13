@@ -29,6 +29,7 @@ The following commands are available in `gh-team-kit`. Each command is designed 
 - **User Management**: Add, remove, list, and check users in the organization or repositories.
 - **Organization-Role Management**: Manage roles within the organization, including listing available roles.
 - **Code Review Management**: Get and set code review assignment settings for teams.
+- **Mannequin Management**: List, invite, and migrate mannequins (placeholder accounts for unclaimed users).
 - **Permission Management**: Check and synchronize permissions for teams and users across repositories.
 - **Comparison Tools**: Compare teams, repositories, and permissions to identify differences.
 
@@ -459,6 +460,32 @@ gh team-kit org-role user remove <username> <org-role>
 ```
 
 Remove a specified user from the specified role in the organization.
+
+### Mannequin Management
+
+#### Invite a user to claim a mannequin
+
+```sh
+gh team-kit mannequin invite <mannequin-login> <target-user-login> [--owner <org>] [--skip-invitation]
+```
+
+Send an attribution invitation to a user to claim the specified mannequin. The target user must be a member of the organization. Use `--skip-invitation` to skip the invitation step and directly reclaim the mannequin (requires the feature to be enabled by GitHub Support).
+
+#### List mannequins in the organization
+
+```sh
+gh team-kit mannequin list [owner] [--name-only] [--format json] [--jq <expression>] [--template <string>]
+```
+
+List all mannequins (placeholder accounts for unclaimed users) in the specified organization. Use `--name-only` to output only login names. Use `--format json` with `--jq` or `--template` to customize JSON output.
+
+#### Migrate a user by email from source host to target host
+
+```sh
+gh team-kit mannequin migrate <email> --src-host <source-host> [--repo [HOST/]OWNER/REPO] [--owner <org>] [--skip-invitation]
+```
+
+Find the mannequin (by email on source host) and the target user (by email on target host), then send an attribution invitation to claim the mannequin. `--src-host` is required and specifies the GitHub instance where the mannequin's login originated. Use `--skip-invitation` to skip the invitation step (requires the feature to be enabled by GitHub Support).
 
 ### Copilot Management
 
