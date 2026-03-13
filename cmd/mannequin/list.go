@@ -20,6 +20,7 @@ type ListOptions struct {
 func NewListCmd() *cobra.Command {
 	opts := &ListOptions{}
 	var nameOnly bool
+	var fields []string
 
 	cmd := &cobra.Command{
 		Use:     "list [owner]",
@@ -52,6 +53,8 @@ func NewListCmd() *cobra.Command {
 			renderer := render.NewRenderer(opts.Exporter)
 			if nameOnly {
 				renderer.RenderNames(mannequins)
+			} else if len(fields) > 0 {
+				renderer.RenderMannequins(mannequins, fields)
 			} else {
 				renderer.RenderMannequinsDefault(mannequins)
 			}
@@ -61,6 +64,7 @@ func NewListCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.BoolVar(&nameOnly, "name-only", false, "Output only mannequin login names")
+	cmdutil.StringSliceEnumFlag(cmd, &fields, "field", "", nil, render.MannequinFieldList, "Fields to display")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

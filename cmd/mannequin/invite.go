@@ -14,6 +14,7 @@ import (
 func NewInviteCmd() *cobra.Command {
 	var owner string
 	var skipInvitation bool
+	var force bool
 
 	cmd := &cobra.Command{
 		Use:   "invite <mannequin-login> <target-user-login>",
@@ -48,19 +49,18 @@ Use --skip-invitation to skip the invitation step and directly reclaim the manne
 			orgNodeID := *org.NodeID
 
 			// Find mannequin by login
-			mannequins, err := gh.ListMannequins(ctx, client, repository, nil)
+			mannequin, err := gh.FindMannequinByLogin(ctx, client, repository, mannequinLogin)
 			if err != nil {
-				return fmt.Errorf("failed to list mannequins: %w", err)
+				return fmt.Errorf("failed to find mannequin: %w", err)
 			}
-			var mannequinNodeID string
-			for _, m := range mannequins {
-				if string(m.Login) == mannequinLogin {
-					mannequinNodeID = fmt.Sprintf("%v", m.ID)
-					break
-				}
-			}
-			if mannequinNodeID == "" {
+			if mannequin == nil {
 				return fmt.Errorf("mannequin '%s' not found in organization '%s'", mannequinLogin, repository.Owner)
+			}
+			mannequinNodeID := mannequin.NodeID()
+
+			// Check if the mannequin is already claimed
+			if !force && string(mannequin.Claimant.Login) != "" {
+				return fmt.Errorf("mannequin '%s' is already claimed by '%s'; use --force to override", mannequinLogin, mannequin.Claimant.Login)
 			}
 
 			// Get target user node ID
@@ -75,14 +75,14 @@ Use --skip-invitation to skip the invitation step and directly reclaim the manne
 
 			if skipInvitation {
 				if err := gh.ReattributeMannequinToUser(ctx, client, repository, orgNodeID, mannequinNodeID, targetUserNodeID); err != nil {
-					return fmt.Errorf("failed to reattribute mannequin to user: %w", err)
+					return fmt.Errorf("failed to reattribute mannequin to user (mannequin-node-id=%s): %w", mannequinNodeID, err)
 				}
-				logger.Info("Mannequin reattributed successfully.", "mannequin", mannequinLogin, "target-user", targetUserLogin)
+				logger.Info("Mannequin reattributed successfully.", "mannequin", mannequinLogin, "mannequin-node-id", mannequinNodeID, "target-user", targetUserLogin)
 			} else {
 				if err := gh.CreateAttributionInvitation(ctx, client, repository, orgNodeID, mannequinNodeID, targetUserNodeID); err != nil {
-					return fmt.Errorf("failed to invite user to claim mannequin: %w", err)
+					return fmt.Errorf("failed to invite user to claim mannequin (mannequin-node-id=%s): %w", mannequinNodeID, err)
 				}
-				logger.Info("Attribution invitation sent.", "mannequin", mannequinLogin, "target-user", targetUserLogin)
+				logger.Info("Attribution invitation sent.", "mannequin", mannequinLogin, "mannequin-node-id", mannequinNodeID, "target-user", targetUserLogin)
 			}
 			return nil
 		},
@@ -91,6 +91,7 @@ Use --skip-invitation to skip the invitation step and directly reclaim the manne
 	f := cmd.Flags()
 	f.StringVar(&owner, "owner", "", "Organization name (uses current repository's organization if omitted)")
 	f.BoolVar(&skipInvitation, "skip-invitation", false, "Skip the invitation step and directly reclaim the mannequin (requires the feature to be enabled by GitHub Support)")
+	f.BoolVar(&force, "force", false, "Skip the claimant check and proceed even if the mannequin is already claimed")
 
 	return cmd
 }

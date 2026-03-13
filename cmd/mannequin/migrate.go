@@ -20,6 +20,7 @@ func NewMigrateCmd() *cobra.Command {
 	var repo string
 	var srcHost string
 	var skipInvitation bool
+	var force bool
 
 	cmd := &cobra.Command{
 		Use:   "migrate <email>",
@@ -88,19 +89,18 @@ Example:
 			orgNodeID := *org.NodeID
 
 			// Find mannequin by login in the target organization
-			mannequins, err := gh.ListMannequins(ctx, dstClient, dstRepository, nil)
+			mannequin, err := gh.FindMannequinByLogin(ctx, dstClient, dstRepository, mannequinLogin)
 			if err != nil {
-				return fmt.Errorf("failed to list mannequins: %w", err)
+				return fmt.Errorf("failed to find mannequin: %w", err)
 			}
-			var mannequinNodeID string
-			for _, m := range mannequins {
-				if string(m.Login) == mannequinLogin {
-					mannequinNodeID = fmt.Sprintf("%v", m.ID)
-					break
-				}
-			}
-			if mannequinNodeID == "" {
+			if mannequin == nil {
 				return fmt.Errorf("mannequin '%s' not found in organization '%s'", mannequinLogin, dstRepository.Owner)
+			}
+			mannequinNodeID := mannequin.NodeID()
+
+			// Check if the mannequin is already claimed
+			if !force && string(mannequin.Claimant.Login) != "" {
+				return fmt.Errorf("mannequin '%s' is already claimed by '%s'; use --force to override", mannequinLogin, mannequin.Claimant.Login)
 			}
 
 			// Get target user node ID
@@ -115,14 +115,14 @@ Example:
 
 			if skipInvitation {
 				if err := gh.ReattributeMannequinToUser(ctx, dstClient, dstRepository, orgNodeID, mannequinNodeID, targetUserNodeID); err != nil {
-					return fmt.Errorf("failed to reattribute mannequin to user: %w", err)
+					return fmt.Errorf("failed to reattribute mannequin to user (mannequin-node-id=%s): %w", mannequinNodeID, err)
 				}
-				logger.Info("Mannequin reattributed successfully.", "mannequin", mannequinLogin, "target-user", targetUserLogin)
+				logger.Info("Mannequin reattributed successfully.", "mannequin", mannequinLogin, "mannequin-node-id", mannequinNodeID, "target-user", targetUserLogin)
 			} else {
 				if err := gh.CreateAttributionInvitation(ctx, dstClient, dstRepository, orgNodeID, mannequinNodeID, targetUserNodeID); err != nil {
-					return fmt.Errorf("failed to invite user to claim mannequin: %w", err)
+					return fmt.Errorf("failed to invite user to claim mannequin (mannequin-node-id=%s): %w", mannequinNodeID, err)
 				}
-				logger.Info("Attribution invitation sent.", "mannequin", mannequinLogin, "target-user", targetUserLogin)
+				logger.Info("Attribution invitation sent.", "mannequin", mannequinLogin, "mannequin-node-id", mannequinNodeID, "target-user", targetUserLogin)
 			}
 			return nil
 		},
@@ -133,6 +133,7 @@ Example:
 	f.StringVar(&owner, "owner", "", "Organization name (uses current repository's organization if omitted)")
 	f.StringVar(&srcHost, "src-host", "", "Source GitHub host (e.g. github.example.com) where mannequins originated")
 	f.BoolVar(&skipInvitation, "skip-invitation", false, "Skip the invitation step and directly reclaim the mannequin (requires the feature to be enabled by GitHub Support)")
+	f.BoolVar(&force, "force", false, "Skip the claimant check and proceed even if the mannequin is already claimed")
 	if err := cmd.MarkFlagRequired("src-host"); err != nil {
 		panic(err)
 	}
