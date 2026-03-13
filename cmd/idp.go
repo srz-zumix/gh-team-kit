@@ -5,6 +5,7 @@ import (
 	"github.com/srz-zumix/gh-team-kit/cmd/idp"
 )
 
+// NewIDPCmd creates a new cobra.Command for managing identity provider (IDP) group connections.
 func NewIDPCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "idp",

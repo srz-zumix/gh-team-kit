@@ -5,6 +5,7 @@ import (
 	"github.com/srz-zumix/gh-team-kit/cmd/idp/emu"
 )
 
+// NewEmuCmd creates a new cobra.Command for managing external groups (Enterprise Managed Users).
 func NewEmuCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "emu",

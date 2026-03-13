@@ -29,6 +29,7 @@ The following commands are available in `gh-team-kit`. Each command is designed 
 - **User Management**: Add, remove, list, and check users in the organization or repositories.
 - **Organization-Role Management**: Manage roles within the organization, including listing available roles.
 - **Code Review Management**: Get and set code review assignment settings for teams.
+- **IDP Management**: Manage IDP groups (SAML team sync) and external groups (Enterprise Managed Users).
 - **Mannequin Management**: List, invite, and migrate mannequins (placeholder accounts for unclaimed users).
 - **Permission Management**: Check and synchronize permissions for teams and users across repositories.
 - **Comparison Tools**: Compare teams, repositories, and permissions to identify differences.
@@ -486,6 +487,56 @@ gh team-kit mannequin migrate <email> --src-host <source-host> [--repo [HOST/]OW
 ```
 
 Find the mannequin (by email on source host) and the target user (by email on target host), then send an attribution invitation to claim the mannequin. `--src-host` is required and specifies the GitHub instance where the mannequin's login originated. Use `--skip-invitation` to skip the invitation step (requires the feature to be enabled by GitHub Support).
+
+### IDP Management
+
+#### Connect an external group to a team
+
+```sh
+gh team-kit idp emu set <group-name> <team-slug> [--owner <org>] [--field <field>] [--format <json|table>]
+```
+
+Connect an external group to a team in the organization (Enterprise Managed Users). Resolves the group by name and connects it to the specified team. Use `--field` to display specific fields (`ID`, `NAME`, `UPDATED_AT`, `TEAM_COUNT`, `MEMBER_COUNT`). On success, prints a confirmation message unless `--field` or `--format` is used.
+
+#### Get an external group
+
+```sh
+gh team-kit idp emu get <group-name> [--owner <org>] [--field <field>] [--format <json|table>]
+```
+
+Get details of a single external group by name in the organization (Enterprise Managed Users). Available fields: `ID`, `NAME`, `UPDATED_AT`, `TEAM_COUNT`, `MEMBER_COUNT`.
+
+#### List external groups in the organization or connected to a team
+
+```sh
+gh team-kit idp emu list [team-slug] [--owner <org>] [--query <name-filter>] [--field <field>] [--format <json|table>]
+```
+
+List all external groups available in the organization, or list external groups connected to the specified team (Enterprise Managed Users). Use `--query` to filter by name when listing all groups (not available when a team slug is provided). Available fields: `ID`, `NAME`, `UPDATED_AT`.
+
+#### List IDP groups in the organization or connected to a team
+
+```sh
+gh team-kit idp list [team-slug] [--owner <org>] [--query <name-filter>] [--field <field>] [--format <json|table>]
+```
+
+List all IDP groups available in the organization (SAML team sync), or list IDP groups connected to the specified team. Use `--query` to filter by name when listing all groups (not available when a team slug is provided). Available fields: `ID`, `NAME`, `DESCRIPTION`.
+
+#### List teams connected to an external group
+
+```sh
+gh team-kit idp emu teams <group-name> [--owner <org>] [--field <field>] [--format <json|table>]
+```
+
+List the teams connected to an external group, with detailed team info fetched from the organization (Enterprise Managed Users). Available fields: `TEAM_ID`, `TEAM_NAME`, `SLUG`, `DESCRIPTION`, `PRIVACY`, `HTML_URL`.
+
+#### Remove the connection between an external group and a team
+
+```sh
+gh team-kit idp emu unset <team-slug> [--owner <org>]
+```
+
+Remove the connection between an external group and a team in the organization (Enterprise Managed Users). Only the team slug is required.
 
 ### Copilot Management
 
