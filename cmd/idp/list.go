@@ -30,6 +30,10 @@ func NewListCmd() *cobra.Command {
 		Aliases: []string{"ls"},
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 && query != "" {
+				return fmt.Errorf("cannot use --query flag when team slug argument is provided")
+			}
+
 			if len(args) > 0 {
 				repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
 				if err != nil {
