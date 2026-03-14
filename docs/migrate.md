@@ -95,7 +95,7 @@ When migrating across different GitHub hosts, specify `--host` explicitly:
 gh team-kit export --owner <source-org> --host github.example.com --output teams.yaml
 
 # Import into GHEC
-gh team-kit import teams.yaml --owner <dest-org>
+gh team-kit import teams.yaml --format yaml --owner <dest-org>
 ```
 
 ## EMU external group migration
