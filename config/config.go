@@ -1,5 +1,13 @@
 package config
 
+import (
+	"fmt"
+	"io"
+	"os"
+
+	"gopkg.in/yaml.v3"
+)
+
 type OrganizationConfig struct {
 	Teams     []TeamConfig     `yaml:"teams" json:"teams"`
 	Hierarchy []*TeamHierarchy `yaml:"hierarchy,omitempty" json:"hierarchy,omitempty"`
@@ -19,6 +27,7 @@ type TeamConfig struct {
 	NotificationSetting string                     `yaml:"notification_setting,omitempty" json:"notification_setting,omitempty"`
 	Maintainers         []string                   `yaml:"maintainers,omitempty" json:"maintainers,omitempty"`
 	Members             []string                   `yaml:"members,omitempty" json:"members,omitempty"`
+	Group               string                     `yaml:"group,omitempty" json:"group,omitempty"`
 	CodeReviewSettings  *TeamCodeReviewSettings    `yaml:"code_review_settings,omitempty" json:"code_review_settings,omitempty"`
 	Repositories        []TeamRepositoryPermission `yaml:"repositories,omitempty" json:"repositories,omitempty"`
 }
@@ -46,4 +55,33 @@ func (c *OrganizationConfig) FindTeamConfigBySlug(slug string) *TeamConfig {
 		}
 	}
 	return nil
+}
+
+func (cfg *OrganizationConfig) WriteFile(output string) (err error) {
+	f, err := os.Create(output)
+	if err != nil {
+		return fmt.Errorf("error creating output file: %w", err)
+	}
+	defer func() {
+		closeErr := f.Close()
+		if err == nil {
+			err = closeErr
+		} else if closeErr != nil {
+			err = fmt.Errorf("write error: %w; error closing file: %v", err, closeErr)
+		}
+	}()
+	return cfg.Write(f)
+}
+
+func (cfg *OrganizationConfig) Write(w io.Writer) (err error) {
+	encoder := yaml.NewEncoder(w)
+	defer func() {
+		closeErr := encoder.Close()
+		if err == nil {
+			err = closeErr
+		} else if closeErr != nil {
+			err = fmt.Errorf("write error: %w; error closing encoder: %v", err, closeErr)
+		}
+	}()
+	return encoder.Encode(cfg)
 }
