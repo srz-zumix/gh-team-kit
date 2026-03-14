@@ -571,15 +571,15 @@ Update code review assignment settings for the specified team. You can enable/di
 #### Export team information
 
 ```sh
-gh team-kit export [--output <file>] [--owner <org>] [--host <host>] [--no-export-repositories]
+gh team-kit export [--output <file>] [--owner <org>] [--host <host>] [--no-export-repositories] [--no-export-group] [--no-suspended] [--format <json|table>]
 ```
 
-Retrieve and display team information from the specified organization. Exports team structure, members, and configurations to a file or stdout. Use `--output` to specify the output file (default: stdout).
+Retrieve and display team information from the specified organization. Exports team structure, members, maintainers, repositories, external group connections (EMU), and code review settings to a file or stdout. Use `--output` to specify the output file (default: stdout). Use `--no-export-repositories` to skip repository permissions, `--no-export-group` to skip external group connections, and `--no-suspended` to exclude suspended users.
 
 #### Import team information
 
 ```sh
-gh team-kit import <input> [--dryrun] [--owner <org>] [--host <host>]
+gh team-kit import <input> [--dryrun] [--owner <org>] [--host <host>] [--format <json|yaml>]
 ```
 
-Read and apply team information to the specified organization from a file or stdin. Use `--dryrun` to preview changes without applying them. Specify `-` as input to read from stdin.
+Read and apply team information to the specified organization from a file or stdin. Use `--dryrun` to preview changes without applying them. Specify `-` as input to read from stdin. Accepts YAML or JSON format. If the input contains a `group` field for a team, the corresponding external group is connected automatically (EMU only). See [docs/migrate.md](docs/migrate.md) for migration examples.
