@@ -3,13 +3,10 @@ package config
 import (
 	"context"
 	"fmt"
-	"io"
-	"os"
 
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh/client"
-	"gopkg.in/yaml.v3"
 )
 
 type Exporter struct {
@@ -20,6 +17,7 @@ type Exporter struct {
 
 type ExportOptions struct {
 	IsExportRepositories bool
+	IsExportGroup        bool
 	ExcludeSuspended     bool
 }
 
@@ -28,6 +26,13 @@ func (opt *ExportOptions) GetIsExportRepositories() bool {
 		return true
 	}
 	return opt.IsExportRepositories
+}
+
+func (opt *ExportOptions) GetIsExportGroup() bool {
+	if opt == nil {
+		return true
+	}
+	return opt.IsExportGroup
 }
 
 func (opt *ExportOptions) GetExcludeSuspended() bool {
@@ -60,6 +65,14 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 	teamConfigs := make([]TeamConfig, 0, len(teams))
 	childTeams := make(map[string]*TeamHierarchy)
 	teamHierarchy := []*TeamHierarchy{}
+
+	hasExternalGroups := false
+	if options.GetIsExportGroup() {
+		hasExternalGroups, err = gh.HasExternalGroupsInOrganization(e.ctx, e.client, e.Owner)
+		if err != nil {
+			return nil, fmt.Errorf("error checking if organization has external groups: %w", err)
+		}
+	}
 
 	for _, team := range teams {
 		members, err := gh.ListTeamMembers(e.ctx, e.client, e.Owner, *team.Slug, []string{gh.TeamMembershipRoleMember}, false)
@@ -120,6 +133,17 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 			}
 		}
 
+		var groupName string
+		if hasExternalGroups {
+			group, err := gh.FindExternalGroupByTeamSlug(e.ctx, e.client, e.Owner, slug)
+			if err != nil {
+				return nil, fmt.Errorf("error retrieving external groups for team %s: %w", slug, err)
+			}
+			if group != nil && group.GroupName != nil {
+				groupName = *group.GroupName
+			}
+		}
+
 		teamConfig := TeamConfig{
 			Name:                *team.Name,
 			Slug:                slug,
@@ -129,6 +153,7 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 			NotificationSetting: *team.NotificationSetting,
 			Maintainers:         gh.GetUserNames(maintainers),
 			Members:             gh.GetUserNames(members),
+			Group:               groupName,
 			Repositories:        repoPermissions,
 		}
 		if codeReviewSettings != nil && codeReviewSettings.Enabled {
@@ -152,33 +177,4 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 	}
 
 	return organizationConfig, nil
-}
-
-func (e *Exporter) WriteFile(organizationConfig *OrganizationConfig, output string) (err error) {
-	f, err := os.Create(output)
-	if err != nil {
-		return fmt.Errorf("error creating output file: %w", err)
-	}
-	defer func() {
-		closeErr := f.Close()
-		if err == nil {
-			err = closeErr
-		} else if closeErr != nil {
-			err = fmt.Errorf("write error: %w; error closing file: %v", err, closeErr)
-		}
-	}()
-	return e.Write(organizationConfig, f)
-}
-
-func (e *Exporter) Write(organizationConfig *OrganizationConfig, w io.Writer) (err error) {
-	encoder := yaml.NewEncoder(w)
-	defer func() {
-		closeErr := encoder.Close()
-		if err == nil {
-			err = closeErr
-		} else if closeErr != nil {
-			err = fmt.Errorf("write error: %w; error closing encoder: %v", err, closeErr)
-		}
-	}()
-	return encoder.Encode(organizationConfig)
 }

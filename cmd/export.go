@@ -7,6 +7,7 @@ import (
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/config"
+	"github.com/srz-zumix/go-gh-extension/pkg/cmdflags"
 	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
@@ -22,7 +23,9 @@ func NewExportCmd() *cobra.Command {
 	var host string
 	var owner string
 	var noExportRepositories bool
+	var noExportGroup bool
 	var noSuspended bool
+	var format string
 
 	var cmd = &cobra.Command{
 		Use:   "export",
@@ -45,6 +48,7 @@ func NewExportCmd() *cobra.Command {
 			}
 			organizationConfig, err := exporter.Export(&config.ExportOptions{
 				IsExportRepositories: !noExportRepositories,
+				IsExportGroup:        !noExportGroup,
 				ExcludeSuspended:     noSuspended,
 			})
 			if err != nil {
@@ -56,9 +60,9 @@ func NewExportCmd() *cobra.Command {
 			} else {
 				if output == "" || output == "-" {
 					output = "stdout"
-					err = exporter.Write(organizationConfig, os.Stdout)
+					err = organizationConfig.Write(os.Stdout)
 				} else {
-					err = exporter.WriteFile(organizationConfig, output)
+					err = organizationConfig.WriteFile(output)
 				}
 				if err != nil {
 					return fmt.Errorf("error writing organization config to file: %w", err)
@@ -74,8 +78,11 @@ func NewExportCmd() *cobra.Command {
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
 	f.StringVarP(&host, "host", "H", "", "Specify the GitHub host")
 	f.BoolVar(&noExportRepositories, "no-export-repositories", false, "Specify whether to export repositories")
+	f.BoolVar(&noExportGroup, "no-export-group", false, "Specify whether to export external group connections")
 	f.BoolVar(&noSuspended, "no-suspended", false, "Exclude suspended users from export")
+
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
+	cmdflags.SetupFormatFlagWithNonJSONFormats(cmd, &opts.Exporter, &format, "", []string{"yaml"})
 
 	return cmd
 }

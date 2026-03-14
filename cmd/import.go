@@ -7,6 +7,7 @@ import (
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/config"
+	"github.com/srz-zumix/go-gh-extension/pkg/cmdflags"
 	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
@@ -21,6 +22,7 @@ func NewImportCmd() *cobra.Command {
 	var dryrun bool
 	var host string
 	var owner string
+	var format string
 
 	var cmd = &cobra.Command{
 		Use:   "import <input>",
@@ -51,22 +53,27 @@ func NewImportCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("error importing teams: %w", err)
 			}
-			if !dryrun {
+			if dryrun {
+				logger.Info("Dry run completed. No changes were made.")
+			} else {
 				err = importer.Import(organizationConfig)
 				if err != nil {
 					return fmt.Errorf("error applying organization config: %w", err)
 				}
+				logger.Info("Teams imported successfully.")
 			}
+
 			renderer := render.NewRenderer(opts.Exporter)
 			if opts.Exporter != nil {
 				renderer.RenderExportedData(organizationConfig)
 				return nil
 			}
-
-			if dryrun {
-				logger.Info("Dry run completed. No changes were made.")
-			} else {
-				logger.Info("Teams imported successfully.")
+			if format == "yaml" {
+				err = organizationConfig.Write(os.Stdout)
+				if err != nil {
+					return fmt.Errorf("error exporting organization config: %w", err)
+				}
+				return nil
 			}
 			return nil
 		},
@@ -76,7 +83,9 @@ func NewImportCmd() *cobra.Command {
 	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: do not actually apply team changes")
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
 	f.StringVarP(&host, "host", "H", "", "Specify the GitHub host")
+
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
+	cmdflags.SetupFormatFlagWithNonJSONFormats(cmd, &opts.Exporter, &format, "", []string{"yaml"})
 
 	return cmd
 }

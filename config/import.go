@@ -69,7 +69,12 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 				}
 			}
 		}
-
+		if teamConfig.Group != "" {
+			_, err = gh.SetExternalGroupForTeam(i.ctx, i.client, i.Owner, teamConfig.Group, teamConfig.Slug)
+			if err != nil {
+				errorList = append(errorList, fmt.Errorf("error setting external group '%s' for team %s: %w", teamConfig.Group, teamConfig.Slug, err))
+			}
+		}
 		if teamConfig.CodeReviewSettings != nil {
 			err = gh.SetTeamCodeReviewSettings(i.ctx, i.client, i.Owner, teamConfig.Slug, &gh.TeamCodeReviewSettings{
 				TeamSlug:                     teamConfig.Slug,
