@@ -34,6 +34,11 @@ func NewImporter(repository repository.Repository) (*Importer, error) {
 
 func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierarchies []*TeamHierarchy) ([]error, error) {
 	errorList := []error{}
+	hasExternalGroups, err := gh.HasExternalGroupsInOrganization(i.ctx, i.client, i.Owner)
+	if err != nil {
+		return nil, fmt.Errorf("error checking if organization has external groups: %w", err)
+	}
+
 	for _, hierarchy := range teamHierarchies {
 		teamConfig := organizationConfig.FindTeamConfigBySlug(hierarchy.Slug)
 		if teamConfig == nil {
@@ -55,10 +60,24 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 			errorList = append(errorList, err)
 		}
 
-		allMembers := append(teamConfig.Members, teamConfig.Maintainers...)
-		err = gh.RemoveTeamMembersOther(i.ctx, i.client, i.Owner, teamConfig.Slug, allMembers)
-		if err != nil {
-			errorList = append(errorList, err)
+		if teamConfig.Group != "" {
+			_, err = gh.SetExternalGroupForTeam(i.ctx, i.client, i.Owner, teamConfig.Group, teamConfig.Slug)
+			if err != nil {
+				errorList = append(errorList, fmt.Errorf("error setting external group '%s' for team %s: %w", teamConfig.Group, teamConfig.Slug, err))
+			}
+		} else {
+			if hasExternalGroups {
+				// If the organization has external groups, we should remove any existing group connection for teams that don't have a group specified in the config
+				err = gh.UnsetExternalGroupForTeam(i.ctx, i.client, i.Owner, teamConfig.Slug)
+				if err != nil {
+					errorList = append(errorList, fmt.Errorf("error removing external group for team %s: %w", teamConfig.Slug, err))
+				}
+			}
+			allMembers := append(teamConfig.Members, teamConfig.Maintainers...)
+			err = gh.RemoveTeamMembersOther(i.ctx, i.client, i.Owner, teamConfig.Slug, allMembers)
+			if err != nil {
+				errorList = append(errorList, err)
+			}
 		}
 
 		if len(teamConfig.Repositories) > 0 {
@@ -67,12 +86,6 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 				if err != nil {
 					errorList = append(errorList, fmt.Errorf("error adding repository %s to team %s: %w", repoPerm.Name, teamConfig.Slug, err))
 				}
-			}
-		}
-		if teamConfig.Group != "" {
-			_, err = gh.SetExternalGroupForTeam(i.ctx, i.client, i.Owner, teamConfig.Group, teamConfig.Slug)
-			if err != nil {
-				errorList = append(errorList, fmt.Errorf("error setting external group '%s' for team %s: %w", teamConfig.Group, teamConfig.Slug, err))
 			}
 		}
 		if teamConfig.CodeReviewSettings != nil {

@@ -123,14 +123,14 @@ Useful when the destination organization uses a different login format (e.g. add
 ```sh
 gh team-kit export --owner <source-org> --format json \
   --jq '.teams |= map(
-      (.members   |= map(. + "_suffix")) |
-      (.maintainers |= map(. + "_suffix"))
+      .members     = (.members     // [] | map(. + "_suffix")) |
+      .maintainers = (.maintainers // [] | map(. + "_suffix"))
     )' \
   | gh team-kit import - --owner <dest-org>
 ```
 
 ```sh
-gh team-kit export --owner <source-org> --format json --jq '.teams |= map((.members |= map(. + "_suffix")) | (.maintainers |= map(. + "_suffix")))' | gh team-kit import - --owner <dest-org>
+gh team-kit export --owner <source-org> --format json --jq '.teams |= map(.members = (.members // [] | map(. + "_suffix")) | .maintainers = (.maintainers // [] | map(. + "_suffix")))' | gh team-kit import - --owner <dest-org>
 ```
 
 ### Set an external group on a specific team
@@ -172,15 +172,15 @@ Add a suffix to all logins **and** assign an external group to a specific team:
 ```sh
 gh team-kit export --owner <source-org> --format json \
   --jq '.teams |= map(
-      (.members   |= map(. + "_suffix")) |
-      (.maintainers |= map(. + "_suffix")) |
+      .members     = (.members     // [] | map(. + "_suffix")) |
+      .maintainers = (.maintainers // [] | map(. + "_suffix")) |
       if .slug == "engineering" then .group = "Engineering-Prod" else . end
     )' \
   | gh team-kit import - --owner <dest-org>
 ```
 
 ```sh
-gh team-kit export --owner <source-org> --format json --jq '.teams |= map((.members |= map(. + "_suffix")) | (.maintainers |= map(. + "_suffix")) | if .slug == "engineering" then .group = "Engineering-Prod" else . end)' | gh team-kit import - --owner <dest-org>
+gh team-kit export --owner <source-org> --format json --jq '.teams |= map(.members = (.members // [] | map(. + "_suffix")) | .maintainers = (.maintainers // [] | map(. + "_suffix")) | if .slug == "engineering" then .group = "Engineering-Prod" else . end)' | gh team-kit import - --owner <dest-org>
 ```
 
 ## Notes
