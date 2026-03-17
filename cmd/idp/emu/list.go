@@ -70,7 +70,7 @@ func NewListCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
-	f.StringVar(&query, "query", "", "Filter external groups by name (only applies when listing all groups)")
+	f.StringVar(&query, "query", "", "Filter external groups by name")
 	f.BoolVar(&details, "details", false, "Fetch detailed info (teams/members) for each group")
 	cmdutil.StringSliceEnumFlag(cmd, &fields, "field", "", nil, render.ExternalGroupFieldList, "Fields to display")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
