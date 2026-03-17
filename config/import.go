@@ -67,7 +67,7 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 				}
 			} else {
 				if !allowExternalGroups {
-					errorList = append(errorList, fmt.Errorf("cannot set external group for team %s because the team has parent team", teamConfig.Slug))
+					errorList = append(errorList, fmt.Errorf("cannot set external group for team %s because the organization does not support external groups", teamConfig.Slug))
 				} else {
 					errorList = append(errorList, fmt.Errorf("cannot set external group for team %s because the team has child teams", teamConfig.Slug))
 				}
