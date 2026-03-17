@@ -48,11 +48,10 @@ func NewSetCmd() *cobra.Command {
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if opts.Exporter != nil {
-				renderer.RenderExportedData(group)
-				return nil
+				return renderer.RenderExportedData(group)
 			}
 			if len(fields) > 0 {
-				renderer.RenderExternalGroup(group, fields)
+				return renderer.RenderExternalGroup(group, fields)
 			} else {
 				logger.Info("External group connected to team successfully.", "group-name", groupName, "team-slug", teamSlug)
 			}

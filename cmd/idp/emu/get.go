@@ -47,8 +47,7 @@ func NewGetCmd() *cobra.Command {
 			}
 
 			renderer := render.NewRenderer(opts.Exporter)
-			renderer.RenderExternalGroup(group, fields)
-			return nil
+			return renderer.RenderExternalGroup(group, fields)
 		},
 	}
 

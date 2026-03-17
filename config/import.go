@@ -32,12 +32,8 @@ func NewImporter(repository repository.Repository) (*Importer, error) {
 	}, nil
 }
 
-func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierarchies []*TeamHierarchy) ([]error, error) {
+func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierarchies []*TeamHierarchy, allowExternalGroups bool) ([]error, error) {
 	errorList := []error{}
-	hasExternalGroups, err := gh.HasExternalGroupsInOrganization(i.ctx, i.client, i.Owner)
-	if err != nil {
-		return nil, fmt.Errorf("error checking if organization has external groups: %w", err)
-	}
 
 	for _, hierarchy := range teamHierarchies {
 		teamConfig := organizationConfig.FindTeamConfigBySlug(hierarchy.Slug)
@@ -60,13 +56,25 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 			errorList = append(errorList, err)
 		}
 
+		hasExternalGroup := false
 		if teamConfig.Group != "" {
-			_, err = gh.SetExternalGroupForTeam(i.ctx, i.client, i.Owner, teamConfig.Group, teamConfig.Slug)
-			if err != nil {
-				errorList = append(errorList, fmt.Errorf("error setting external group '%s' for team %s: %w", teamConfig.Group, teamConfig.Slug, err))
+			if allowExternalGroups && len(hierarchy.Child) == 0 {
+				_, err = gh.SetExternalGroupForTeam(i.ctx, i.client, i.Owner, teamConfig.Group, teamConfig.Slug)
+				if err == nil {
+					hasExternalGroup = true
+				} else {
+					errorList = append(errorList, fmt.Errorf("error setting external group '%s' for team %s: %w", teamConfig.Group, teamConfig.Slug, err))
+				}
+			} else {
+				if !allowExternalGroups {
+					errorList = append(errorList, fmt.Errorf("cannot set external group for team %s because the team has parent team", teamConfig.Slug))
+				} else {
+					errorList = append(errorList, fmt.Errorf("cannot set external group for team %s because the team has child teams", teamConfig.Slug))
+				}
 			}
-		} else {
-			if hasExternalGroups {
+		}
+		if !hasExternalGroup {
+			if allowExternalGroups {
 				// If the organization has external groups, we should remove any existing group connection for teams that don't have a group specified in the config
 				err = gh.UnsetExternalGroupForTeam(i.ctx, i.client, i.Owner, teamConfig.Slug)
 				if err != nil {
@@ -104,7 +112,7 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 			}
 		}
 
-		childErrorList, err := i.importTeam(organizationConfig, hierarchy.Child)
+		childErrorList, err := i.importTeam(organizationConfig, hierarchy.Child, false)
 		if err != nil {
 			return errorList, err
 		}
@@ -114,7 +122,12 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 }
 
 func (i *Importer) Import(organizationConfig *OrganizationConfig) error {
-	errorList, err := i.importTeam(organizationConfig, organizationConfig.Hierarchy)
+	hasExternalGroups, err := gh.HasExternalGroupsInOrganization(i.ctx, i.client, i.Owner)
+	if err != nil {
+		return fmt.Errorf("error checking if organization has external groups: %w", err)
+	}
+
+	errorList, err := i.importTeam(organizationConfig, organizationConfig.Hierarchy, hasExternalGroups)
 	if err != nil {
 		return err
 	}
