@@ -509,10 +509,10 @@ Get details of a single external group by name in the organization (Enterprise M
 #### List external groups in the organization or connected to a team
 
 ```sh
-gh team-kit idp emu list [team-slug] [--owner <org>] [--query <name-filter>] [--field <field>] [--format <json|table>]
+gh team-kit idp emu list [team-slug] [--owner <org>] [--query <name-filter>] [--details] [--field <field>] [--format <json|table>]
 ```
 
-List all external groups available in the organization, or list external groups connected to the specified team (Enterprise Managed Users). Use `--query` to filter by name when listing all groups (not available when a team slug is provided). Available fields: `ID`, `NAME`, `UPDATED_AT`.
+List all external groups available in the organization, or list external groups connected to the specified team (Enterprise Managed Users). Use `--query` to filter by name. Use `--details` to fetch full details (teams list) for each group by calling the detail API per entry. Available fields: `ID`, `NAME`, `UPDATED_AT`, `TEAM_COUNT`, `TEAMS`.
 
 #### List IDP groups in the organization or connected to a team
 
@@ -582,4 +582,4 @@ Retrieve and display team information from the specified organization. Exports t
 gh team-kit import <input> [--dryrun] [--owner <org>] [--host <host>] [--format <json|yaml>]
 ```
 
-Read and apply team information to the specified organization from a file or stdin. Use `--dryrun` to preview changes without applying them. Specify `-` as input to read from stdin. Accepts YAML or JSON format. If the input contains a `group` field for a team, the corresponding external group is connected automatically (EMU only). See [docs/migrate.md](docs/migrate.md) for migration examples.
+Read and apply team information to the specified organization from a file or stdin. Use `--dryrun` to preview changes without applying them. Specify `-` as input to read from stdin. Accepts YAML or JSON format. If the input contains a `group` field for a team, the corresponding external group is connected automatically (EMU only; only applicable to leaf teams without parent/child teams). When the organization supports external groups and a team has no `group` specified, any existing external group connection is removed. See [docs/migrate.md](docs/migrate.md) for migration examples.

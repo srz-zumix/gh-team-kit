@@ -109,7 +109,24 @@ teams:
     group: "Engineering-Prod"   # external group name in the destination org
 ```
 
-The `import` command will resolve the group by name and connect it to the team automatically.
+The `import` command will:
+
+1. Detect whether the organization supports external groups automatically.
+2. Resolve the group by name and connect it to the team.
+3. If a team has **no** `group` specified and the organization supports external groups, any existing external group connection for that team is **removed**.
+
+> **Note:** External groups can only be set on **leaf teams** (teams with no child teams and no parent team in the import hierarchy). Attempting to set a `group` on a team that has child teams, or is nested under another team in the hierarchy, will result in an error.
+
+When a team is connected to an external group, membership is controlled by the IdP. Set `members` and `maintainers` to empty to avoid conflicts:
+
+```yaml
+teams:
+  - name: engineering
+    slug: engineering
+    group: "Engineering-Prod"
+    members: []
+    maintainers: []
+```
 
 ## Advanced: transforming with --jq on the fly
 
@@ -186,6 +203,8 @@ gh team-kit export --owner <source-org> --format json --jq '.teams |= map(.membe
 ## Notes
 
 - Teams are created or updated idempotently; existing teams are updated rather than duplicated.
-- Members and maintainers are added, and users not listed are removed from the team.
+- Members and maintainers are added, and users not listed are removed from the team (unless the team is connected to an external group).
 - Repository permissions are applied per team; repositories must already exist in the destination organization.
 - External group connections (`group`) require EMU to be enabled in the destination organization.
+- External groups can only be set on leaf teams (no child teams, depth 0 in the hierarchy). Teams with child or parent teams will produce an error if `group` is specified.
+- In an EMU organization, omitting `group` for a team will remove any existing external group connection for that team.
