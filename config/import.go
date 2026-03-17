@@ -56,6 +56,14 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 			errorList = append(errorList, err)
 		}
 
+		// External group handling:
+		// - When teamConfig.Group is non-empty, we attempt to connect the team to the given EMU external group.
+		//   * This is only allowed when the organization supports external groups (allowExternalGroups == true).
+		//   * External groups are only supported for "leaf" teams. If the team has child teams or a parent team
+		//     (depth > 0), the import will record an error instead of applying the external group.
+		// - When teamConfig.Group is empty and the organization supports external groups, we proactively remove any
+		//   existing external group connection for the team. This means that omitting "group" in the import config is
+		//   treated as "no external group" for that team.
 		if teamConfig.Group != "" {
 			if !allowExternalGroups {
 				errorList = append(errorList, fmt.Errorf("cannot set external group for team %s because the organization does not support external groups", teamConfig.Slug))
@@ -75,7 +83,8 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 			}
 		} else {
 			if allowExternalGroups {
-				// If the organization has external groups, we should remove any existing group connection for teams that don't have a group specified in the config
+				// If the organization has external groups, we remove any existing group connection for teams
+				// that do not have a group specified in the import config.
 				err = gh.UnsetExternalGroupForTeam(i.ctx, i.client, i.Owner, teamConfig.Slug)
 				if err != nil {
 					errorList = append(errorList, fmt.Errorf("error removing external group for team %s: %w", teamConfig.Slug, err))
