@@ -47,8 +47,7 @@ func NewTeamsCmd() *cobra.Command {
 			}
 
 			renderer := render.NewRenderer(opts.Exporter)
-			renderer.RenderExternalGroupTeamDetails(teams, fields)
-			return nil
+			return renderer.RenderExternalGroupTeamDetails(teams, fields)
 		},
 	}
 

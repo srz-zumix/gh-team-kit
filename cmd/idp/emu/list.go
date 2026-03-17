@@ -22,6 +22,7 @@ func NewListCmd() *cobra.Command {
 	var owner string
 	var query string
 	var fields []string
+	var details bool
 
 	cmd := &cobra.Command{
 		Use:     "list [team-slug]",
@@ -30,33 +31,12 @@ func NewListCmd() *cobra.Command {
 		Aliases: []string{"ls"},
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			teamSlug := ""
 			if len(args) > 0 {
-				if query != "" {
-					return fmt.Errorf("cannot use --query flag when a team slug is provided")
-				}
-
-				repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
-				if err != nil {
-					return fmt.Errorf("error parsing repository with team slug: %w", err)
-				}
-
-				ctx := context.Background()
-				client, err := gh.NewGitHubClientWithRepo(repository)
-				if err != nil {
-					return fmt.Errorf("error creating GitHub client: %w", err)
-				}
-
-				groups, err := gh.ListExternalGroupsForTeam(ctx, client, repository, teamSlug)
-				if err != nil {
-					return fmt.Errorf("failed to list external groups for team '%s': %w", teamSlug, err)
-				}
-
-				renderer := render.NewRenderer(opts.Exporter)
-				renderer.RenderExternalGroups(groups, fields)
-				return nil
+				teamSlug = args[0]
 			}
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, teamSlug)
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -67,20 +47,31 @@ func NewListCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			groups, err := gh.ListExternalGroups(ctx, client, repository, query)
+			groups, err := gh.SearchExternalGroups(ctx, client, repository, query, teamSlug)
 			if err != nil {
 				return fmt.Errorf("failed to list external groups: %w", err)
 			}
 
+			if details {
+				groups, err = gh.GetExternalGroupDetails(ctx, client, repository, groups)
+				if err != nil {
+					return fmt.Errorf("failed to get external group details: %w", err)
+				}
+			}
+
 			renderer := render.NewRenderer(opts.Exporter)
-			renderer.RenderExternalGroups(groups, fields)
-			return nil
+			if details {
+				return renderer.RenderExternalGroupsDetails(groups, fields)
+			} else {
+				return renderer.RenderExternalGroups(groups, fields)
+			}
 		},
 	}
 
 	f := cmd.Flags()
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
-	f.StringVar(&query, "query", "", "Filter external groups by name (only applies when listing all groups)")
+	f.StringVar(&query, "query", "", "Filter external groups by name")
+	f.BoolVar(&details, "details", false, "Fetch detailed info (teams/members) for each group")
 	cmdutil.StringSliceEnumFlag(cmd, &fields, "field", "", nil, render.ExternalGroupFieldList, "Fields to display")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
