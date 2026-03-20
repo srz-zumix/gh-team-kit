@@ -21,7 +21,7 @@ func NewImportCmd() *cobra.Command {
 		Use:   "import <input>",
 		Short: "Import users into the organization",
 		Long: `Read a JSON list of users (as produced by 'user list --format json') and add each user to the organization.
-Each entry must have a "login" field. The role is taken from the "role_name" field if present; otherwise --role is used as default.
+Entries without a "login" field are skipped. The role is taken from the "role_name" field if present; otherwise --role is used as default.
 Specify '-' as input to read from stdin.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
