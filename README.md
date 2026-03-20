@@ -311,6 +311,22 @@ gh team-kit user check <username>
 
 Check the role of a specified user in the organization.
 
+#### Import users into the organization
+
+```sh
+gh team-kit user import <input> [--owner <org>] [--role <member|admin>] [--dryrun]
+```
+
+Read a JSON list of users (as produced by `user list --format json`) and add each user to the organization.
+Each entry must have a `login` field. The role is taken from the `role_name` field if present; otherwise `--role` is used as the default (`member`).
+Specify `-` as `<input>` to read from stdin.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--owner <org>` | (current repo owner) | Organization name |
+| `--role <member\|admin>` | `member` | Default role when not specified in input |
+| `--dryrun`, `-n` | `false` | Dry run: show count without applying changes |
+
 #### List all users in the organization
 
 ```sh
