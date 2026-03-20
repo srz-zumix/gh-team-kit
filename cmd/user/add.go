@@ -40,7 +40,7 @@ func NewAddCmd() *cobra.Command {
 				return fmt.Errorf("failed to create GitHub client: %w", err)
 			}
 
-			user, err := gh.AddOrgMember(ctx, client, repository, username, role)
+			user, err := gh.AddOrUpdateOrgMember(ctx, client, repository, username, role)
 			if err != nil {
 				return fmt.Errorf("failed to set organization membership: %w", err)
 			}

@@ -16,6 +16,7 @@ func NewUserCmd() *cobra.Command {
 	cmd.AddCommand(user.NewAddCmd())
 	cmd.AddCommand(user.NewCheckCmd())
 	cmd.AddCommand(user.NewHovercardCmd())
+	cmd.AddCommand(user.NewImportCmd())
 	cmd.AddCommand(user.NewListCmd())
 	cmd.AddCommand(user.NewRemoveCmd())
 	cmd.AddCommand(user.NewReposCmd())
