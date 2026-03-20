@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
-	"strings"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
@@ -60,9 +58,6 @@ Specify '-' as input to read from stdin.`,
 				role := u.GetRoleName()
 				if role == "" {
 					role = defaultRole
-				} else if !slices.Contains(gh.OrgMembershipList, role) {
-					errs = append(errs, fmt.Errorf("invalid role '%s' for user '%s': valid roles are {%s}", role, *u.Login, strings.Join(gh.OrgMembershipList, "|")))
-					continue
 				}
 				_, err := gh.AddOrUpdateOrgMember(ctx, client, repository, *u.Login, role)
 				if err != nil {
