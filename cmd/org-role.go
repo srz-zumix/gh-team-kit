@@ -13,6 +13,7 @@ func NewOrgCmd() *cobra.Command {
 		Long:  `Commands for managing GitHub organizations.`,
 	}
 
+	cmd.AddCommand(orgrole.NewImportCmd())
 	cmd.AddCommand(orgrole.NewListCmd())
 	cmd.AddCommand(orgrole.NewTeamCmd())
 	cmd.AddCommand(orgrole.NewUserCmd())

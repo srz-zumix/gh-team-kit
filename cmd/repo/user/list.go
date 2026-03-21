@@ -84,8 +84,7 @@ func NewListCmd() *cobra.Command {
 			}
 
 			if nameOnly {
-				renderer.RenderNames(collaborators)
-				return nil
+				return renderer.RenderNames(collaborators)
 			} else {
 				headers := []string{"USERNAME", "ROLE"}
 				if withTeam {

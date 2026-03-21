@@ -15,9 +15,22 @@ type Exporter struct {
 	Owner  repository.Repository
 }
 
+// teamOrgRoleNames extracts role names from a TeamOrgRoleEntry. Returns nil when entry is nil.
+func teamOrgRoleNames(entry *gh.TeamOrgRoleEntry) []string {
+	if entry == nil {
+		return nil
+	}
+	names := make([]string, 0, len(entry.Roles))
+	for _, r := range entry.Roles {
+		names = append(names, r.GetName())
+	}
+	return names
+}
+
 type ExportOptions struct {
 	IsExportRepositories bool
 	IsExportGroup        bool
+	IsExportOrgRoles     bool
 	ExcludeSuspended     bool
 }
 
@@ -33,6 +46,13 @@ func (opt *ExportOptions) GetIsExportGroup() bool {
 		return true
 	}
 	return opt.IsExportGroup
+}
+
+func (opt *ExportOptions) GetIsExportOrgRoles() bool {
+	if opt == nil {
+		return true
+	}
+	return opt.IsExportOrgRoles
 }
 
 func (opt *ExportOptions) GetExcludeSuspended() bool {
@@ -71,6 +91,15 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 		hasExternalGroups, err = gh.HasExternalGroupsInOrganization(e.ctx, e.client, e.Owner)
 		if err != nil {
 			return nil, fmt.Errorf("error checking if organization has external groups: %w", err)
+		}
+	}
+
+	// Build a map from team slug to assigned org role names (user-defined roles only).
+	var teamOrgRoleMap map[string]*gh.TeamOrgRoleEntry
+	if options.GetIsExportOrgRoles() {
+		teamOrgRoleMap, err = gh.BuildTeamOrgRoleMap(e.ctx, e.client, e.Owner)
+		if err != nil {
+			return nil, fmt.Errorf("error retrieving team org roles: %w", err)
 		}
 	}
 
@@ -154,6 +183,7 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 			Maintainers:         gh.GetUserNames(maintainers),
 			Members:             gh.GetUserNames(members),
 			Group:               groupName,
+			OrgRoles:            teamOrgRoleNames(teamOrgRoleMap[slug]),
 			Repositories:        repoPermissions,
 		}
 		if codeReviewSettings != nil && codeReviewSettings.Enabled {

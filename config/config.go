@@ -28,6 +28,7 @@ type TeamConfig struct {
 	Maintainers         []string                   `yaml:"maintainers,omitempty" json:"maintainers,omitempty"`
 	Members             []string                   `yaml:"members,omitempty" json:"members,omitempty"`
 	Group               string                     `yaml:"group,omitempty" json:"group,omitempty"`
+	OrgRoles            []string                   `yaml:"org_roles,omitempty" json:"org_roles,omitempty"`
 	CodeReviewSettings  *TeamCodeReviewSettings    `yaml:"code_review_settings,omitempty" json:"code_review_settings,omitempty"`
 	Repositories        []TeamRepositoryPermission `yaml:"repositories,omitempty" json:"repositories,omitempty"`
 }
