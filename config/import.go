@@ -105,6 +105,15 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 				}
 			}
 		}
+
+		// Assign org custom roles to the team.
+		for _, roleName := range teamConfig.OrgRoles {
+			err = gh.AssignOrgRoleToTeam(i.ctx, i.client, i.Owner, teamConfig.Slug, roleName)
+			if err != nil {
+				errorList = append(errorList, fmt.Errorf("error assigning org role '%s' to team %s: %w", roleName, teamConfig.Slug, err))
+			}
+		}
+
 		if teamConfig.CodeReviewSettings != nil {
 			err = gh.SetTeamCodeReviewSettings(i.ctx, i.client, i.Owner, teamConfig.Slug, &gh.TeamCodeReviewSettings{
 				TeamSlug:                     teamConfig.Slug,

@@ -24,6 +24,7 @@ func NewExportCmd() *cobra.Command {
 	var owner string
 	var noExportRepositories bool
 	var noExportGroup bool
+	var noExportOrgRoles bool
 	var noSuspended bool
 	var format string
 
@@ -49,6 +50,7 @@ func NewExportCmd() *cobra.Command {
 			organizationConfig, err := exporter.Export(&config.ExportOptions{
 				IsExportRepositories: !noExportRepositories,
 				IsExportGroup:        !noExportGroup,
+				IsExportOrgRoles:     !noExportOrgRoles,
 				ExcludeSuspended:     noSuspended,
 			})
 			if err != nil {
@@ -79,6 +81,7 @@ func NewExportCmd() *cobra.Command {
 	f.StringVarP(&host, "host", "H", "", "Specify the GitHub host")
 	f.BoolVar(&noExportRepositories, "no-export-repositories", false, "Specify whether to export repositories")
 	f.BoolVar(&noExportGroup, "no-export-group", false, "Specify whether to export external group connections")
+	f.BoolVar(&noExportOrgRoles, "no-export-org-roles", false, "Specify whether to export custom organization roles")
 	f.BoolVar(&noSuspended, "no-suspended", false, "Exclude suspended users from export")
 
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)

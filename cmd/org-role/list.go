@@ -18,6 +18,8 @@ type ListOptions struct {
 func NewListCmd() *cobra.Command {
 	opts := &ListOptions{}
 	var nameOnly bool
+	var fields []string
+	var sources []string
 
 	cmd := &cobra.Command{
 		Use:     "list [owner]",
@@ -42,23 +44,24 @@ func NewListCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			roles, err := gh.ListOrgRoles(ctx, client, repository)
+			roles, err := gh.ListOrgRolesBySource(ctx, client, repository, sources)
 			if err != nil {
 				return fmt.Errorf("failed to list roles for owner '%s': %w", owner, err)
 			}
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if nameOnly {
-				renderer.RenderNames(roles)
+				return renderer.RenderNames(roles)
 			} else {
-				renderer.RenderCustomOrgRoles(roles)
+				return renderer.RenderCustomOrgRoles(roles, fields)
 			}
-			return nil
 		},
 	}
 
 	f := cmd.Flags()
 	f.BoolVar(&nameOnly, "name-only", false, "Output only role names")
+	cmdutil.StringSliceEnumFlag(cmd, &sources, "source", "", nil, gh.OrgCustomRoleSourceList, "Filter by role source")
+	cmdutil.StringSliceEnumFlag(cmd, &fields, "field", "", nil, render.CustomOrgRoleFieldList, "Fields to display")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 	return cmd
 }

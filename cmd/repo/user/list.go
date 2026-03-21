@@ -84,8 +84,7 @@ func NewListCmd() *cobra.Command {
 			}
 
 			if nameOnly {
-				renderer.RenderNames(collaborators)
-				return nil
+				return renderer.RenderNames(collaborators)
 			} else {
 				headers := []string{"USERNAME", "ROLE"}
 				if withTeam {
@@ -94,9 +93,8 @@ func NewListCmd() *cobra.Command {
 				if details {
 					headers = append(headers, "EMAIL", "SUSPENDED")
 				}
-				renderer.RenderUsers(collaborators, headers)
+				return renderer.RenderUsers(collaborators, headers)
 			}
-			return nil
 		},
 	}
 
