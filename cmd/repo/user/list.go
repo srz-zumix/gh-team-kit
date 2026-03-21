@@ -93,8 +93,9 @@ func NewListCmd() *cobra.Command {
 				if details {
 					headers = append(headers, "EMAIL", "SUSPENDED")
 				}
-				return renderer.RenderUsers(collaborators, headers)
+				renderer.RenderUsers(collaborators, headers)
 			}
+			return nil
 		},
 	}
 
