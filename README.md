@@ -446,13 +446,28 @@ gh team-kit org-role team remove <team-slug> <org-role>
 
 Remove a specified team from the specified role in the organization.
 
+#### Import custom organization roles
+
+```sh
+gh team-kit org-role import <input> [--owner <org>] [--dryrun]
+```
+
+Read a JSON list of custom organization roles (as produced by `org-role list --format json`) and create or update each role in the organization.
+Only `Organization`-sourced (user-defined) roles are applied; `Predefined` and `System` roles are skipped.
+Specify `-` as `<input>` to read from stdin.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--owner <org>` | (current repo owner) | Organization name |
+| `--dryrun`, `-n` | `false` | Dry run: show count without applying changes |
+
 #### List organization roles
 
 ```sh
-gh team-kit org-role list [owner]
+gh team-kit org-role list [owner] [--source <Organization|Predefined|System>] [--field <field>] [--name-only] [--format json]
 ```
 
-List all roles available in the organization. Optionally, specify the owner to filter roles.
+List all roles available in the organization. Use `--source` to filter by role source (can be specified multiple times). Use `--field` to select columns to display (valid fields: `ID`, `NAME`, `DESCRIPTION`, `BASE_ROLE`, `SOURCE`, `PERMISSIONS`, `CREATED_AT`, `UPDATED_AT`). Use `--name-only` to output only role names.
 
 #### List users assigned to an organization role
 
@@ -587,10 +602,10 @@ Update code review assignment settings for the specified team. You can enable/di
 #### Export team information
 
 ```sh
-gh team-kit export [--output <file>] [--owner <org>] [--host <host>] [--no-export-repositories] [--no-export-group] [--no-suspended] [--format <json|table>]
+gh team-kit export [--output <file>] [--owner <org>] [--host <host>] [--no-export-repositories] [--no-export-group] [--no-export-org-roles] [--no-suspended] [--format <json|table>]
 ```
 
-Retrieve and display team information from the specified organization. Exports team structure, members, maintainers, repositories, external group connections (EMU), and code review settings to a file or stdout. Use `--output` to specify the output file (default: stdout). Use `--no-export-repositories` to skip repository permissions, `--no-export-group` to skip external group connections, and `--no-suspended` to exclude suspended users.
+Retrieve and display team information from the specified organization. Exports team structure, members, maintainers, repositories, external group connections (EMU), custom organization role assignments, and code review settings to a file or stdout. Use `--output` to specify the output file (default: stdout). Use `--no-export-repositories` to skip repository permissions, `--no-export-group` to skip external group connections, `--no-export-org-roles` to skip custom org role assignments, and `--no-suspended` to exclude suspended users.
 
 #### Import team information
 
@@ -598,4 +613,4 @@ Retrieve and display team information from the specified organization. Exports t
 gh team-kit import <input> [--dryrun] [--owner <org>] [--host <host>] [--format <json|yaml>]
 ```
 
-Read and apply team information to the specified organization from a file or stdin. Use `--dryrun` to preview changes without applying them. Specify `-` as input to read from stdin. Accepts YAML or JSON format. If the input contains a `group` field for a team, the corresponding external group is connected automatically (EMU only; only applicable to leaf teams without parent/child teams). When the organization supports external groups and a team has no `group` specified, any existing external group connection is removed. See [docs/migrate.md](docs/migrate.md) for migration examples.
+Read and apply team information to the specified organization from a file or stdin. Use `--dryrun` to preview changes without applying them. Specify `-` as input to read from stdin. Accepts YAML or JSON format. If the input contains a `group` field for a team, the corresponding external group is connected automatically (EMU only; only applicable to leaf teams without parent/child teams). When the organization supports external groups and a team has no `group` specified, any existing external group connection is removed. If a team has an `org_roles` field, the listed custom organization roles are assigned to that team on import. See [docs/migrate.md](docs/migrate.md) for migration examples.
