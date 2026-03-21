@@ -23,6 +23,7 @@ func NewGetCmd() *cobra.Command {
 		Use:   "get <team-slug>",
 		Short: "Get code reviews settings",
 		Long:  `Get code reviews settings.`,
+		Aliases: []string{"view"},
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])

@@ -2,8 +2,10 @@ package user
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/ioutil"
@@ -66,7 +68,7 @@ Specify '-' as input to read from stdin.`,
 			}
 
 			if len(errs) > 0 {
-				return fmt.Errorf("encountered errors during import: %v", errs)
+				return fmt.Errorf("encountered errors during import: %w", errors.Join(errs...))
 			}
 			return nil
 		},
@@ -75,7 +77,7 @@ Specify '-' as input to read from stdin.`,
 	f := cmd.Flags()
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
 	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: do not actually apply changes")
-	f.StringVar(&defaultRole, "role", gh.TeamMembershipRoleMember, "Default role when not specified in input (member or admin)")
+	cmdutil.StringEnumFlag(cmd, &defaultRole, "role", "", gh.TeamMembershipRoleMember, gh.OrgMembershipList, "Default role when not specified in input (member or admin)")
 
 	return cmd
 }
