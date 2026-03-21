@@ -1,7 +1,6 @@
 package orgrole
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -42,12 +41,12 @@ Specify '-' as input to read from stdin.`,
 				return nil
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			var errs []error
 			for _, role := range roles {
 				if role.Name == nil {
