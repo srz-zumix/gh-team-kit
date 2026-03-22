@@ -1,7 +1,6 @@
 package member
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -31,12 +30,12 @@ func NewCopyCmd() *cobra.Command {
 				return fmt.Errorf("error parsing destination team: %w", err)
 			}
 
-			ctx := context.Background()
 			srcClient, dstClient, err := gh.NewGitHubClientWith2Repos(srcRepo, dstRepo)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			if err := gh.CopyTeamMembers(ctx, srcClient, srcRepo, srcTeamSlug, dstClient, dstRepo, dstTeamSlug); err != nil {
 				return fmt.Errorf("failed to copy team members: %w", err)
 			}

@@ -1,7 +1,6 @@
 package member
 
 import (
-	"context"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -54,12 +53,12 @@ func NewPickCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			members, err := gh.ListTeamMembers(ctx, client, repository, teamSlug, roles, !nameOnly)
 			if err != nil {
 				return fmt.Errorf("failed to list team members: %w", err)
@@ -121,17 +120,13 @@ func NewPickCmd() *cobra.Command {
 			renderer := render.NewRenderer(opts.Exporter)
 
 			if nameOnly {
-				renderer.RenderNames(pickedMembers)
-				return nil
-			} else {
-				if details {
-					renderer.RenderUserDetails(pickedMembers)
-				} else {
-					renderer.RenderUserWithRole(pickedMembers)
-				}
+				return renderer.RenderNames(pickedMembers)
 			}
-
-			return nil
+			if details {
+				return renderer.RenderUserDetails(pickedMembers)
+			} else {
+				return renderer.RenderUserWithRole(pickedMembers)
+			}
 		},
 	}
 

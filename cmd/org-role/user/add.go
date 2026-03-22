@@ -1,7 +1,6 @@
 package user
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -27,12 +26,12 @@ func NewAddCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository owner: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			if err := gh.AssignOrgRoleToUser(ctx, client, repository, username, orgRole); err != nil {
 				return fmt.Errorf("failed to assign user '%s' to role '%s' in organization '%s': %w", username, orgRole, owner, err)
 			}

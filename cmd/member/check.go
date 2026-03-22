@@ -1,7 +1,6 @@
 package member
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -29,12 +28,12 @@ func NewCheckCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			membership, err := gh.FindTeamMembership(ctx, client, repository, teamSlug, username)
 			if err != nil {
 				return fmt.Errorf("error checking membership: %w", err)

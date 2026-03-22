@@ -1,7 +1,6 @@
 package mannequin
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -39,12 +38,12 @@ func NewListCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			mannequins, err := gh.ListMannequins(ctx, client, repository, nil)
 			if err != nil {
 				return fmt.Errorf("failed to list mannequins: %w", err)
@@ -52,13 +51,9 @@ func NewListCmd() *cobra.Command {
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if nameOnly {
-				renderer.RenderNames(mannequins)
-			} else if len(fields) > 0 {
-				renderer.RenderMannequins(mannequins, fields)
-			} else {
-				renderer.RenderMannequinsDefault(mannequins)
+				return renderer.RenderNames(mannequins)
 			}
-			return nil
+			return renderer.RenderMannequins(mannequins, fields)
 		},
 	}
 

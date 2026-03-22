@@ -1,7 +1,6 @@
 package hovercard
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -28,18 +27,19 @@ func NewGetCmd() *cobra.Command {
 			if len(args) > 0 {
 				username = args[0]
 			}
-			ctx := context.Background()
+
 			client, err := gh.NewGitHubClient()
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
+
+			ctx := cmd.Context()
 			hovercard, err := gh.GetUserHovercard(ctx, client, username, subjectType, subjectId)
 			if err != nil {
 				return fmt.Errorf("failed to get hovercard for user '%s': %w", username, err)
 			}
 			renderer := render.NewRenderer(opts.Exporter)
-			renderer.RenderHovercard(hovercard)
-			return nil
+			return renderer.RenderHovercard(hovercard)
 		},
 	}
 

@@ -1,7 +1,6 @@
 package member
 
 import (
-	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -45,12 +44,12 @@ func NewRoleCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			membership, err := gh.UpdateTeamMemberRole(ctx, client, repository, teamSlug, username, role)
 			if err != nil {
 				return fmt.Errorf("error updating team member role: %w", err)
@@ -58,8 +57,7 @@ func NewRoleCmd() *cobra.Command {
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if opts.Exporter != nil {
-				renderer.RenderExportedData(membership)
-				return nil
+				return renderer.RenderExportedData(membership)
 			}
 
 			if *membership.Role == "maintainer" && role != "maintainer" {

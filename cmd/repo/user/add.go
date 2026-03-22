@@ -1,7 +1,6 @@
 package user
 
 import (
-	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -38,11 +37,13 @@ func NewAddCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
-			ctx := context.Background()
+
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
+
+			ctx := cmd.Context()
 			invitation, err := gh.AddRepositoryCollaborator(ctx, client, repository, username, permission)
 			if err != nil {
 				return fmt.Errorf("failed to add user '%s' to repository: %w", username, err)

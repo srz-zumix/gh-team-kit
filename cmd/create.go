@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -32,8 +31,6 @@ func NewCreateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			ctx := context.Background()
-
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
@@ -44,6 +41,7 @@ func NewCreateCmd() *cobra.Command {
 				return fmt.Errorf("failed to create GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			// Check if the team already exists
 			exists, err := gh.IsExistsTeam(ctx, client, repository, name)
 			if err != nil {
@@ -60,8 +58,7 @@ func NewCreateCmd() *cobra.Command {
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if opts.Exporter != nil {
-				renderer.RenderExportedData(team)
-				return nil
+				return renderer.RenderExportedData(team)
 			}
 
 			logger.Info("Team created successfully.", "team-slug", team.GetSlug())

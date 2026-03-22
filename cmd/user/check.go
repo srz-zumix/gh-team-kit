@@ -1,7 +1,6 @@
 package user
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
@@ -21,7 +20,6 @@ func NewCheckCmd() *cobra.Command {
 		Long:  `Check the role of a specified user in the organization. If the user is not a member, it will return 'none'.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := context.Background()
 			username := args[0]
 
 			if exitCode {
@@ -38,6 +36,7 @@ func NewCheckCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			membership, err := gh.FindOrgMembership(ctx, client, repository, username)
 			if err != nil {
 				return fmt.Errorf("error checking membership: %w", err)

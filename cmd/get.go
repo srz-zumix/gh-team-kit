@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -19,7 +18,6 @@ func NewGetCmd() *cobra.Command {
 	opts := &GetOptions{}
 
 	var owner string
-	var repo string
 	var child bool
 	var recursive bool
 	var cmd = &cobra.Command{
@@ -34,27 +32,24 @@ func NewGetCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			teams, err := gh.ListTeamByName(ctx, client, repository, args, child, recursive)
 			if err != nil {
 				return fmt.Errorf("error retrieving child teams: %w", err)
 			}
 
 			renderer := render.NewRenderer(opts.Exporter)
-			renderer.RenderTeamsDefault(teams)
-
-			return nil
+			return renderer.RenderTeams(teams, nil)
 		},
 	}
 
 	f := cmd.Flags()
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
-	f.StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
 	f.BoolVarP(&child, "child", "c", false, "Retrieve and display the parent team if it exists")
 	f.BoolVarP(&recursive, "recursive", "r", false, "Retrieve teams recursively")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)

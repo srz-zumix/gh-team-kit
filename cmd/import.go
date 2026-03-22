@@ -40,7 +40,7 @@ func NewImportCmd() *cobra.Command {
 				repository.Host = host
 			}
 
-			importer, err := config.NewImporter(repository)
+			importer, err := config.NewImporter(cmd.Context(), repository)
 			if err != nil {
 				return fmt.Errorf("error creating importer: %w", err)
 			}
@@ -65,8 +65,7 @@ func NewImportCmd() *cobra.Command {
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if opts.Exporter != nil {
-				renderer.RenderExportedData(organizationConfig)
-				return nil
+				return renderer.RenderExportedData(organizationConfig)
 			}
 			if format == "yaml" {
 				err = organizationConfig.Write(os.Stdout)

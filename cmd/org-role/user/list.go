@@ -1,7 +1,6 @@
 package user
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -44,12 +43,12 @@ func NewListCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			users, err := gh.ListUsersAssignedToOrgRole(ctx, client, repository, role)
 			if err != nil {
 				return fmt.Errorf("failed to list users assigned to role '%s': %w", role, err)
@@ -70,15 +69,14 @@ func NewListCmd() *cobra.Command {
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if nameOnly {
-				renderer.RenderNames(users)
-			} else {
-				headers := []string{"USERNAME", "ROLE", "TEAM"}
-				if details {
-					headers = append(headers, "EMAIL", "SUSPENDED")
-				}
-				renderer.RenderUsers(users, headers)
+				return renderer.RenderNames(users)
 			}
-			return nil
+
+			headers := []string{"USERNAME", "ROLE", "TEAM"}
+			if details {
+				headers = append(headers, "EMAIL", "SUSPENDED")
+			}
+			return renderer.RenderUsers(users, headers)
 		},
 	}
 

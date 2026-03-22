@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -37,12 +36,12 @@ func NewMoveCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			team, err := gh.UpdateTeam(ctx, client, repository, teamSlug, nil, nil, nil, nil, &newParent)
 			if err != nil {
 				return fmt.Errorf("failed to update team parent: %w", err)
@@ -50,8 +49,7 @@ func NewMoveCmd() *cobra.Command {
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if opts.Exporter != nil {
-				renderer.RenderExportedData(team)
-				return nil
+				return renderer.RenderExportedData(team)
 			}
 
 			if newParent == "" {

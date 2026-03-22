@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -35,7 +34,6 @@ func NewUpdateCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
@@ -69,6 +67,7 @@ func NewUpdateCmd() *cobra.Command {
 				}
 			}
 
+			ctx := cmd.Context()
 			team, err := gh.UpdateTeam(ctx, client, repository, teamSlug, name, desc, privacy, enableNotification, parentTeamSlug)
 			if err != nil {
 				return fmt.Errorf("failed to update team: %w", err)
@@ -76,8 +75,7 @@ func NewUpdateCmd() *cobra.Command {
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if opts.Exporter != nil {
-				renderer.RenderExportedData(team)
-				return nil
+				return renderer.RenderExportedData(team)
 			}
 
 			logger.Info("Team updated successfully.", "team-slug", teamSlug)

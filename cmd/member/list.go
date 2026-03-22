@@ -1,7 +1,6 @@
 package member
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -40,12 +39,12 @@ func NewListCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			members, err := gh.ListTeamMembers(ctx, client, repository, teamSlug, roles, !nameOnly)
 			if err != nil {
 				return fmt.Errorf("failed to list team members: %w", err)
@@ -67,17 +66,14 @@ func NewListCmd() *cobra.Command {
 			}
 
 			if nameOnly {
-				renderer.RenderNames(members)
-				return nil
-			} else {
-				if details {
-					renderer.RenderUserDetails(members)
-				} else {
-					renderer.RenderUserWithRole(members)
-				}
+				return renderer.RenderNames(members)
 			}
 
-			return nil
+			if details {
+				return renderer.RenderUserDetails(members)
+			} else {
+				return renderer.RenderUserWithRole(members)
+			}
 		},
 	}
 

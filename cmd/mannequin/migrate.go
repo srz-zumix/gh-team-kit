@@ -1,7 +1,6 @@
 package mannequin
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/go-gh/v2/pkg/repository"
@@ -50,14 +49,13 @@ Example:
 			// Build source repository (host only)
 			srcRepository := repository.Repository{Host: srcHost}
 
-			ctx := context.Background()
-
 			// Create clients: srcClient for source host, dstClient for target host
 			srcClient, dstClient, err := gh.NewGitHubClientWith2Repos(srcRepository, dstRepository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub clients: %w", err)
 			}
 
+			ctx := cmd.Context()
 			// Find the user on the source host by email to get the mannequin login
 			srcUser, err := gh.FindUserByEmail(ctx, srcClient, email)
 			if err != nil {
@@ -111,7 +109,7 @@ Example:
 			if targetUser.NodeID == nil {
 				return fmt.Errorf("failed to get node ID for user '%s'", targetUserLogin)
 			}
-			targetUserNodeID := *targetUser.NodeID
+			targetUserNodeID := targetUser.GetNodeID()
 
 			if skipInvitation {
 				if err := gh.ReattributeMannequinToUser(ctx, dstClient, dstRepository, orgNodeID, mannequinNodeID, targetUserNodeID); err != nil {
