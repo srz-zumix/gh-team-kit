@@ -18,9 +18,8 @@ type Importer struct {
 	Owner  repository.Repository
 }
 
-func NewImporter(repository repository.Repository) (*Importer, error) {
+func NewImporter(ctx context.Context, repository repository.Repository) (*Importer, error) {
 	repository.Name = "" // Clear repository name to focus on organization level
-	ctx := context.Background()
 	client, err := gh.NewGitHubClientWithRepo(repository)
 	if err != nil {
 		return nil, fmt.Errorf("error creating GitHub client: %w", err)

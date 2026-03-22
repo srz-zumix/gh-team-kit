@@ -1,7 +1,6 @@
 package team
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -33,12 +32,12 @@ func NewListCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			teams, err := gh.ListTeamsAssignedToRole(ctx, client, repository, role)
 			if err != nil {
 				return fmt.Errorf("failed to list teams assigned to role '%s': %w", role, err)
@@ -46,11 +45,9 @@ func NewListCmd() *cobra.Command {
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if nameOnly {
-				renderer.RenderNames(teams)
-			} else {
-				renderer.RenderTeamsDefault(teams)
+				return renderer.RenderNames(teams)
 			}
-			return nil
+			return renderer.RenderTeams(teams, nil)
 		},
 	}
 

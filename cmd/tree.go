@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -31,12 +30,12 @@ func NewTreeCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			var team gh.Team
 			if len(args) > 0 {
 				teamSlug := args[0]
@@ -52,8 +51,7 @@ func NewTreeCmd() *cobra.Command {
 			}
 
 			renderer := render.NewRenderer(opts.Exporter)
-			renderer.RenderTeamTree(repository.Owner, team)
-			return nil
+			return renderer.RenderTeamTree(repository.Owner, team)
 		},
 	}
 

@@ -1,7 +1,6 @@
 package hovercard
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -34,12 +33,12 @@ func NewIssueCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			issue, err := gh.GetIssue(ctx, client, repository, issueNumber)
 			if err != nil {
 				return fmt.Errorf("failed to get issue '%s' in repository '%s': %w", issueNumber, repo, err)
@@ -51,8 +50,7 @@ func NewIssueCmd() *cobra.Command {
 				return fmt.Errorf("failed to get hovercard for user '%s': %w", username, err)
 			}
 			renderer := render.NewRenderer(opts.Exporter)
-			renderer.RenderHovercard(hovercard)
-			return nil
+			return renderer.RenderHovercard(hovercard)
 		},
 	}
 

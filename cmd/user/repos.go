@@ -1,7 +1,6 @@
 package user
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -49,7 +48,6 @@ func NewReposCmd() *cobra.Command {
 				return fmt.Errorf("failed to parse repository: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("failed to create GitHub client: %w", err)
@@ -82,6 +80,7 @@ func NewReposCmd() *cobra.Command {
 				searchOptions.Sources()
 			}
 
+			ctx := cmd.Context()
 			repos, err := gh.ListUserAccessableRepositories(ctx, client, repository, username, roles, &searchOptions)
 			if err != nil {
 				return fmt.Errorf("failed to list repositories for user '%s': %w", username, err)
@@ -89,11 +88,9 @@ func NewReposCmd() *cobra.Command {
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if nameOnly {
-				renderer.RenderNames(repos)
-			} else {
-				renderer.RenderRepository(repos, nil)
+				return renderer.RenderNames(repos)
 			}
-			return nil
+			return renderer.RenderRepository(repos, nil)
 		},
 	}
 

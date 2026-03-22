@@ -71,7 +71,7 @@ Use --skip-invitation to skip the invitation step and directly reclaim the manne
 			if user.NodeID == nil {
 				return fmt.Errorf("failed to get node ID for user '%s'", targetUserLogin)
 			}
-			targetUserNodeID := *user.NodeID
+			targetUserNodeID := user.GetNodeID()
 
 			if skipInvitation {
 				if err := gh.ReattributeMannequinToUser(ctx, client, repository, orgNodeID, mannequinNodeID, targetUserNodeID); err != nil {

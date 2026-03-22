@@ -1,7 +1,6 @@
 package user
 
 import (
-	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -48,12 +47,12 @@ func NewRoleCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			user, err := gh.UpdateOrgMemberRole(ctx, client, repository, username, role)
 			if err != nil {
 				return fmt.Errorf("error updating user role: %w", err)
@@ -61,8 +60,7 @@ func NewRoleCmd() *cobra.Command {
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if opts.Exporter != nil {
-				renderer.RenderExportedData(user)
-				return nil
+				return renderer.RenderExportedData(user)
 			}
 
 			logger.Info("User role updated in organization successfully.", "username", *user.Login, "owner", owner, "role", *user.RoleName)

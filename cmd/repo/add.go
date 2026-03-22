@@ -1,7 +1,6 @@
 package repo
 
 import (
-	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -32,12 +31,12 @@ func NewAddCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			if err := gh.AddTeamRepo(ctx, client, repository, teamSlug, permission); err != nil {
 				return fmt.Errorf("failed to add repository to team: %w", err)
 			}

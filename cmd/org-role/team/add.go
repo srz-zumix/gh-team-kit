@@ -1,7 +1,6 @@
 package team
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -27,12 +26,12 @@ func NewAddCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			if err := gh.AssignOrgRoleToTeam(ctx, client, repository, teamSlug, orgRole); err != nil {
 				return fmt.Errorf("failed to add team '%s' to role '%s' in organization '%s': %w", teamSlug, orgRole, owner, err)
 			}

@@ -1,7 +1,6 @@
 package repo
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -61,8 +60,7 @@ func NewDiffCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			ctx := context.Background()
-
+			ctx := cmd.Context()
 			teams1, err := gh.ListRepositoryTeams(ctx, client1, repo1Parsed)
 			if err != nil {
 				return fmt.Errorf("failed to fetch teams for %s: %w", repo1, err)

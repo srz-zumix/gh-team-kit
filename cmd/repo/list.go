@@ -1,7 +1,6 @@
 package repo
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -35,12 +34,12 @@ func NewListCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			repos, err := gh.ListTeamRepos(ctx, client, repository, teamSlug, roles, !noInherit)
 			if err != nil {
 				return fmt.Errorf("failed to list team repositories: %w", err)
@@ -48,11 +47,9 @@ func NewListCmd() *cobra.Command {
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if nameOnly {
-				renderer.RenderNames(repos)
-			} else {
-				renderer.RenderRepository(repos, nil)
+				return renderer.RenderNames(repos)
 			}
-			return nil
+			return renderer.RenderRepository(repos, nil)
 		},
 	}
 

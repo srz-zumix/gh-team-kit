@@ -1,7 +1,6 @@
 package emu
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -35,12 +34,12 @@ func NewTeamsCmd() *cobra.Command {
 
 			groupName := args[0]
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			teams, err := gh.GetExternalGroupTeams(ctx, client, repository, groupName)
 			if err != nil {
 				return fmt.Errorf("failed to get teams for external group '%s': %w", groupName, err)

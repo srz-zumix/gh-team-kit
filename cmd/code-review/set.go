@@ -1,7 +1,6 @@
 package codereview
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -35,12 +34,12 @@ func NewSetCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			// Build settings from flags
 			settings, err := gh.GetTeamCodeReviewSettings(ctx, client, repository, teamSlug)
 			if err != nil {

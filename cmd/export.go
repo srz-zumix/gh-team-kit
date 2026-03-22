@@ -43,7 +43,7 @@ func NewExportCmd() *cobra.Command {
 				repository.Host = host
 			}
 
-			exporter, err := config.NewExporter(repository)
+			exporter, err := config.NewExporter(cmd.Context(), repository)
 			if err != nil {
 				return fmt.Errorf("error creating exporter: %w", err)
 			}
@@ -56,21 +56,22 @@ func NewExportCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("error exporting teams: %w", err)
 			}
+
 			renderer := render.NewRenderer(opts.Exporter)
 			if opts.Exporter != nil {
-				renderer.RenderExportedData(organizationConfig)
-			} else {
-				if output == "" || output == "-" {
-					output = "stdout"
-					err = organizationConfig.Write(os.Stdout)
-				} else {
-					err = organizationConfig.WriteFile(output)
-				}
-				if err != nil {
-					return fmt.Errorf("error writing organization config to file: %w", err)
-				}
-				logger.Info("Export completed successfully.", "output", output)
+				return renderer.RenderExportedData(organizationConfig)
 			}
+
+			if output == "" || output == "-" {
+				output = "stdout"
+				err = organizationConfig.Write(os.Stdout)
+			} else {
+				err = organizationConfig.WriteFile(output)
+			}
+			if err != nil {
+				return fmt.Errorf("error writing organization config to file: %w", err)
+			}
+			logger.Info("Export completed successfully.", "output", output)
 			return nil
 		},
 	}

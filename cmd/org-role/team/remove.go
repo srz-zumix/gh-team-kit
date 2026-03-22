@@ -1,7 +1,6 @@
 package team
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -28,12 +27,12 @@ func NewRemoveCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("failed to create GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			if err := gh.RemoveOrgRoleFromTeam(ctx, client, repository, teamSlug, orgRole); err != nil {
 				return fmt.Errorf("failed to remove org-role '%s' from team '%s': %w", orgRole, teamSlug, err)
 			}

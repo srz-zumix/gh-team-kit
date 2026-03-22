@@ -1,7 +1,6 @@
 package member
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -61,7 +60,6 @@ Special team slugs:
 				return fmt.Errorf("error parsing team-slug2 '%s': %w", team1, err)
 			}
 
-			ctx := context.Background()
 			client1, err := gh.NewGitHubClientWithRepo(repo1)
 			if err != nil {
 				return fmt.Errorf("failed to create GitHub client: %w", err)
@@ -71,6 +69,7 @@ Special team slugs:
 				return fmt.Errorf("failed to create GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			// Fetch members for team1 and team2 using the correct teamSlug
 			members1, err := gh.ListMembersByTeamSpec(ctx, client1, repo1, teamSlug1, roles, !nameOnly)
 			if err != nil {
@@ -115,16 +114,13 @@ Special team slugs:
 			// Use the renderer to output the result
 			renderer := render.NewRenderer(opts.Exporter)
 			if nameOnly {
-				renderer.RenderNames(result)
-			} else {
-				if details {
-					renderer.RenderUserDetails(result)
-				} else {
-					renderer.RenderUsers(result, []string{"USERNAME"})
-				}
+				return renderer.RenderNames(result)
 			}
-
-			return nil
+			if details {
+				return renderer.RenderUserDetails(result)
+			} else {
+				return renderer.RenderUsers(result, []string{"USERNAME"})
+			}
 		},
 	}
 

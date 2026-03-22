@@ -1,7 +1,6 @@
 package copilot
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -47,19 +46,18 @@ func NewMetricsCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("failed to create GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			metrics, err := gh.GetCopilotTeamMetrics(ctx, client, repository.Owner, teamSlug, since, until)
 			if err != nil {
 				return fmt.Errorf("failed to get Copilot metrics: %w", err)
 			}
 			renderer := render.NewRenderer(opts.Exporter)
-			renderer.RenderCopilotMetricsDefault(metrics)
-			return nil
+			return renderer.RenderCopilotMetrics(metrics, nil)
 		},
 	}
 	f := cmd.Flags()

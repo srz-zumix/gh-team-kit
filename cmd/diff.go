@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -52,8 +51,7 @@ func NewDiffCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			ctx := context.Background()
-
+			ctx := cmd.Context()
 			repos1, err := gh.ListTeamRepos(ctx, client1, repo1, teamSlug1, nil, true)
 			if err != nil {
 				return fmt.Errorf("error fetching repositories for team %s: %w", teamSlug1, err)

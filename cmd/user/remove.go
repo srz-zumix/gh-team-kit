@@ -1,7 +1,6 @@
 package user
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -28,12 +27,12 @@ func NewRemoveCmd() *cobra.Command {
 				return fmt.Errorf("failed to parse owner: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("failed to create GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			var errors []error
 			for _, username := range usernames {
 				if err = gh.RemoveOrgMember(ctx, client, repository, username); err != nil {

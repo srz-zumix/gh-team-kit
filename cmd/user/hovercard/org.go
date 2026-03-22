@@ -1,7 +1,6 @@
 package hovercard
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -25,7 +24,7 @@ func NewOrgCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			username := ""
 			if len(args) > 0 {
-				username = args[1]
+				username = args[0]
 			}
 
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
@@ -33,12 +32,12 @@ func NewOrgCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			org, err := gh.GetOrg(ctx, client, repository.Owner)
 			if err != nil {
 				return fmt.Errorf("failed to get organization '%s': %w", owner, err)
@@ -50,8 +49,7 @@ func NewOrgCmd() *cobra.Command {
 				return fmt.Errorf("failed to get hovercard for user '%s': %w", username, err)
 			}
 			renderer := render.NewRenderer(opts.Exporter)
-			renderer.RenderHovercard(hovercard)
-			return nil
+			return renderer.RenderHovercard(hovercard)
 		},
 	}
 	f := cmd.Flags()

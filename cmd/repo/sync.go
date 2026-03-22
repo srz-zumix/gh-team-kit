@@ -1,7 +1,6 @@
 package repo
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -31,12 +30,12 @@ func NewSyncCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
-			ctx := context.Background()
 			srcClient, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			for _, dstArg := range args {
 				dstRepository, err := parser.Repository(parser.RepositoryInput(dstArg))
 				if err != nil {

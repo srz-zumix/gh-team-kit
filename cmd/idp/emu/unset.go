@@ -1,7 +1,6 @@
 package emu
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -25,12 +24,12 @@ func NewUnsetCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			if err := gh.UnsetExternalGroupForTeam(ctx, client, repository, teamSlug); err != nil {
 				return fmt.Errorf("failed to remove external group connection from team '%s': %w", teamSlug, err)
 			}

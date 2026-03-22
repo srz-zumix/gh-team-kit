@@ -1,7 +1,6 @@
 package user
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -39,12 +38,12 @@ func NewCheckCmd() *cobra.Command {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
-			ctx := context.Background()
 			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
+			ctx := cmd.Context()
 			hasPermissions := true
 			renderer := render.NewRenderer(opts.Exporter)
 			if submodules {
@@ -53,7 +52,7 @@ func NewCheckCmd() *cobra.Command {
 					return fmt.Errorf("error checking repository permission for user '%s' (submodules): %w", username, err)
 				}
 				hasPermissions = _hasPermissions
-				renderer.RenderPermissions(repoPermissions)
+				_ = renderer.RenderPermissions(repoPermissions) // nolint:errcheck
 			} else {
 				permission, err := gh.GetRepositoryPermission(ctx, client, repository, username)
 				if err != nil {
@@ -63,7 +62,7 @@ func NewCheckCmd() *cobra.Command {
 					hasPermissions = false
 				}
 
-				renderer.RenderPermission(permission)
+				_ = renderer.RenderPermission(permission) // nolint:errcheck
 			}
 
 			if !hasPermissions && exitCode {

@@ -62,9 +62,8 @@ func (opt *ExportOptions) GetExcludeSuspended() bool {
 	return opt.ExcludeSuspended
 }
 
-func NewExporter(repository repository.Repository) (*Exporter, error) {
+func NewExporter(ctx context.Context, repository repository.Repository) (*Exporter, error) {
 	repository.Name = "" // Clear repository name to focus on organization level
-	ctx := context.Background()
 	client, err := gh.NewGitHubClientWithRepo(repository)
 	if err != nil {
 		return nil, fmt.Errorf("error creating GitHub client: %w", err)
