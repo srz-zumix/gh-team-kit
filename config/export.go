@@ -7,6 +7,7 @@ import (
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh/client"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 )
 
 type Exporter struct {
@@ -98,7 +99,7 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 	if options.GetIsExportOrgRoles() {
 		teamOrgRoleMap, err = gh.BuildTeamOrgRoleMap(e.ctx, e.client, e.Owner)
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving team org roles: %w", err)
+			logger.Warn("skipping org roles export", "error", err)
 		}
 	}
 
@@ -173,12 +174,12 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 		}
 
 		teamConfig := TeamConfig{
-			Name:                *team.Name,
+			Name:                team.GetName(),
 			Slug:                slug,
-			Description:         *team.Description,
-			Privacy:             *team.Privacy,
+			Description:         team.GetDescription(),
+			Privacy:             team.GetPrivacy(),
 			ParentTeam:          parentSlug,
-			NotificationSetting: *team.NotificationSetting,
+			NotificationSetting: team.GetNotificationSetting(),
 			Maintainers:         gh.GetUserNames(maintainers),
 			Members:             gh.GetUserNames(members),
 			Group:               groupName,
