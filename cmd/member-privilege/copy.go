@@ -3,7 +3,6 @@ package memberprivilege
 import (
 	"fmt"
 
-	"github.com/google/go-github/v84/github"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/logger"
@@ -41,21 +40,21 @@ func NewCopyCmd() *cobra.Command {
 				return fmt.Errorf("failed to get member privileges from source organization '%s': %w", srcOwner, err)
 			}
 
-			input := &github.Organization{
-				DefaultRepoPermission:        src.DefaultRepoPermission,
-				MembersCanCreateRepos:        src.MembersCanCreateRepos,
-				MembersCanCreatePublicRepos:  src.MembersCanCreatePublicRepos,
-				MembersCanCreatePrivateRepos: src.MembersCanCreatePrivateRepos,
+			input := &gh.Organization{
+				DefaultRepoPermission:         src.DefaultRepoPermission,
+				MembersCanCreateRepos:         src.MembersCanCreateRepos,
+				MembersCanCreatePublicRepos:   src.MembersCanCreatePublicRepos,
+				MembersCanCreatePrivateRepos:  src.MembersCanCreatePrivateRepos,
 				MembersCanCreateInternalRepos: src.MembersCanCreateInternalRepos,
-				MembersCanForkPrivateRepos:   src.MembersCanForkPrivateRepos,
-				MembersCanCreatePages:        src.MembersCanCreatePages,
-				MembersCanCreatePublicPages:  src.MembersCanCreatePublicPages,
-				MembersCanCreatePrivatePages: src.MembersCanCreatePrivatePages,
-				MembersCanCreateTeams:        src.MembersCanCreateTeams,
-				WebCommitSignoffRequired:     src.WebCommitSignoffRequired,
+				MembersCanForkPrivateRepos:    src.MembersCanForkPrivateRepos,
+				MembersCanCreatePages:         src.MembersCanCreatePages,
+				MembersCanCreatePublicPages:   src.MembersCanCreatePublicPages,
+				MembersCanCreatePrivatePages:  src.MembersCanCreatePrivatePages,
+				MembersCanCreateTeams:         src.MembersCanCreateTeams,
+				WebCommitSignoffRequired:      src.WebCommitSignoffRequired,
 			}
 
-			_, err = gh.EditOrgMemberPrivileges(ctx, dstClient, dstRepo, input)
+			_, err = gh.EditOrg(ctx, dstClient, dstRepo, input)
 			if err != nil {
 				return fmt.Errorf("failed to apply member privileges to destination organization '%s': %w", dstOwner, err)
 			}

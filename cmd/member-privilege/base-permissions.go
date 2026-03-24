@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
-	"github.com/google/go-github/v84/github"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
@@ -37,9 +36,7 @@ func NewBasePermissionsCmd() *cobra.Command {
 			ctx := cmd.Context()
 
 			if cmd.Flags().Changed("set") {
-				_, err = gh.EditOrgMemberPrivileges(ctx, client, repository, &github.Organization{
-					DefaultRepoPermission: &setValue,
-				})
+				_, err = gh.SetOrgBasePermission(ctx, client, repository, setValue)
 				if err != nil {
 					return fmt.Errorf("failed to set base permissions: %w", err)
 				}

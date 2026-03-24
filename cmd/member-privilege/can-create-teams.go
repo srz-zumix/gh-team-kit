@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
-	"github.com/google/go-github/v84/github"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
@@ -37,9 +36,7 @@ func NewCanCreateTeamsCmd() *cobra.Command {
 			ctx := cmd.Context()
 
 			if setValue != nil {
-				_, err = gh.EditOrgMemberPrivileges(ctx, client, repository, &github.Organization{
-					MembersCanCreateTeams: setValue,
-				})
+				_, err = gh.SetOrgMembersCanCreateTeams(ctx, client, repository, *setValue)
 				if err != nil {
 					return fmt.Errorf("failed to set can-create-teams setting: %w", err)
 				}

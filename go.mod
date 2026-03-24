@@ -4,8 +4,7 @@ go 1.26.1
 
 require (
 	github.com/cli/go-gh/v2 v2.13.0
-	github.com/google/go-github/v84 v84.0.0
-	github.com/srz-zumix/go-gh-extension v0.4.2
+	github.com/srz-zumix/go-gh-extension v0.4.3
 )
 
 require (
@@ -40,6 +39,7 @@ require (
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
+	github.com/google/go-github/v84 v84.0.0 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
-	"github.com/google/go-github/v84/github"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/cmdflags"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
@@ -28,15 +27,11 @@ func NewSetCmd() *cobra.Command {
 	var webCommitSignoffRequired cmdflags.MutuallyExclusiveBoolFlags
 
 	cmd := &cobra.Command{
-		Use:   "set [owner]",
+		Use:   "set",
 		Short: "Set member privileges of an organization",
 		Long:  `Update one or more member privileges settings of the specified organization.`,
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				owner = args[0]
-			}
-
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
@@ -47,7 +42,7 @@ func NewSetCmd() *cobra.Command {
 				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
-			input := &github.Organization{}
+			input := &gh.Organization{}
 			if cmd.Flags().Changed("default-repo-permission") {
 				input.DefaultRepoPermission = &defaultRepoPermission
 			}
@@ -63,7 +58,7 @@ func NewSetCmd() *cobra.Command {
 			input.WebCommitSignoffRequired = webCommitSignoffRequired.GetValue()
 
 			ctx := cmd.Context()
-			_, err = gh.EditOrgMemberPrivileges(ctx, client, repository, input)
+			_, err = gh.EditOrg(ctx, client, repository, input)
 			if err != nil {
 				return fmt.Errorf("failed to update member privileges: %w", err)
 			}

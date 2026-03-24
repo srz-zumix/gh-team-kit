@@ -21,16 +21,12 @@ func NewGetCmd() *cobra.Command {
 	var fields []string
 
 	cmd := &cobra.Command{
-		Use:     "get [owner]",
+		Use:     "get",
 		Short:   "Get member privileges of an organization",
 		Long:    `Get the member privileges settings of the specified organization.`,
 		Aliases: []string{"view"},
-		Args:    cobra.MaximumNArgs(1),
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				owner = args[0]
-			}
-
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
@@ -54,7 +50,7 @@ func NewGetCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
-	cmdutil.StringSliceEnumFlag(f, &fields, "fields", nil, "Fields to display", render.OrgMemberPrivilegeFieldList)
+	cmdutil.StringSliceEnumFlag(cmd, &fields, "fields", "", nil, render.OrgMemberPrivilegeFieldList, "Fields to display")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd
