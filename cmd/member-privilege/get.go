@@ -54,7 +54,7 @@ func NewGetCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
-	f.StringSliceVar(&fields, "fields", nil, fmt.Sprintf("Fields to display (available: %v)", render.OrgMemberPrivilegeFieldList))
+	cmdutil.StringSliceEnumFlag(f, &fields, "fields", nil, "Fields to display", render.OrgMemberPrivilegeFieldList)
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd
