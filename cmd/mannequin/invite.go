@@ -39,7 +39,7 @@ Use --skip-invitation to skip the invitation step and directly reclaim the manne
 			}
 
 			// Get organization node ID
-			org, err := gh.GetOrg(ctx, client, repository.Owner)
+			org, err := gh.GetOrg(ctx, client, repository)
 			if err != nil {
 				return fmt.Errorf("failed to get organization '%s': %w", repository.Owner, err)
 			}

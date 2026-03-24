@@ -4,7 +4,8 @@ go 1.26.1
 
 require (
 	github.com/cli/go-gh/v2 v2.13.0
-	github.com/srz-zumix/go-gh-extension v0.4.1
+	github.com/google/go-github/v84 v84.0.0
+	github.com/srz-zumix/go-gh-extension v0.4.2
 )
 
 require (
@@ -15,7 +16,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
-	github.com/bradleyfalzon/ghinstallation/v2 v2.17.0 // indirect
+	github.com/bradleyfalzon/ghinstallation/v2 v2.18.0 // indirect
 	github.com/briandowns/spinner v1.23.2 // indirect
 	github.com/catppuccin/go v0.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -39,8 +40,6 @@ require (
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
-	github.com/google/go-github/v75 v75.0.0 // indirect
-	github.com/google/go-github/v84 v84.0.0 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
