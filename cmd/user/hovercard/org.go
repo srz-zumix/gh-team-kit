@@ -40,7 +40,7 @@ func NewOrgCmd() *cobra.Command {
 			ctx := cmd.Context()
 			org, err := gh.GetOrg(ctx, client, repository)
 			if err != nil {
-				return fmt.Errorf("failed to get organization '%s': %w", owner, err)
+				return fmt.Errorf("failed to get organization '%s': %w", repository.Owner, err)
 			}
 
 			id := fmt.Sprintf("%d", *org.ID)
