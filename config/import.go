@@ -146,7 +146,9 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 				errorList = append(errorList, fmt.Errorf("error adding maintainers to team %s: %w", teamConfig.Slug, err))
 			}
 
-			allMembers := append(teamConfig.Members, teamConfig.Maintainers...)
+			allMembers := make([]string, len(teamConfig.Members), len(teamConfig.Members)+len(teamConfig.Maintainers))
+			copy(allMembers, teamConfig.Members)
+			allMembers = append(allMembers, teamConfig.Maintainers...)
 			err = gh.RemoveTeamMembersOther(i.ctx, i.client, i.Owner, teamConfig.Slug, allMembers)
 			if err != nil {
 				errorList = append(errorList, fmt.Errorf("error removing members from team %s: %w", teamConfig.Slug, err))
