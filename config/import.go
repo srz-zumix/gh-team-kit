@@ -55,6 +55,7 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 		}
 
 		didUnsetExternalGroup := false
+		didSetExternalGroup := false
 		if existingTeam != nil && allowExternalGroups {
 			existingGroup, err := gh.FindExternalGroupByTeamSlug(i.ctx, i.client, i.Owner, teamConfig.Slug)
 			if err != nil {
@@ -72,6 +73,10 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 						didUnsetExternalGroup = true
 						logger.Info("unset external group before team update", "team", teamConfig.Slug, "group", existingGroupName)
 					}
+				} else {
+					// The team is already connected to the correct external group and remains eligible;
+					// mark as done to skip redundant member-removal and SetExternalGroupForTeam API calls.
+					didSetExternalGroup = true
 				}
 			}
 		}
@@ -88,8 +93,7 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 
 		// Determine whether to connect an external group for this team.
 		// Log the reason when the external group cannot be applied.
-		var didSetExternalGroup bool
-		if teamConfig.Group != "" {
+		if teamConfig.Group != "" && !didSetExternalGroup {
 			if !allowExternalGroups {
 				logger.Warn("skipping external group: organization does not support external groups", "team", teamConfig.Slug, "group", teamConfig.Group)
 				errorList = append(errorList, fmt.Errorf("cannot set external group for team %s because the organization does not support external groups", teamConfig.Slug))
@@ -116,17 +120,18 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 						logger.Info("falling back to config members due to external group error", "team", teamConfig.Slug, "group", teamConfig.Group)
 					} else {
 						didSetExternalGroup = true
-						// Warn if both external group and explicit members/maintainers are specified,
-						// since members will be ignored when connecting to an external group.
-						if len(teamConfig.Members) > 0 || len(teamConfig.Maintainers) > 0 {
-							logger.Warn("team has both external group and explicit members/maintainers; members/maintainers will be ignored", "team", teamConfig.Slug, "group", teamConfig.Group)
-						}
 					}
 				}
 			}
 		}
 
-		if !didSetExternalGroup {
+		if didSetExternalGroup {
+			// Warn if both external group and explicit members/maintainers are specified,
+			// since members will be ignored when connecting to an external group.
+			if len(teamConfig.Members) > 0 || len(teamConfig.Maintainers) > 0 {
+				logger.Warn("team has both external group and explicit members/maintainers; members/maintainers will be ignored", "team", teamConfig.Slug, "group", teamConfig.Group)
+			}
+		} else {
 			// When not connecting an external group, ensure any existing external group connection
 			// is removed before adding members, unless it was already unset during the
 			// pre-creation check above. A team with an external group cannot have explicit members.
