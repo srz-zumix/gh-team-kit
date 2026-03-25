@@ -9,6 +9,7 @@ import (
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh/client"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"gopkg.in/yaml.v3"
 )
 
@@ -40,59 +41,136 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 			return errorList, fmt.Errorf("team config not found for slug: %s", hierarchy.Slug)
 		}
 
-		_, err := gh.CreateOrUpdateTeam(i.ctx, i.client, i.Owner, teamConfig.Slug, &teamConfig.Name, teamConfig.Description, teamConfig.Privacy, teamConfig.NotificationSetting, teamConfig.ParentTeam)
+		// isTopLevelLeafTeam is true when the team has no child teams and is at the root hierarchy
+		// level (depth == 0). External groups can only be connected to such teams.
+		isTopLevelLeafTeam := len(hierarchy.Child) == 0 && depth == 0
+
+		// Look up the existing team to determine whether a pre-existing external group needs
+		// to be unset before creating or updating the team. A team with an external group
+		// cannot have explicit members, so the group must be removed first when the configured
+		// group has changed, is empty, or the team is no longer eligible for an external group.
+		existingTeam, err := gh.FindTeamBySlug(i.ctx, i.client, i.Owner, teamConfig.Slug)
 		if err != nil {
-			return errorList, fmt.Errorf("error creating or updating team %s: %w", teamConfig.Slug, err)
+			return errorList, fmt.Errorf("error looking up team %s: %w", teamConfig.Slug, err)
 		}
 
-		_, err = gh.AddTeamMembers(i.ctx, i.client, i.Owner, teamConfig.Slug, teamConfig.Members, gh.TeamMembershipRoleMember, true)
-		if err != nil {
-			errorList = append(errorList, err)
+		didUnsetExternalGroup := false
+		didSetExternalGroup := false
+		if existingTeam != nil && allowExternalGroups {
+			existingGroup, err := gh.FindExternalGroupByTeamSlug(i.ctx, i.client, i.Owner, teamConfig.Slug)
+			if err != nil {
+				return errorList, fmt.Errorf("error retrieving external group for team %s: %w", teamConfig.Slug, err)
+			}
+			if existingGroup != nil {
+				existingGroupName := existingGroup.GetGroupName()
+				// Unset when the config specifies no group, the group name has changed,
+				// or the team is no longer eligible for an external group.
+				if teamConfig.Group == "" || existingGroupName != teamConfig.Group || !isTopLevelLeafTeam {
+					err = gh.UnsetExternalGroupForTeam(i.ctx, i.client, i.Owner, teamConfig.Slug)
+					if err != nil {
+						errorList = append(errorList, fmt.Errorf("error removing external group for team %s: %w", teamConfig.Slug, err))
+					} else {
+						didUnsetExternalGroup = true
+						logger.Info("unset external group before team update", "team", teamConfig.Slug, "group", existingGroupName)
+					}
+				} else {
+					// The team is already connected to the correct external group and remains eligible;
+					// mark as done to skip redundant member-removal and SetExternalGroupForTeam API calls.
+					didSetExternalGroup = true
+				}
+			}
 		}
 
-		_, err = gh.AddTeamMembers(i.ctx, i.client, i.Owner, teamConfig.Slug, teamConfig.Maintainers, gh.TeamMembershipRoleMaintainer, true)
-		if err != nil {
-			errorList = append(errorList, err)
+		// Create the team if it does not exist, otherwise update it.
+		// When creating, use teamConfig.Slug as the name so that GitHub generates a slug
+		// that matches the configured slug. If Name and Slug differ, follow up with an
+		// UpdateTeam call to set the intended display name.
+		if existingTeam != nil {
+			_, err = gh.UpdateTeam(i.ctx, i.client, i.Owner, teamConfig.Slug, &teamConfig.Name, &teamConfig.Description, &teamConfig.Privacy, teamConfig.NotificationSetting, teamConfig.ParentTeam)
+			if err != nil {
+				return errorList, fmt.Errorf("error updating team %s: %w", teamConfig.Slug, err)
+			}
+		} else {
+			_, err = gh.CreateTeam(i.ctx, i.client, i.Owner, teamConfig.Slug, teamConfig.Description, teamConfig.Privacy, teamConfig.NotificationSetting, teamConfig.ParentTeam)
+			if err != nil {
+				return errorList, fmt.Errorf("error creating team %s: %w", teamConfig.Slug, err)
+			}
+			// If the display name differs from the slug, update the team to set the correct name.
+			if teamConfig.Name != teamConfig.Slug {
+				_, err = gh.UpdateTeam(i.ctx, i.client, i.Owner, teamConfig.Slug, &teamConfig.Name, &teamConfig.Description, &teamConfig.Privacy, teamConfig.NotificationSetting, teamConfig.ParentTeam)
+				if err != nil {
+					return errorList, fmt.Errorf("error updating name of newly created team %s: %w", teamConfig.Slug, err)
+				}
+			}
 		}
 
-		// External group handling:
-		// - When teamConfig.Group is non-empty, we attempt to connect the team to the given EMU external group.
-		//   * This is only allowed when the organization supports external groups (allowExternalGroups == true).
-		//   * External groups are only supported for "leaf" teams. If the team has child teams or a parent team
-		//     (depth > 0), the import will record an error instead of applying the external group.
-		// - When teamConfig.Group is empty and the organization supports external groups, we proactively remove any
-		//   existing external group connection for the team. This means that omitting "group" in the import config is
-		//   treated as "no external group" for that team.
-		if teamConfig.Group != "" {
+		// Determine whether to connect an external group for this team.
+		// Log the reason when the external group cannot be applied.
+		if teamConfig.Group != "" && !didSetExternalGroup {
 			if !allowExternalGroups {
+				logger.Warn("skipping external group: organization does not support external groups", "team", teamConfig.Slug, "group", teamConfig.Group)
 				errorList = append(errorList, fmt.Errorf("cannot set external group for team %s because the organization does not support external groups", teamConfig.Slug))
+			} else if !isTopLevelLeafTeam {
+				if depth == 0 {
+					logger.Warn("skipping external group: team has child teams", "team", teamConfig.Slug, "group", teamConfig.Group)
+					errorList = append(errorList, fmt.Errorf("cannot set external group for team %s because the team has child teams", teamConfig.Slug))
+				} else {
+					logger.Warn("skipping external group: team has child or parent teams", "team", teamConfig.Slug, "group", teamConfig.Group)
+					errorList = append(errorList, fmt.Errorf("cannot set external group for team %s because the team has child or parent teams", teamConfig.Slug))
+				}
 			} else {
-				if len(hierarchy.Child) == 0 && depth == 0 {
+				// Remove all team members before connecting an external group.
+				// CreateTeam automatically adds the calling user as a member, and a team
+				// with explicit members cannot be mapped to an Identity Provider Group.
+				err = gh.RemoveTeamMembersOther(i.ctx, i.client, i.Owner, teamConfig.Slug, []string{})
+				if err != nil {
+					errorList = append(errorList, fmt.Errorf("error removing members from team %s before setting external group: %w", teamConfig.Slug, err))
+				} else {
 					_, err = gh.SetExternalGroupForTeam(i.ctx, i.client, i.Owner, teamConfig.Group, teamConfig.Slug)
 					if err != nil {
 						errorList = append(errorList, fmt.Errorf("error setting external group '%s' for team %s: %w", teamConfig.Group, teamConfig.Slug, err))
-					}
-				} else {
-					if depth == 0 {
-						errorList = append(errorList, fmt.Errorf("cannot set external group for team %s because the team has child teams", teamConfig.Slug))
+						// didSetExternalGroup remains false; fall through to the member-based path as fallback.
+						logger.Info("falling back to config members due to external group error", "team", teamConfig.Slug, "group", teamConfig.Group)
 					} else {
-						errorList = append(errorList, fmt.Errorf("cannot set external group for team %s because the team has child or parent teams", teamConfig.Slug))
+						didSetExternalGroup = true
 					}
 				}
 			}
+		}
+
+		if didSetExternalGroup {
+			// Warn if both external group and explicit members/maintainers are specified,
+			// since members will be ignored when connecting to an external group.
+			if len(teamConfig.Members) > 0 || len(teamConfig.Maintainers) > 0 {
+				logger.Warn("team has both external group and explicit members/maintainers; members/maintainers will be ignored", "team", teamConfig.Slug, "group", teamConfig.Group)
+			}
 		} else {
-			if allowExternalGroups {
-				// If the organization has external groups, we remove any existing group connection for teams
-				// that do not have a group specified in the import config.
+			// When not connecting an external group, ensure any existing external group connection
+			// is removed before adding members, unless it was already unset during the
+			// pre-creation check above. A team with an external group cannot have explicit members.
+			// Newly created teams cannot have an existing external group, so skip the unset call.
+			if existingTeam != nil && allowExternalGroups && !didUnsetExternalGroup {
 				err = gh.UnsetExternalGroupForTeam(i.ctx, i.client, i.Owner, teamConfig.Slug)
 				if err != nil {
 					errorList = append(errorList, fmt.Errorf("error removing external group for team %s: %w", teamConfig.Slug, err))
 				}
 			}
-			allMembers := append(teamConfig.Members, teamConfig.Maintainers...)
+
+			_, err = gh.AddTeamMembers(i.ctx, i.client, i.Owner, teamConfig.Slug, teamConfig.Members, gh.TeamMembershipRoleMember, true)
+			if err != nil {
+				errorList = append(errorList, fmt.Errorf("error adding members to team %s: %w", teamConfig.Slug, err))
+			}
+			_, err = gh.AddTeamMembers(i.ctx, i.client, i.Owner, teamConfig.Slug, teamConfig.Maintainers, gh.TeamMembershipRoleMaintainer, true)
+			if err != nil {
+				errorList = append(errorList, fmt.Errorf("error adding maintainers to team %s: %w", teamConfig.Slug, err))
+			}
+
+			allMembers := make([]string, len(teamConfig.Members), len(teamConfig.Members)+len(teamConfig.Maintainers))
+			copy(allMembers, teamConfig.Members)
+			allMembers = append(allMembers, teamConfig.Maintainers...)
 			err = gh.RemoveTeamMembersOther(i.ctx, i.client, i.Owner, teamConfig.Slug, allMembers)
 			if err != nil {
-				errorList = append(errorList, err)
+				errorList = append(errorList, fmt.Errorf("error removing members from team %s: %w", teamConfig.Slug, err))
 			}
 		}
 
