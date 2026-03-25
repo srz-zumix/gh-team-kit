@@ -322,7 +322,7 @@ Each entry must have a `login` field. The role is taken from the `role_name` fie
 Specify `-` as `<input>` to read from stdin.
 
 | Flag | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `--owner <org>` | (current repo owner) | Organization name |
 | `--role <member\|admin>` | `member` | Default role when not specified in input |
 | `--dryrun`, `-n` | `false` | Dry run: show count without applying changes |
@@ -420,6 +420,78 @@ gh team-kit repo user remove <username>
 
 Remove a specified user's access to a repository.
 
+### Member Privileges Management
+
+#### Get or set the default repository permission (base permissions)
+
+```sh
+gh team-kit member-privilege base-permissions [--set <read|write|admin|none>] [--owner <org>]
+```
+
+Get or set the default repository permission for organization members. When `--set` is specified, the setting is updated and the result is displayed; otherwise the current value is displayed.
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--set <read\|write\|admin\|none>` | — | New value to set. Omit to get the current value. |
+| `--owner <org>` | (current repo owner) | Organization name |
+
+#### Get or set whether members can create teams
+
+```sh
+gh team-kit member-privilege can-create-teams [--set[=false]] [--owner <org>]
+```
+
+Get or set whether organization members can create teams. When `--set` is specified, the setting is updated and the result is displayed; otherwise the current value is displayed.
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--set` | — | Allow members to create teams. Use `--set=false` to disallow. Omit to get the current value. |
+| `--owner <org>` | (current repo owner) | Organization name |
+
+#### Copy member privileges from one organization to another
+
+```sh
+gh team-kit member-privilege copy <src-owner> <dst-owner>
+```
+
+Copy all member privileges settings from the source organization to the destination organization.
+
+#### Get member privileges of an organization
+
+```sh
+gh team-kit member-privilege get [--owner <org>] [--fields <fields>]
+```
+
+Get the member privileges settings of the specified organization. Displays a table with fields such as default repository permission, repository creation, forking, pages, team creation, and web commit signoff settings.
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--owner <org>` | (current repo owner) | Organization name |
+| `--fields <fields>` | (all fields) | Comma-separated list of fields to display |
+
+#### Set member privileges of an organization
+
+```sh
+gh team-kit member-privilege set [flags]
+```
+
+Update one or more member privileges settings of the specified organization. Only the flags explicitly specified will be changed.
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--owner <org>` | (current repo owner) | Organization name |
+| `--default-repo-permission <read\|write\|admin\|none>` | — | Default repository permission for organization members |
+| `--members-can-create-repos` / `--no-members-can-create-repos` | — | Allow or disallow members to create repositories |
+| `--members-can-create-public-repos` / `--no-members-can-create-public-repos` | — | Allow or disallow members to create public repositories |
+| `--members-can-create-private-repos` / `--no-members-can-create-private-repos` | — | Allow or disallow members to create private repositories |
+| `--members-can-create-internal-repos` / `--no-members-can-create-internal-repos` | — | Allow or disallow members to create internal repositories |
+| `--members-can-fork-private-repos` / `--no-members-can-fork-private-repos` | — | Allow or disallow members to fork private repositories |
+| `--members-can-create-pages` / `--no-members-can-create-pages` | — | Allow or disallow members to create GitHub Pages sites |
+| `--members-can-create-public-pages` / `--no-members-can-create-public-pages` | — | Allow or disallow members to create public GitHub Pages sites |
+| `--members-can-create-private-pages` / `--no-members-can-create-private-pages` | — | Allow or disallow members to create private GitHub Pages sites |
+| `--members-can-create-teams` / `--no-members-can-create-teams` | — | Allow or disallow members to create teams |
+| `--web-commit-signoff-required` / `--no-web-commit-signoff-required` | — | Require or disable web commit signoff |
+
 ### Organization-Role Management
 
 #### List teams assigned to an organization role
@@ -457,7 +529,7 @@ Only `Organization`-sourced (user-defined) roles are applied; `Predefined` and `
 Specify `-` as `<input>` to read from stdin.
 
 | Flag | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `--owner <org>` | (current repo owner) | Organization name |
 | `--dryrun`, `-n` | `false` | Dry run: show count without applying changes |
 

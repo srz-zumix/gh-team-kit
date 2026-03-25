@@ -77,7 +77,7 @@ Example:
 			targetUserLogin := dstUser.GetLogin()
 
 			// Get organization node ID from target host
-			org, err := gh.GetOrg(ctx, dstClient, dstRepository.Owner)
+			org, err := gh.GetOrg(ctx, dstClient, dstRepository)
 			if err != nil {
 				return fmt.Errorf("failed to get organization '%s': %w", dstRepository.Owner, err)
 			}

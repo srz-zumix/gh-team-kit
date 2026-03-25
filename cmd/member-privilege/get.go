@@ -1,4 +1,4 @@
-package hovercard
+package memberprivilege
 
 import (
 	"fmt"
@@ -10,23 +10,23 @@ import (
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
 )
 
-type OrgOptions struct {
+type GetOptions struct {
 	Exporter cmdutil.Exporter
 }
 
-func NewOrgCmd() *cobra.Command {
-	opts := &OrgOptions{}
+// NewGetCmd creates a command to get the member privileges of an organization.
+func NewGetCmd() *cobra.Command {
+	opts := &GetOptions{}
 	var owner string
-	cmd := &cobra.Command{
-		Use:   "org [username]",
-		Short: "Get organization hovercard for a user",
-		Args:  cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			username := ""
-			if len(args) > 0 {
-				username = args[0]
-			}
+	var fields []string
 
+	cmd := &cobra.Command{
+		Use:     "get",
+		Short:   "Get member privileges of an organization",
+		Long:    `Get the member privileges settings of the specified organization.`,
+		Aliases: []string{"view"},
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
@@ -38,22 +38,20 @@ func NewOrgCmd() *cobra.Command {
 			}
 
 			ctx := cmd.Context()
-			org, err := gh.GetOrg(ctx, client, repository)
+			org, err := gh.GetOrgMemberPrivileges(ctx, client, repository)
 			if err != nil {
-				return fmt.Errorf("failed to get organization '%s': %w", repository.Owner, err)
+				return fmt.Errorf("failed to get member privileges: %w", err)
 			}
 
-			id := fmt.Sprintf("%d", *org.ID)
-			hovercard, err := gh.GetUserHovercard(ctx, client, username, "organization", id)
-			if err != nil {
-				return fmt.Errorf("failed to get hovercard for user '%s': %w", username, err)
-			}
 			renderer := render.NewRenderer(opts.Exporter)
-			return renderer.RenderHovercard(hovercard)
+			return renderer.RenderOrgMemberPrivileges(org, fields)
 		},
 	}
+
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Specify the organization owner")
+	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	cmdutil.StringSliceEnumFlag(cmd, &fields, "fields", "", nil, render.OrgMemberPrivilegeFieldList, "Fields to display")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
+
 	return cmd
 }
