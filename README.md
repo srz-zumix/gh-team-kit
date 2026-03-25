@@ -472,7 +472,7 @@ Get the member privileges settings of the specified organization. Displays a tab
 #### Set member privileges of an organization
 
 ```sh
-gh team-kit member-privilege set [owner] [flags]
+gh team-kit member-privilege set [flags]
 ```
 
 Update one or more member privileges settings of the specified organization. Only the flags explicitly specified will be changed.
