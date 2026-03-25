@@ -148,7 +148,8 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 			// When not connecting an external group, ensure any existing external group connection
 			// is removed before adding members, unless it was already unset during the
 			// pre-creation check above. A team with an external group cannot have explicit members.
-			if allowExternalGroups && !didUnsetExternalGroup {
+			// Newly created teams cannot have an existing external group, so skip the unset call.
+			if existingTeam != nil && allowExternalGroups && !didUnsetExternalGroup {
 				err = gh.UnsetExternalGroupForTeam(i.ctx, i.client, i.Owner, teamConfig.Slug)
 				if err != nil {
 					errorList = append(errorList, fmt.Errorf("error removing external group for team %s: %w", teamConfig.Slug, err))
