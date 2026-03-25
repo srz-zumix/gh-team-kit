@@ -459,7 +459,7 @@ Copy all member privileges settings from the source organization to the destinat
 #### Get member privileges of an organization
 
 ```sh
-gh team-kit member-privilege get [owner] [--owner <org>] [--fields <fields>]
+gh team-kit member-privilege get [--owner <org>] [--fields <fields>]
 ```
 
 Get the member privileges settings of the specified organization. Displays a table with fields such as default repository permission, repository creation, forking, pages, team creation, and web commit signoff settings.
