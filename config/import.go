@@ -41,9 +41,9 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 			return errorList, fmt.Errorf("team config not found for slug: %s", hierarchy.Slug)
 		}
 
-		// isLeafTeam is true when the team has no child teams and is at the top hierarchy level.
-		// External groups can only be connected to leaf teams.
-		isLeafTeam := len(hierarchy.Child) == 0 && depth == 0
+		// isTopLevelLeafTeam is true when the team has no child teams and is at the root hierarchy
+		// level (depth == 0). External groups can only be connected to such teams.
+		isTopLevelLeafTeam := len(hierarchy.Child) == 0 && depth == 0
 
 		// Look up the existing team to determine whether a pre-existing external group needs
 		// to be unset before creating or updating the team. A team with an external group
@@ -65,7 +65,7 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 				existingGroupName := existingGroup.GetGroupName()
 				// Unset when the config specifies no group, the group name has changed,
 				// or the team is no longer eligible for an external group.
-				if teamConfig.Group == "" || existingGroupName != teamConfig.Group || !isLeafTeam {
+				if teamConfig.Group == "" || existingGroupName != teamConfig.Group || !isTopLevelLeafTeam {
 					err = gh.UnsetExternalGroupForTeam(i.ctx, i.client, i.Owner, teamConfig.Slug)
 					if err != nil {
 						errorList = append(errorList, fmt.Errorf("error removing external group for team %s: %w", teamConfig.Slug, err))
@@ -110,7 +110,7 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 			if !allowExternalGroups {
 				logger.Warn("skipping external group: organization does not support external groups", "team", teamConfig.Slug, "group", teamConfig.Group)
 				errorList = append(errorList, fmt.Errorf("cannot set external group for team %s because the organization does not support external groups", teamConfig.Slug))
-			} else if !isLeafTeam {
+			} else if !isTopLevelLeafTeam {
 				if depth == 0 {
 					logger.Warn("skipping external group: team has child teams", "team", teamConfig.Slug, "group", teamConfig.Group)
 					errorList = append(errorList, fmt.Errorf("cannot set external group for team %s because the team has child teams", teamConfig.Slug))
