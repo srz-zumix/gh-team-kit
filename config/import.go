@@ -82,13 +82,26 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 		}
 
 		// Create the team if it does not exist, otherwise update it.
+		// When creating, use teamConfig.Slug as the name so that GitHub generates a slug
+		// that matches the configured slug. If Name and Slug differ, follow up with an
+		// UpdateTeam call to set the intended display name.
 		if existingTeam != nil {
 			_, err = gh.UpdateTeam(i.ctx, i.client, i.Owner, teamConfig.Slug, &teamConfig.Name, &teamConfig.Description, &teamConfig.Privacy, teamConfig.NotificationSetting, teamConfig.ParentTeam)
+			if err != nil {
+				return errorList, fmt.Errorf("error updating team %s: %w", teamConfig.Slug, err)
+			}
 		} else {
-			_, err = gh.CreateTeam(i.ctx, i.client, i.Owner, teamConfig.Name, teamConfig.Description, teamConfig.Privacy, teamConfig.NotificationSetting, teamConfig.ParentTeam)
-		}
-		if err != nil {
-			return errorList, fmt.Errorf("error creating or updating team %s: %w", teamConfig.Slug, err)
+			_, err = gh.CreateTeam(i.ctx, i.client, i.Owner, teamConfig.Slug, teamConfig.Description, teamConfig.Privacy, teamConfig.NotificationSetting, teamConfig.ParentTeam)
+			if err != nil {
+				return errorList, fmt.Errorf("error creating team %s: %w", teamConfig.Slug, err)
+			}
+			// If the display name differs from the slug, update the team to set the correct name.
+			if teamConfig.Name != teamConfig.Slug {
+				_, err = gh.UpdateTeam(i.ctx, i.client, i.Owner, teamConfig.Slug, &teamConfig.Name, &teamConfig.Description, &teamConfig.Privacy, teamConfig.NotificationSetting, teamConfig.ParentTeam)
+				if err != nil {
+					return errorList, fmt.Errorf("error updating name of newly created team %s: %w", teamConfig.Slug, err)
+				}
+			}
 		}
 
 		// Determine whether to connect an external group for this team.
