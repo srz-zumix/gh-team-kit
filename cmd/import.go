@@ -54,6 +54,12 @@ func NewImportCmd() *cobra.Command {
 				return fmt.Errorf("error importing teams: %w", err)
 			}
 			if dryrun {
+				if verifyErrs := organizationConfig.Verify(); len(verifyErrs) > 0 {
+					for _, e := range verifyErrs {
+						logger.Warn("verification issue", "error", e)
+					}
+					return fmt.Errorf("dry run verification found %d issue(s) in the configuration", len(verifyErrs))
+				}
 				logger.Info("Dry run completed. No changes were made.")
 			} else {
 				err = importer.Import(organizationConfig)
