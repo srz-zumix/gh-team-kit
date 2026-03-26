@@ -88,7 +88,7 @@ func verifyHierarchy(c *OrganizationConfig, hierarchies []*TeamHierarchy, teamSl
 					errs = append(errs, fmt.Errorf("team %q: cannot set external group %q because the team has child or parent teams", h.Slug, teamConfig.Group))
 				}
 			} else if len(teamConfig.Members) > 0 || len(teamConfig.Maintainers) > 0 {
-				errs = append(errs, fmt.Errorf("team %q: has both external group %q and explicit members/maintainers; members/maintainers will be ignored", h.Slug, teamConfig.Group))
+				// This combination is allowed here; runtime will treat it as a warning-only condition.
 			}
 		}
 
