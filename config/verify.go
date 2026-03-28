@@ -53,6 +53,17 @@ func (c *OrganizationConfig) Verify() error {
 		}
 	}
 
+	// Validate that parent_team_slug references exist in the teams list.
+	for _, team := range c.Teams {
+		if team.ParentTeam != nil && *team.ParentTeam != "" {
+			if *team.ParentTeam == team.Slug {
+				logErr("parent_team_slug references self", "team", team.Slug)
+			} else if !teamSlugs[*team.ParentTeam] {
+				logErr("parent_team_slug references unknown team slug", "team", team.Slug, "parent", *team.ParentTeam)
+			}
+		}
+	}
+
 	// Verify hierarchy entries and external group constraints.
 	verifyHierarchy(c, c.Hierarchy, teamSlugs, 0, logErr)
 
@@ -67,6 +78,10 @@ func (c *OrganizationConfig) Verify() error {
 // External groups are only valid for root-level leaf teams (depth == 0, no child teams).
 func verifyHierarchy(c *OrganizationConfig, hierarchies []*TeamHierarchy, teamSlugs map[string]bool, depth int, logErr func(string, ...any)) {
 	for _, h := range hierarchies {
+		if h == nil {
+			logErr("hierarchy contains a null entry")
+			continue
+		}
 		if !teamSlugs[h.Slug] {
 			logErr("hierarchy references unknown team slug", "slug", h.Slug)
 			continue
@@ -80,6 +95,15 @@ func verifyHierarchy(c *OrganizationConfig, hierarchies []*TeamHierarchy, teamSl
 		// isTopLevelLeafTeam is true when the team has no child teams and is at the root
 		// hierarchy level (depth == 0). Only such teams can be connected to an external group.
 		isTopLevelLeafTeam := len(h.Child) == 0 && depth == 0
+
+		// A top-level hierarchy entry (depth == 0) must not have parent_team_slug set,
+		// and a nested entry (depth > 0) must have parent_team_slug set.
+		hasParent := teamConfig.ParentTeam != nil && *teamConfig.ParentTeam != ""
+		if depth == 0 && hasParent {
+			logErr("top-level hierarchy team must not have parent_team_slug", "team", h.Slug, "parent", *teamConfig.ParentTeam)
+		} else if depth > 0 && !hasParent {
+			logErr("nested hierarchy team must have parent_team_slug", "team", h.Slug)
+		}
 
 		if teamConfig.Group != "" {
 			if !isTopLevelLeafTeam {
