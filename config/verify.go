@@ -9,8 +9,9 @@ import (
 )
 
 // Verify inspects the OrganizationConfig for configuration problems without making
-// any API calls. Each issue is logged via the logger package. Returns an error if
-// any issues were found, or nil when the configuration is valid.
+// any API calls. Each verification error is logged via the logger package and
+// counted; warnings may be logged but do not fail verification. Returns an error
+// if one or more verification errors were found, or nil when no such errors exist.
 func (c *OrganizationConfig) Verify() error {
 	var errCount int
 
