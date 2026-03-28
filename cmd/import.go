@@ -55,7 +55,7 @@ func NewImportCmd() *cobra.Command {
 			}
 			if dryrun {
 				if err := organizationConfig.Verify(); err != nil {
-					return err
+					return fmt.Errorf("error verifying imported organization config: %w", err)
 				}
 				logger.Info("Dry run completed. No changes were made.")
 			} else {
