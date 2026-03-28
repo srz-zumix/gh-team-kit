@@ -20,9 +20,10 @@ func (c *OrganizationConfig) Verify() error {
 		logger.Error(msg, args...)
 	}
 
-	// Build a slug set while validating individual team entries.
+	// Build a slug set and config map while validating individual team entries.
 	teamSlugs := make(map[string]bool, len(c.Teams))
-	for _, team := range c.Teams {
+	teamConfigs := make(map[string]*TeamConfig, len(c.Teams))
+	for i, team := range c.Teams {
 		if team.Slug == "" {
 			logErr("team has an empty slug", "name", team.Name)
 		}
@@ -34,6 +35,7 @@ func (c *OrganizationConfig) Verify() error {
 				logErr("duplicate team slug", "slug", team.Slug)
 			}
 			teamSlugs[team.Slug] = true
+			teamConfigs[team.Slug] = &c.Teams[i]
 		}
 
 		if team.Privacy != "" && !slices.Contains(gh.TeamPrivacyList, team.Privacy) {
@@ -67,7 +69,7 @@ func (c *OrganizationConfig) Verify() error {
 
 	// Verify hierarchy entries and external group constraints.
 	visited := make(map[string]bool)
-	verifyHierarchy(c, c.Hierarchy, teamSlugs, "", visited, logErr)
+	verifyHierarchy(teamConfigs, c.Hierarchy, teamSlugs, "", visited, logErr)
 
 	if errCount > 0 {
 		return fmt.Errorf("configuration verification failed with %d issue(s)", errCount)
@@ -80,7 +82,7 @@ func (c *OrganizationConfig) Verify() error {
 // it is empty for top-level entries.
 // visited tracks all slugs seen so far across the entire traversal to detect duplicates/cycles.
 // External groups are only valid for root-level leaf teams (depth == 0, no child teams).
-func verifyHierarchy(c *OrganizationConfig, hierarchies []*TeamHierarchy, teamSlugs map[string]bool, expectedParent string, visited map[string]bool, logErr func(string, ...any)) {
+func verifyHierarchy(teamConfigs map[string]*TeamConfig, hierarchies []*TeamHierarchy, teamSlugs map[string]bool, expectedParent string, visited map[string]bool, logErr func(string, ...any)) {
 	for _, h := range hierarchies {
 		if h == nil {
 			logErr("hierarchy contains a null entry")
@@ -96,8 +98,9 @@ func verifyHierarchy(c *OrganizationConfig, hierarchies []*TeamHierarchy, teamSl
 		}
 		visited[h.Slug] = true
 
-		teamConfig := c.FindTeamConfigBySlug(h.Slug)
+		teamConfig := teamConfigs[h.Slug]
 		if teamConfig == nil {
+			logErr("hierarchy references team slug not found in teams list", "slug", h.Slug)
 			continue
 		}
 
@@ -132,6 +135,6 @@ func verifyHierarchy(c *OrganizationConfig, hierarchies []*TeamHierarchy, teamSl
 			}
 		}
 
-		verifyHierarchy(c, h.Child, teamSlugs, h.Slug, visited, logErr)
+		verifyHierarchy(teamConfigs, h.Child, teamSlugs, h.Slug, visited, logErr)
 	}
 }
