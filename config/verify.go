@@ -3,71 +3,72 @@ package config
 import (
 	"fmt"
 	"slices"
+
+	"github.com/srz-zumix/go-gh-extension/pkg/gh"
+	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 )
 
-// validTeamPrivacyValues contains the accepted values for TeamConfig.Privacy.
-var validTeamPrivacyValues = []string{"secret", "closed"}
-
-// validTeamNotificationSettings contains the accepted values for TeamConfig.NotificationSetting.
-var validTeamNotificationSettings = []string{"notifications_enabled", "notifications_disabled"}
-
-// validTeamRepositoryPermissions contains the accepted values for TeamRepositoryPermission.Permission.
-var validTeamRepositoryPermissions = []string{"admin", "maintain", "push", "triage", "pull"}
-
 // Verify inspects the OrganizationConfig for configuration problems without making
-// any API calls. It returns a slice of errors describing every issue found.
-// An empty slice means the configuration is valid.
-func (c *OrganizationConfig) Verify() []error {
-	var errs []error
+// any API calls. Each issue is logged via the logger package. Returns an error if
+// any issues were found, or nil when the configuration is valid.
+func (c *OrganizationConfig) Verify() error {
+	var errCount int
+
+	logErr := func(msg string, args ...any) {
+		errCount++
+		logger.Error(msg, args...)
+	}
 
 	// Build a slug set while validating individual team entries.
 	teamSlugs := make(map[string]bool, len(c.Teams))
 	for _, team := range c.Teams {
 		if team.Slug == "" {
-			errs = append(errs, fmt.Errorf("team %q has an empty slug", team.Name))
+			logErr("team has an empty slug", "name", team.Name)
 		}
 		if team.Name == "" {
-			errs = append(errs, fmt.Errorf("team with slug %q has an empty name", team.Slug))
+			logErr("team has an empty name", "slug", team.Slug)
 		}
 		if team.Slug != "" {
 			if teamSlugs[team.Slug] {
-				errs = append(errs, fmt.Errorf("duplicate team slug: %q", team.Slug))
+				logErr("duplicate team slug", "slug", team.Slug)
 			}
 			teamSlugs[team.Slug] = true
 		}
 
-		if team.Privacy != "" && !slices.Contains(validTeamPrivacyValues, team.Privacy) {
-			errs = append(errs, fmt.Errorf("team %q: invalid privacy value %q, must be one of %v", team.Slug, team.Privacy, validTeamPrivacyValues))
+		if team.Privacy != "" && !slices.Contains(gh.TeamPrivacyList, team.Privacy) {
+			logErr("invalid privacy value", "team", team.Slug, "value", team.Privacy, "allowed", gh.TeamPrivacyList)
 		}
 
-		if team.NotificationSetting != "" && !slices.Contains(validTeamNotificationSettings, team.NotificationSetting) {
-			errs = append(errs, fmt.Errorf("team %q: invalid notification_setting %q, must be one of %v", team.Slug, team.NotificationSetting, validTeamNotificationSettings))
+		if team.NotificationSetting != "" && !slices.Contains(gh.TeamNotificationSettingList, team.NotificationSetting) {
+			logErr("invalid notification_setting", "team", team.Slug, "value", team.NotificationSetting, "allowed", gh.TeamNotificationSettingList)
 		}
 
 		for _, repoPerm := range team.Repositories {
 			if repoPerm.Name == "" {
-				errs = append(errs, fmt.Errorf("team %q: repository entry has an empty name", team.Slug))
+				logErr("repository entry has an empty name", "team", team.Slug)
 			}
-			if repoPerm.Permission != "" && !slices.Contains(validTeamRepositoryPermissions, repoPerm.Permission) {
-				errs = append(errs, fmt.Errorf("team %q: invalid repository permission %q for %q, must be one of %v", team.Slug, repoPerm.Permission, repoPerm.Name, validTeamRepositoryPermissions))
+			if repoPerm.Permission != "" && !slices.Contains(gh.PermissionsList, repoPerm.Permission) {
+				logErr("invalid repository permission", "team", team.Slug, "repo", repoPerm.Name, "value", repoPerm.Permission, "allowed", gh.PermissionsList)
 			}
 		}
 	}
 
 	// Verify hierarchy entries and external group constraints.
-	errs = append(errs, verifyHierarchy(c, c.Hierarchy, teamSlugs, 0)...)
+	verifyHierarchy(c, c.Hierarchy, teamSlugs, 0, logErr)
 
-	return errs
+	if errCount > 0 {
+		return fmt.Errorf("configuration verification failed with %d issue(s)", errCount)
+	}
+	return nil
 }
 
 // verifyHierarchy recursively walks the hierarchy tree and validates each entry.
 // depth 0 means the top-level of the hierarchy (direct children of the root).
-// External groups are only valid for leaf teams at depth 0 (no child teams).
-func verifyHierarchy(c *OrganizationConfig, hierarchies []*TeamHierarchy, teamSlugs map[string]bool, depth int) []error {
-	var errs []error
+// External groups are only valid for root-level leaf teams (depth == 0, no child teams).
+func verifyHierarchy(c *OrganizationConfig, hierarchies []*TeamHierarchy, teamSlugs map[string]bool, depth int, logErr func(string, ...any)) {
 	for _, h := range hierarchies {
 		if !teamSlugs[h.Slug] {
-			errs = append(errs, fmt.Errorf("hierarchy references unknown team slug %q", h.Slug))
+			logErr("hierarchy references unknown team slug", "slug", h.Slug)
 			continue
 		}
 
@@ -76,23 +77,22 @@ func verifyHierarchy(c *OrganizationConfig, hierarchies []*TeamHierarchy, teamSl
 			continue
 		}
 
-		// A leaf team is one without child teams at the top hierarchy level.
-		// Only leaf teams can be connected to an external group.
+		// isTopLevelLeafTeam is true when the team has no child teams and is at the root
+		// hierarchy level (depth == 0). Only such teams can be connected to an external group.
 		isTopLevelLeafTeam := len(h.Child) == 0 && depth == 0
 
 		if teamConfig.Group != "" {
 			if !isTopLevelLeafTeam {
 				if depth == 0 {
-					errs = append(errs, fmt.Errorf("team %q: cannot set external group %q because the team has child teams", h.Slug, teamConfig.Group))
+					logErr("cannot set external group: team has child teams", "team", h.Slug, "group", teamConfig.Group)
 				} else {
-					errs = append(errs, fmt.Errorf("team %q: cannot set external group %q because the team has child or parent teams", h.Slug, teamConfig.Group))
+					logErr("cannot set external group: team has child or parent teams", "team", h.Slug, "group", teamConfig.Group)
 				}
 			} else if len(teamConfig.Members) > 0 || len(teamConfig.Maintainers) > 0 {
-				// This combination is allowed here; runtime will treat it as a warning-only condition.
+				logger.Warn("team has both external group and explicit members/maintainers; members/maintainers will be ignored", "team", h.Slug, "group", teamConfig.Group)
 			}
 		}
 
-		errs = append(errs, verifyHierarchy(c, h.Child, teamSlugs, depth+1)...)
+		verifyHierarchy(c, h.Child, teamSlugs, depth+1, logErr)
 	}
-	return errs
 }
