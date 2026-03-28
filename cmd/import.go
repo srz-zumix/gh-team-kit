@@ -85,8 +85,8 @@ func NewImportCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: do not actually apply team changes")
-	f.BoolVar(&verify, "verify", false, "Verify configuration before applying changes")
+	f.BoolVarP(&dryrun, "dryrun", "n", false, "Perform a dry run: verify configuration but do not apply team changes")
+	f.BoolVar(&verify, "verify", false, "Verify configuration before applying changes (implied by --dryrun)")
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
 	f.StringVarP(&host, "host", "H", "", "Specify the GitHub host")
 
