@@ -66,7 +66,8 @@ func (c *OrganizationConfig) Verify() error {
 	}
 
 	// Verify hierarchy entries and external group constraints.
-	verifyHierarchy(c, c.Hierarchy, teamSlugs, 0, logErr)
+	visited := make(map[string]bool)
+	verifyHierarchy(c, c.Hierarchy, teamSlugs, "", visited, logErr)
 
 	if errCount > 0 {
 		return fmt.Errorf("configuration verification failed with %d issue(s)", errCount)
@@ -75,9 +76,11 @@ func (c *OrganizationConfig) Verify() error {
 }
 
 // verifyHierarchy recursively walks the hierarchy tree and validates each entry.
-// depth 0 means the top-level of the hierarchy (direct children of the root).
+// expectedParent is the slug of the parent team expected by the hierarchy structure;
+// it is empty for top-level entries.
+// visited tracks all slugs seen so far across the entire traversal to detect duplicates/cycles.
 // External groups are only valid for root-level leaf teams (depth == 0, no child teams).
-func verifyHierarchy(c *OrganizationConfig, hierarchies []*TeamHierarchy, teamSlugs map[string]bool, depth int, logErr func(string, ...any)) {
+func verifyHierarchy(c *OrganizationConfig, hierarchies []*TeamHierarchy, teamSlugs map[string]bool, expectedParent string, visited map[string]bool, logErr func(string, ...any)) {
 	for _, h := range hierarchies {
 		if h == nil {
 			logErr("hierarchy contains a null entry")
@@ -87,6 +90,11 @@ func verifyHierarchy(c *OrganizationConfig, hierarchies []*TeamHierarchy, teamSl
 			logErr("hierarchy references unknown team slug", "slug", h.Slug)
 			continue
 		}
+		if visited[h.Slug] {
+			logErr("duplicate team slug in hierarchy", "slug", h.Slug)
+			continue
+		}
+		visited[h.Slug] = true
 
 		teamConfig := c.FindTeamConfigBySlug(h.Slug)
 		if teamConfig == nil {
@@ -94,21 +102,27 @@ func verifyHierarchy(c *OrganizationConfig, hierarchies []*TeamHierarchy, teamSl
 		}
 
 		// isTopLevelLeafTeam is true when the team has no child teams and is at the root
-		// hierarchy level (depth == 0). Only such teams can be connected to an external group.
-		isTopLevelLeafTeam := len(h.Child) == 0 && depth == 0
+		// hierarchy level (expectedParent == ""). Only such teams can be connected to an external group.
+		isTopLevelLeafTeam := len(h.Child) == 0 && expectedParent == ""
 
-		// A top-level hierarchy entry (depth == 0) must not have parent_team_slug set,
-		// and a nested entry (depth > 0) must have parent_team_slug set.
-		hasParent := teamConfig.ParentTeam != nil && *teamConfig.ParentTeam != ""
-		if depth == 0 && hasParent {
-			logErr("top-level hierarchy team must not have parent_team_slug", "team", h.Slug, "parent", *teamConfig.ParentTeam)
-		} else if depth > 0 && !hasParent {
-			logErr("nested hierarchy team must have parent_team_slug", "team", h.Slug)
+		// Validate that parent_team_slug matches the hierarchy structure.
+		actualParent := ""
+		if teamConfig.ParentTeam != nil {
+			actualParent = *teamConfig.ParentTeam
+		}
+		if actualParent != expectedParent {
+			if expectedParent == "" {
+				logErr("top-level hierarchy team must not have parent_team_slug", "team", h.Slug, "parent", actualParent)
+			} else if actualParent == "" {
+				logErr("nested hierarchy team must have parent_team_slug", "team", h.Slug, "expected_parent", expectedParent)
+			} else {
+				logErr("parent_team_slug does not match hierarchy", "team", h.Slug, "expected_parent", expectedParent, "actual_parent", actualParent)
+			}
 		}
 
 		if teamConfig.Group != "" {
 			if !isTopLevelLeafTeam {
-				if depth == 0 {
+				if expectedParent == "" {
 					logErr("cannot set external group: team has child teams", "team", h.Slug, "group", teamConfig.Group)
 				} else {
 					logErr("cannot set external group: team has child or parent teams", "team", h.Slug, "group", teamConfig.Group)
@@ -118,6 +132,6 @@ func verifyHierarchy(c *OrganizationConfig, hierarchies []*TeamHierarchy, teamSl
 			}
 		}
 
-		verifyHierarchy(c, h.Child, teamSlugs, depth+1, logErr)
+		verifyHierarchy(c, h.Child, teamSlugs, h.Slug, visited, logErr)
 	}
 }
