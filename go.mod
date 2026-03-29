@@ -4,7 +4,7 @@ go 1.26.1
 
 require (
 	github.com/cli/go-gh/v2 v2.13.0
-	github.com/srz-zumix/go-gh-extension v0.4.6
+	github.com/srz-zumix/go-gh-extension v0.4.8
 )
 
 require (
