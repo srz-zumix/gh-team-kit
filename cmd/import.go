@@ -20,6 +20,7 @@ type ImportOptions struct {
 func NewImportCmd() *cobra.Command {
 	opts := &ImportOptions{}
 	var dryrun bool
+	var verify bool
 	var host string
 	var owner string
 	var format string
@@ -53,6 +54,11 @@ func NewImportCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("error importing teams: %w", err)
 			}
+			if dryrun || verify {
+				if err := organizationConfig.Verify(); err != nil {
+					return fmt.Errorf("error verifying imported organization config: %w", err)
+				}
+			}
 			if dryrun {
 				logger.Info("Dry run completed. No changes were made.")
 			} else {
@@ -79,7 +85,8 @@ func NewImportCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: do not actually apply team changes")
+	f.BoolVarP(&dryrun, "dryrun", "n", false, "Perform a dry run: verify configuration but do not apply team changes")
+	f.BoolVar(&verify, "verify", false, "Verify configuration before applying changes (implied by --dryrun)")
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
 	f.StringVarP(&host, "host", "H", "", "Specify the GitHub host")
 
