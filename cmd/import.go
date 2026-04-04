@@ -11,6 +11,7 @@ import (
 	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
+	"github.com/srz-zumix/go-gh-extension/pkg/settings"
 )
 
 type ImportOptions struct {
@@ -25,11 +26,14 @@ func NewImportCmd() *cobra.Command {
 	var owner string
 	var format string
 
+	var mapFile string
+
 	var cmd = &cobra.Command{
 		Use:   "import <input>",
 		Short: "Import team information",
-		Long:  `Read and apply team information to the specified organization.`,
-		Args:  cobra.ExactArgs(1),
+		Long: `Read and apply team information to the specified organization.
+When --usermap is specified, source logins are automatically converted to target logins using the mapping file (as produced by 'user map').`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			input := args[0]
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
@@ -54,6 +58,17 @@ func NewImportCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("error importing teams: %w", err)
 			}
+			// Load mapping file if specified
+			if mapFile != "" {
+				compiledMappings, err := settings.NewCompiledMappingsFromFile(mapFile)
+				if err != nil {
+					return fmt.Errorf("error loading mapping file '%s': %w", mapFile, err)
+				}
+				if err := config.ApplyUserMappingFn(organizationConfig, compiledMappings.ResolveSrc); err != nil {
+					return fmt.Errorf("error applying user mapping: %w", err)
+				}
+			}
+
 			if dryrun || verify {
 				if err := organizationConfig.Verify(); err != nil {
 					return fmt.Errorf("error verifying imported organization config: %w", err)
@@ -89,6 +104,7 @@ func NewImportCmd() *cobra.Command {
 	f.BoolVar(&verify, "verify", false, "Verify configuration before applying changes (implied by --dryrun)")
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
 	f.StringVarP(&host, "host", "H", "", "Specify the GitHub host")
+	f.StringVar(&mapFile, "usermap", "", "User mapping file (as produced by 'user map') for login conversion during import")
 
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 	cmdflags.SetupFormatFlagWithNonJSONFormats(cmd, &opts.Exporter, &format, "", []string{"yaml"})
