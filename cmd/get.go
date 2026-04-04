@@ -21,11 +21,11 @@ func NewGetCmd() *cobra.Command {
 	var child bool
 	var recursive bool
 	var cmd = &cobra.Command{
-		Use:   "get <team-slug...>",
-		Short: "Gets a team using the team's slug",
-		Long:  `Retrieve and display a team using the team's slug.`,
+		Use:     "get <team-slug...>",
+		Short:   "Gets a team using the team's slug",
+		Long:    `Retrieve and display a team using the team's slug.`,
 		Aliases: []string{"view"},
-		Args:  cobra.MinimumNArgs(1),
+		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repository, err := parser.Repository(parser.RepositoryOwner(owner))
 			if err != nil {

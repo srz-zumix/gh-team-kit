@@ -30,7 +30,7 @@ The following commands are available in `gh-team-kit`. Each command is designed 
 - **Organization-Role Management**: Manage roles within the organization, including listing available roles.
 - **Code Review Management**: Get and set code review assignment settings for teams.
 - **IDP Management**: Manage IDP groups (SAML team sync) and external groups (Enterprise Managed Users).
-- **Mannequin Management**: List, invite, and migrate mannequins (placeholder accounts for unclaimed users).
+- **Mannequin Management**: List and reattribute mannequins (placeholder accounts for unclaimed users), individually or in bulk via a user mapping file.
 - **Permission Management**: Check and synchronize permissions for teams and users across repositories.
 - **Comparison Tools**: Compare teams, repositories, and permissions to identify differences.
 
@@ -314,18 +314,48 @@ Check the role of a specified user in the organization.
 #### Import users into the organization
 
 ```sh
-gh team-kit user import <input> [--owner <org>] [--role <member|admin>] [--dryrun]
+gh team-kit user import <input> [--owner <org>] [--role <member|admin>] [--usermap <file>] [--dryrun]
 ```
 
 Read a JSON list of users (as produced by `user list --format json`) and add each user to the organization.
 Each entry must have a `login` field. The role is taken from the `role_name` field if present; otherwise `--role` is used as the default (`member`).
+When `--usermap` is specified, source logins are resolved using the mapping file (as produced by `user map`). The `src` field supports regular expressions and `dst` may contain `$N` or `${name}` capture-group references.
 Specify `-` as `<input>` to read from stdin.
 
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--owner <org>` | (current repo owner) | Organization name |
 | `--role <member\|admin>` | `member` | Default role when not specified in input |
+| `--usermap <file>` | — | User mapping file for login conversion during import |
 | `--dryrun`, `-n` | `false` | Dry run: show count without applying changes |
+
+#### Create a user mapping file between source and target organizations
+
+```sh
+gh team-kit user map <target> [--owner <[HOST/]OWNER>] [--output <file>] [--all] [--format <json|yaml>]
+```
+
+Generate a YAML mapping file that correlates users by their public email between a source organization (`--owner`) and a target organization (positional argument).
+Both `--owner` and `<target>` accept the `[HOST/]OWNER` format to specify a host.
+This mapping can be used with `user import --usermap` or `import --usermap` to automatically convert source logins to target logins.
+The `src` field in the output supports regular expressions and `dst` may contain `$N` or `${name}` capture-group references when hand-edited.
+`--output` and `--format` are mutually exclusive.
+
+Mapping file format:
+
+```yaml
+users:
+  - src: user1
+    dst: target_user1
+    email: user1@example.com
+```
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--owner <[HOST/]OWNER>` | (current repo owner) | Source organization |
+| `--output <file>`, `-o` | — | Write mapping YAML to file (mutually exclusive with `--format`) |
+| `--all`, `-a` | `false` | Include source users with no email match (dst will be empty) |
+| `--format <json\|yaml>` | — | Output format: `json` or `yaml` (mutually exclusive with `--output`) |
 
 #### List all users in the organization
 
@@ -567,14 +597,6 @@ Remove a specified user from the specified role in the organization.
 
 ### Mannequin Management
 
-#### Invite a user to claim a mannequin
-
-```sh
-gh team-kit mannequin invite <mannequin-login> <target-user-login> [--owner <org>] [--skip-invitation]
-```
-
-Send an attribution invitation to a user to claim the specified mannequin. The target user must be a member of the organization. Use `--skip-invitation` to skip the invitation step and directly reclaim the mannequin (requires the feature to be enabled by GitHub Support).
-
 #### List mannequins in the organization
 
 ```sh
@@ -583,13 +605,56 @@ gh team-kit mannequin list [owner] [--name-only] [--format json] [--jq <expressi
 
 List all mannequins (placeholder accounts for unclaimed users) in the specified organization. Use `--name-only` to output only login names. Use `--format json` with `--jq` or `--template` to customize JSON output.
 
-#### Migrate a user by email from source host to target host
+#### Bulk-migrate mannequins using a user mapping file
 
 ```sh
-gh team-kit mannequin migrate <email> --src-host <source-host> [--repo [HOST/]OWNER/REPO] [--owner <org>] [--skip-invitation]
+gh team-kit mannequin migrate --usermap <file> [--owner <[HOST/]OWNER>] [--skip-invitation] [--force] [--dryrun]
 ```
 
-Find the mannequin (by email on source host) and the target user (by email on target host), then send an attribution invitation to claim the mannequin. `--src-host` is required and specifies the GitHub instance where the mannequin's login originated. Use `--skip-invitation` to skip the invitation step (requires the feature to be enabled by GitHub Support).
+List all mannequins in the organization and reattribute each one to its mapped target user.
+The mapping file (`--usermap`) must be a YAML file as produced by `user map`. Each mannequin is matched first by src login (supports regular expressions), then by email.
+Mannequins already claimed are skipped unless `--force` is specified. Entries whose dst is empty are skipped.
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--usermap <file>` | — | User mapping file (required) |
+| `--owner <[HOST/]OWNER>` | (current repo owner) | Target organization |
+| `--skip-invitation` | `false` | Skip invitation and directly reclaim (requires GitHub Support enablement) |
+| `--force` | `false` | Process mannequins that are already claimed |
+| `--dryrun`, `-n` | `false` | Show what would be done without making changes |
+
+#### Reattribute a mannequin by email
+
+```sh
+gh team-kit mannequin reattribute-by-email <email> [--owner <[HOST/]OWNER>] [--repo [HOST/]OWNER/REPO] [--usermap <file>] [--skip-invitation] [--force]
+```
+
+Find the mannequin and target user by email, then send an attribution invitation.
+Without `--usermap`, both are resolved by searching their email within the target organization.
+With `--usermap`, the mannequin login (`src`) and target user login (`dst`) are read directly from the mapping file using the email as key.
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--owner <[HOST/]OWNER>` | (current repo owner) | Target organization |
+| `--repo [HOST/]OWNER/REPO`, `-R` | — | Target repository (alternative to `--owner`) |
+| `--usermap <file>` | — | Resolve logins from mapping file instead of searching by email |
+| `--skip-invitation` | `false` | Skip invitation and directly reclaim (requires GitHub Support enablement) |
+| `--force` | `false` | Proceed even if mannequin is already claimed |
+
+#### Reattribute a mannequin to a user
+
+```sh
+gh team-kit mannequin reattribute <mannequin-login> <target-user-login> [--owner <org>] [--skip-invitation] [--force]
+```
+
+Send an attribution invitation to a user to claim the specified mannequin. The target user must be a member of the organization.
+Use `--skip-invitation` to skip the invitation step and directly reclaim the mannequin (requires the feature to be enabled by GitHub Support).
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--owner <org>` | (current repo owner) | Organization name |
+| `--skip-invitation` | `false` | Skip invitation and directly reclaim (requires GitHub Support enablement) |
+| `--force` | `false` | Proceed even if mannequin is already claimed |
 
 ### IDP Management
 
@@ -682,7 +747,7 @@ Retrieve and display team information from the specified organization. Exports t
 #### Import team information
 
 ```sh
-gh team-kit import <input> [--dryrun] [--owner <org>] [--host <host>] [--format <json|yaml>]
+gh team-kit import <input> [--dryrun] [--verify] [--owner <org>] [--host <host>] [--usermap <file>] [--format <json|yaml>]
 ```
 
-Read and apply team information to the specified organization from a file or stdin. Use `--dryrun` to preview changes without applying them. Specify `-` as input to read from stdin. Accepts YAML or JSON format. If the input contains a `group` field for a team, the corresponding external group is connected automatically (EMU only; only applicable to leaf teams without parent/child teams). When the organization supports external groups and a team has no `group` specified, any existing external group connection is removed. If a team has an `org_roles` field, the listed custom organization roles are assigned to that team on import. See [docs/migrate.md](docs/migrate.md) for migration examples.
+Read and apply team information to the specified organization from a file or stdin. Use `--dryrun` to preview changes without applying them. Specify `-` as input to read from stdin. Accepts YAML or JSON format. When `--usermap` is specified, source logins are resolved using the mapping file (as produced by `user map`). The `src` field supports regular expressions and `dst` may contain `$N` or `${name}` capture-group references. If the input contains a `group` field for a team, the corresponding external group is connected automatically (EMU only; only applicable to leaf teams without parent/child teams). When the organization supports external groups and a team has no `group` specified, any existing external group connection is removed. If a team has an `org_roles` field, the listed custom organization roles are assigned to that team on import. See [docs/migrate.md](docs/migrate.md) for migration examples.

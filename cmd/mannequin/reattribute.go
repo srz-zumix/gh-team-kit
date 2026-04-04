@@ -10,15 +10,15 @@ import (
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 )
 
-// NewInviteCmd creates a new cobra.Command for inviting a user to claim a mannequin.
-func NewInviteCmd() *cobra.Command {
+// NewReattributeCmd creates a new cobra.Command for reattributing a mannequin to a user.
+func NewReattributeCmd() *cobra.Command {
 	var owner string
 	var skipInvitation bool
 	var force bool
 
 	cmd := &cobra.Command{
-		Use:   "invite <mannequin-login> <target-user-login>",
-		Short: "Invite a user to claim a mannequin",
+		Use:   "reattribute <mannequin-login> <target-user-login>",
+		Short: "Reattribute a mannequin to a user",
 		Long: `Send an attribution invitation to a user to claim the specified mannequin.
 The target user must be a member of the organization.
 Use --skip-invitation to skip the invitation step and directly reclaim the mannequin (requires the feature to be enabled by GitHub Support).`,

@@ -3,136 +3,144 @@ package mannequin
 import (
 	"fmt"
 
-	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
+	"github.com/srz-zumix/go-gh-extension/pkg/settings"
 )
 
-// NewMigrateCmd creates a new cobra.Command for migrating a user by email.
-// It looks up the user by email on the source host to find the mannequin login,
-// then looks up the user by email on the target host to find the target user login,
-// and sends an attribution invitation.
+// NewMigrateCmd creates a new cobra.Command for bulk-migrating mannequins using a user mapping file.
+// It lists all mannequins in the organization and reattributes each one whose login or email
+// is found in the mapping file.
 func NewMigrateCmd() *cobra.Command {
 	var owner string
-	var repo string
-	var srcHost string
+	var mapFile string
 	var skipInvitation bool
 	var force bool
+	var dryrun bool
 
 	cmd := &cobra.Command{
-		Use:   "migrate <email>",
-		Short: "Migrate a user by email from source host to target host",
-		Long: `Find the mannequin (by email on source host) and the target user (by email on target host),
-then send an attribution invitation to claim the mannequin.
+		Use:   "migrate",
+		Short: "Bulk-migrate mannequins using a user mapping file",
+		Long: `List all mannequins in the organization and reattribute each one to its mapped target user.
 
-The source host (--src-host) is the GitHub instance where the mannequin's login originated.
-The target repository can be specified with --repo/-R; otherwise the current repository is used.
+The mapping file (--usermap) must be a YAML file as produced by 'user map'.
+Each mannequin is matched to a mapping entry first by src login, then by email.
+Mannequins already claimed are skipped unless --force is specified.
+Entries whose dst login is empty are skipped.
 
 Example:
-  gh team-kit mannequin migrate user@example.com --src-host github.example.com
-  gh team-kit mannequin migrate user@example.com --src-host github.example.com --repo myorg/myrepo`,
-		Args: cobra.ExactArgs(1),
+  gh team-kit mannequin migrate --owner myorg --usermap user-map.yaml
+  gh team-kit mannequin migrate --owner myorg --usermap user-map.yaml --skip-invitation --dryrun`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			email := args[0]
-
-			// Parse destination repository
-			dstRepository, err := parser.Repository(
-				parser.RepositoryInput(repo),
-				parser.RepositoryOwner(owner),
-			)
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
 
-			// Build source repository (host only)
-			srcRepository := repository.Repository{Host: srcHost}
-
-			// Create clients: srcClient for source host, dstClient for target host
-			srcClient, dstClient, err := gh.NewGitHubClientWith2Repos(srcRepository, dstRepository)
+			client, err := gh.NewGitHubClientWithRepo(repository)
 			if err != nil {
-				return fmt.Errorf("error creating GitHub clients: %w", err)
+				return fmt.Errorf("error creating GitHub client: %w", err)
 			}
 
 			ctx := cmd.Context()
-			// Find the user on the source host by email to get the mannequin login
-			srcUser, err := gh.FindUserByEmail(ctx, srcClient, email)
-			if err != nil {
-				return fmt.Errorf("failed to search user by email on source host '%s': %w", srcHost, err)
-			}
-			if srcUser == nil {
-				return fmt.Errorf("no user found with email '%s' on source host '%s'", email, srcHost)
-			}
-			mannequinLogin := srcUser.GetLogin()
 
-			// Find the user on the target host by email to get the target user login
-			dstUser, err := gh.FindUserByEmail(ctx, dstClient, email)
+			// Load and compile usermap
+			compiledMappings, err := settings.NewCompiledMappingsFromFile(mapFile)
 			if err != nil {
-				return fmt.Errorf("failed to search user by email on target host: %w", err)
+				return fmt.Errorf("error loading mapping file: %w", err)
 			}
-			if dstUser == nil {
-				return fmt.Errorf("no user found with email '%s' on target host", email)
-			}
-			targetUserLogin := dstUser.GetLogin()
 
-			// Get organization node ID from target host
-			org, err := gh.GetOrg(ctx, dstClient, dstRepository)
+			// List all mannequins in the organization
+			mannequins, err := gh.ListMannequins(ctx, client, repository, nil)
 			if err != nil {
-				return fmt.Errorf("failed to get organization '%s': %w", dstRepository.Owner, err)
+				return fmt.Errorf("failed to list mannequins: %w", err)
+			}
+
+			// Get organization node ID (needed for attribution APIs)
+			org, err := gh.GetOrg(ctx, client, repository)
+			if err != nil {
+				return fmt.Errorf("failed to get organization '%s': %w", repository.Owner, err)
 			}
 			if org.NodeID == nil {
-				return fmt.Errorf("failed to get node ID for organization '%s'", dstRepository.Owner)
+				return fmt.Errorf("failed to get node ID for organization '%s'", repository.Owner)
 			}
 			orgNodeID := *org.NodeID
 
-			// Find mannequin by login in the target organization
-			mannequin, err := gh.FindMannequinByLogin(ctx, dstClient, dstRepository, mannequinLogin)
-			if err != nil {
-				return fmt.Errorf("failed to find mannequin: %w", err)
-			}
-			if mannequin == nil {
-				return fmt.Errorf("mannequin '%s' not found in organization '%s'", mannequinLogin, dstRepository.Owner)
-			}
-			mannequinNodeID := mannequin.NodeID()
+			for i := range mannequins {
+				m := &mannequins[i]
+				mannequinLogin := string(m.Login)
 
-			// Check if the mannequin is already claimed
-			if !force && string(mannequin.Claimant.Login) != "" {
-				return fmt.Errorf("mannequin '%s' is already claimed by '%s'; use --force to override", mannequinLogin, mannequin.Claimant.Login)
-			}
-
-			// Get target user node ID
-			targetUser, err := gh.FindUser(ctx, dstClient, targetUserLogin)
-			if err != nil {
-				return fmt.Errorf("failed to find user '%s' on target host: %w", targetUserLogin, err)
-			}
-			if targetUser.NodeID == nil {
-				return fmt.Errorf("failed to get node ID for user '%s'", targetUserLogin)
-			}
-			targetUserNodeID := targetUser.GetNodeID()
-
-			if skipInvitation {
-				if err := gh.ReattributeMannequinToUser(ctx, dstClient, dstRepository, orgNodeID, mannequinNodeID, targetUserNodeID); err != nil {
-					return fmt.Errorf("failed to reattribute mannequin to user (mannequin-node-id=%s): %w", mannequinNodeID, err)
+				// Skip already-claimed mannequins unless --force
+				if !force && string(m.Claimant.Login) != "" {
+					logger.Info("Skipping already claimed mannequin", "mannequin", mannequinLogin, "claimant", string(m.Claimant.Login))
+					continue
 				}
-				logger.Info("Mannequin reattributed successfully.", "mannequin", mannequinLogin, "mannequin-node-id", mannequinNodeID, "target-user", targetUserLogin)
-			} else {
-				if err := gh.CreateAttributionInvitation(ctx, dstClient, dstRepository, orgNodeID, mannequinNodeID, targetUserNodeID); err != nil {
-					return fmt.Errorf("failed to invite user to claim mannequin (mannequin-node-id=%s): %w", mannequinNodeID, err)
+
+				// Find matching mapping entry: prefer src-login match (with regex), fallback to email
+				var targetLogin string
+				var found bool
+				if dst, ok := compiledMappings.ResolveSrc(mannequinLogin); ok {
+					targetLogin = dst
+					found = true
+				} else if m.Email != nil && string(*m.Email) != "" {
+					if entry, ok := compiledMappings.ResolveEmail(string(*m.Email)); ok {
+						targetLogin = entry.Dst
+						found = true
+					}
 				}
-				logger.Info("Attribution invitation sent.", "mannequin", mannequinLogin, "mannequin-node-id", mannequinNodeID, "target-user", targetUserLogin)
+
+				if !found {
+					logger.Warn("No mapping found for mannequin, skipping", "mannequin", mannequinLogin)
+					continue
+				}
+				if targetLogin == "" {
+					logger.Warn("Mapping dst is empty, skipping", "mannequin", mannequinLogin)
+					continue
+				}
+
+				if dryrun {
+					logger.Info("Would reattribute mannequin", "mannequin", mannequinLogin, "target-user", targetLogin)
+					continue
+				}
+
+				mannequinNodeID := m.NodeID()
+
+				// Get target user node ID
+				targetUser, err := gh.FindUser(ctx, client, targetLogin)
+				if err != nil {
+					return fmt.Errorf("failed to find user '%s': %w", targetLogin, err)
+				}
+				if targetUser.NodeID == nil {
+					return fmt.Errorf("failed to get node ID for user '%s'", targetLogin)
+				}
+				targetUserNodeID := targetUser.GetNodeID()
+
+				if skipInvitation {
+					if err := gh.ReattributeMannequinToUser(ctx, client, repository, orgNodeID, mannequinNodeID, targetUserNodeID); err != nil {
+						return fmt.Errorf("failed to reattribute mannequin '%s': %w", mannequinLogin, err)
+					}
+					logger.Info("Mannequin reattributed successfully.", "mannequin", mannequinLogin, "target-user", targetLogin)
+				} else {
+					if err := gh.CreateAttributionInvitation(ctx, client, repository, orgNodeID, mannequinNodeID, targetUserNodeID); err != nil {
+						return fmt.Errorf("failed to invite user to claim mannequin '%s': %w", mannequinLogin, err)
+					}
+					logger.Info("Attribution invitation sent.", "mannequin", mannequinLogin, "target-user", targetLogin)
+				}
 			}
 			return nil
 		},
 	}
 
 	f := cmd.Flags()
-	f.StringVarP(&repo, "repo", "R", "", "Target repository in the format '[HOST/]OWNER/REPO'")
-	f.StringVar(&owner, "owner", "", "Organization name (uses current repository's organization if omitted)")
-	f.StringVar(&srcHost, "src-host", "", "Source GitHub host (e.g. github.example.com) where mannequins originated")
-	f.BoolVar(&skipInvitation, "skip-invitation", false, "Skip the invitation step and directly reclaim the mannequin (requires the feature to be enabled by GitHub Support)")
-	f.BoolVar(&force, "force", false, "Skip the claimant check and proceed even if the mannequin is already claimed")
-	if err := cmd.MarkFlagRequired("src-host"); err != nil {
+	f.StringVar(&owner, "owner", "", "Target organization ([HOST/]OWNER; uses current repository's organization if omitted)")
+	f.StringVar(&mapFile, "usermap", "", "User mapping file (as produced by 'user map') for login resolution")
+	f.BoolVar(&skipInvitation, "skip-invitation", false, "Skip the invitation step and directly reclaim mannequins (requires the feature to be enabled by GitHub Support)")
+	f.BoolVar(&force, "force", false, "Process even mannequins that are already claimed")
+	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: show what would be done without making changes")
+	if err := cmd.MarkFlagRequired("usermap"); err != nil {
 		panic(err)
 	}
 
