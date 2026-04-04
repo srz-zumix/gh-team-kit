@@ -332,7 +332,7 @@ Specify `-` as `<input>` to read from stdin.
 #### Create a user mapping file between source and target organizations
 
 ```sh
-gh team-kit user map <target> --owner <[HOST/]OWNER> [--output <file>] [--all] [--format <json|yaml>]
+gh team-kit user map <target> [--owner <[HOST/]OWNER>] [--output <file>] [--all] [--format <json|yaml>]
 ```
 
 Generate a YAML mapping file that correlates users by their public email between a source organization (`--owner`) and a target organization (positional argument).
