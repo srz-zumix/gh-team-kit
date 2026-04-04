@@ -87,8 +87,8 @@ Example:
 
 				targetLogin, exists := emailToTargetLogin[email]
 				if !exists {
-					if !all || email == "" {
-						logger.Warn("No matching target user found for email", "email", email, "src", *srcUser.Login)
+					logger.Warn("No matching target user found for email", "email", email, "src", *srcUser.Login)
+					if !all {
 						continue
 					}
 				}
