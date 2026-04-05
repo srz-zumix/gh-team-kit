@@ -353,7 +353,7 @@ users:
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--owner <[HOST/]OWNER>` | (current repo owner) | Source organization |
-| `--output <file>`, `-o` | — | Write mapping YAML to file (mutually exclusive with `--format`) |
+| `--output <file>`, `-o` | — | Write mapping YAML to file; if omitted, output goes to stdout using `--format` (default: table) |
 | `--all`, `-a` | `false` | Include source users with no email match (dst will be empty) |
 | `--emu` | `false` | Compact matched pairs sharing the same base login into a single regex entry. Supports: both logins have a slug (`alice_corp`→`alice_new` ⇒ `(.+)_corp`→`$1_new`), src-only slug (`alice_corp`→`alice` ⇒ `(.+)_corp`→`$1`), dst-only slug (`alice`→`alice_new` ⇒ `(.+)`→`$1_new`). Pairs whose base names differ or have an empty dst are kept as exact entries. |
 | `--no-suspended` | `false` | Exclude suspended users from source and target before matching |

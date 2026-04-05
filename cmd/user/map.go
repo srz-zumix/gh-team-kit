@@ -141,7 +141,7 @@ Example:
 
 	f := cmd.Flags()
 	f.StringVar(&owner, "owner", "", "Source organization ([HOST/]OWNER; uses current repository's organization if omitted)")
-	f.StringVarP(&output, "output", "o", "", "Output file path for the mapping YAML (stdout if omitted)")
+	f.StringVarP(&output, "output", "o", "", "Write mapping YAML to this file; if omitted, output goes to stdout using --format (default: table)")
 	f.BoolVarP(&all, "all", "a", false, "Include source users that could not be matched by email (dst will be empty)")
 	f.BoolVar(&quiet, "quiet", false, "Suppress warnings for source users with no matching target user")
 	f.BoolVar(&emu, "emu", false, "Compact matched pairs sharing the same base login into regex entries (e.g. (.+)_srcslug → $1_dstslug)")
