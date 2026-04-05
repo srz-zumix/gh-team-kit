@@ -25,6 +25,9 @@ func NewMapCmd() *cobra.Command {
 	var output string
 	var format string
 	var all bool
+	var quiet bool
+	var emu bool
+	var noSuspended bool
 
 	cmd := &cobra.Command{
 		Use:   "map <target>",
@@ -65,10 +68,24 @@ Example:
 			if err != nil {
 				return fmt.Errorf("failed to list members on source '%s': %w", parser.GetRepositoryFullNameWithHost(srcRepository), err)
 			}
+			srcUsers, err = gh.UpdateUsers(ctx, srcClient, srcUsers)
+			if err != nil {
+				return fmt.Errorf("failed to fetch user details on source '%s': %w", parser.GetRepositoryFullNameWithHost(srcRepository), err)
+			}
+			if noSuspended {
+				srcUsers = gh.ExcludeSuspendedUsers(srcUsers)
+			}
 
 			dstUsers, err := gh.ListOrgMembers(ctx, dstClient, targetRepository, []string{}, false)
 			if err != nil {
 				return fmt.Errorf("failed to list members on target '%s': %w", parser.GetRepositoryFullNameWithHost(targetRepository), err)
+			}
+			dstUsers, err = gh.UpdateUsers(ctx, dstClient, dstUsers)
+			if err != nil {
+				return fmt.Errorf("failed to fetch user details on target '%s': %w", parser.GetRepositoryFullNameWithHost(targetRepository), err)
+			}
+			if noSuspended {
+				dstUsers = gh.ExcludeSuspendedUsers(dstUsers)
 			}
 
 			emailToTargetLogin := make(map[string]string)
@@ -87,7 +104,9 @@ Example:
 
 				targetLogin, exists := emailToTargetLogin[email]
 				if !exists {
-					logger.Warn("No matching target user found for email", "email", email, "src", *srcUser.Login)
+					if !quiet {
+						logger.Warn("No matching target user found for email", "email", email, "src", *srcUser.Login)
+					}
 					if !all {
 						continue
 					}
@@ -98,6 +117,10 @@ Example:
 					Dst:   targetLogin,
 					Email: email,
 				})
+			}
+
+			if emu {
+				mappings = settings.CompactEMUMappings(mappings)
 			}
 
 			if output != "" {
@@ -120,6 +143,9 @@ Example:
 	f.StringVar(&owner, "owner", "", "Source organization ([HOST/]OWNER; uses current repository's organization if omitted)")
 	f.StringVarP(&output, "output", "o", "", "Output file path for the mapping YAML (stdout if omitted)")
 	f.BoolVarP(&all, "all", "a", false, "Include source users that could not be matched by email (dst will be empty)")
+	f.BoolVar(&quiet, "quiet", false, "Suppress warnings for source users with no matching target user")
+	f.BoolVar(&emu, "emu", false, "Compact matched pairs sharing the same base login into regex entries (e.g. (.+)_srcslug → $1_dstslug)")
+	f.BoolVar(&noSuspended, "no-suspended", false, "Exclude suspended users from source and target before matching")
 
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 	cmdflags.SetupFormatFlagWithNonJSONFormats(cmd, &opts.Exporter, &format, "", []string{"yaml"})

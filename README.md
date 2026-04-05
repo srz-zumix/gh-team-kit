@@ -355,6 +355,8 @@ users:
 | `--owner <[HOST/]OWNER>` | (current repo owner) | Source organization |
 | `--output <file>`, `-o` | — | Write mapping YAML to file (mutually exclusive with `--format`) |
 | `--all`, `-a` | `false` | Include source users with no email match (dst will be empty) |
+| `--emu` | `false` | Compact matched pairs sharing the same base login into a single regex entry. Supports: both logins have a slug (`alice_corp`→`alice_new` ⇒ `(.+)_corp`→`$1_new`), src-only slug (`alice_corp`→`alice` ⇒ `(.+)_corp`→`$1`), dst-only slug (`alice`→`alice_new` ⇒ `(.+)`→`$1_new`). Pairs whose base names differ or have an empty dst are kept as exact entries. |
+| `--quiet` | `false` | Suppress warnings for source users with no matching target user |
 | `--format <json\|yaml>` | — | Output format: `json` or `yaml` (mutually exclusive with `--output`) |
 
 #### List all users in the organization
