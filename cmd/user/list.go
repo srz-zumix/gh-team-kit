@@ -20,10 +20,11 @@ func NewListCmd() *cobra.Command {
 	var details bool
 	var nameOnly bool
 	var roles []string
+	var fields []string
 	var suspended cmdflags.MutuallyExclusiveBoolFlags
 
 	cmd := &cobra.Command{
-		Use:     "list [owner]",
+		Use:     "list [[HOST/]OWNER]",
 		Short:   "List organization members",
 		Long:    `List all members of the specified organization with optional role filtering`,
 		Aliases: []string{"ls"},
@@ -38,7 +39,7 @@ func NewListCmd() *cobra.Command {
 				details = true
 			}
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -72,6 +73,9 @@ func NewListCmd() *cobra.Command {
 			if nameOnly {
 				return renderer.RenderNames(members)
 			}
+			if len(fields) > 0 {
+				return renderer.RenderUsers(members, fields)
+			}
 			if details {
 				return renderer.RenderUserDetails(members)
 			} else {
@@ -85,6 +89,7 @@ func NewListCmd() *cobra.Command {
 	f.BoolVar(&nameOnly, "name-only", false, "Output only member names")
 	suspended.AddNoPrefixFlag(cmd, "suspended", "Output only suspended members", "Exclude suspended members")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.OrgMembershipList, "List of roles to filter members")
+	cmdutil.StringSliceEnumFlag(cmd, &fields, "field", "", nil, render.UserFieldList, "Fields to display")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

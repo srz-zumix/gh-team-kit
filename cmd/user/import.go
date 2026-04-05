@@ -10,6 +10,7 @@ import (
 	"github.com/srz-zumix/go-gh-extension/pkg/ioutil"
 	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
+	"github.com/srz-zumix/go-gh-extension/pkg/settings"
 )
 
 // NewImportCmd creates a new cobra.Command for importing users into an organization.
@@ -17,12 +18,14 @@ func NewImportCmd() *cobra.Command {
 	var owner string
 	var dryrun bool
 	var defaultRole string
+	var mapFile string
 
 	cmd := &cobra.Command{
 		Use:   "import <input>",
 		Short: "Import users into the organization",
 		Long: `Read a JSON list of users (as produced by 'user list --format json') and add each user to the organization.
 Entries without a "login" field are skipped. The role is taken from the "role_name" field if present; otherwise --role is used as default.
+When --usermap is specified, source logins are automatically converted to target logins using the mapping file (as produced by 'user map').
 Specify '-' as input to read from stdin.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -36,6 +39,15 @@ Specify '-' as input to read from stdin.`,
 			users, err := ioutil.DecodeJSONFile[[]*gh.GitHubUser](input)
 			if err != nil {
 				return fmt.Errorf("error reading input: %w", err)
+			}
+
+			// Load mapping file if specified
+			var compiledMappings *settings.CompiledMappings
+			if mapFile != "" {
+				compiledMappings, err = settings.NewCompiledMappingsFromFile(mapFile)
+				if err != nil {
+					return fmt.Errorf("error loading mapping file '%s': %w", mapFile, err)
+				}
 			}
 
 			if dryrun {
@@ -54,15 +66,24 @@ Specify '-' as input to read from stdin.`,
 				if u.Login == nil {
 					continue
 				}
+
+				// Apply mapping if available
+				login := *u.Login
+				if compiledMappings != nil {
+					if targetLogin, ok := compiledMappings.ResolveSrc(login); ok {
+						login = targetLogin
+					}
+				}
+
 				role := u.GetRoleName()
 				if role == "" {
 					role = defaultRole
 				}
-				_, err := gh.AddOrUpdateOrgMember(ctx, client, repository, *u.Login, role)
+				_, err := gh.AddOrUpdateOrgMember(ctx, client, repository, login, role)
 				if err != nil {
-					errs = append(errs, fmt.Errorf("failed to add user '%s': %w", *u.Login, err))
+					errs = append(errs, fmt.Errorf("failed to add user '%s': %w", login, err))
 				} else {
-					logger.Info("User added to organization.", "username", *u.Login, "role", role)
+					logger.Info("User added to organization.", "username", login, "role", role)
 				}
 			}
 
@@ -76,6 +97,7 @@ Specify '-' as input to read from stdin.`,
 	f := cmd.Flags()
 	f.StringVar(&owner, "owner", "", "Specify the organization name")
 	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: do not actually apply changes")
+	f.StringVar(&mapFile, "usermap", "", "User mapping file (as produced by 'user map') for login conversion during import")
 	cmdutil.StringEnumFlag(cmd, &defaultRole, "role", "", gh.TeamMembershipRoleMember, gh.OrgMembershipList, "Default role when not specified in input (member or admin)")
 
 	return cmd

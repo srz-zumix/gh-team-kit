@@ -13,7 +13,8 @@ func NewMannequinCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(mannequin.NewListCmd())
-	cmd.AddCommand(mannequin.NewInviteCmd())
+	cmd.AddCommand(mannequin.NewReattributeCmd())
+	cmd.AddCommand(mannequin.NewReattributeByEmailCmd())
 	cmd.AddCommand(mannequin.NewMigrateCmd())
 
 	return cmd
