@@ -57,7 +57,7 @@ Special team slugs:
 			}
 			repo2, teamSlug2, err := parser.RepositoryWithTeamSlugs(team2, parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
-				return fmt.Errorf("error parsing team-slug2 '%s': %w", team1, err)
+				return fmt.Errorf("error parsing team-slug2 '%s': %w", team2, err)
 			}
 
 			client1, err := gh.NewGitHubClientWithRepo(repo1)
