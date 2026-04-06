@@ -98,7 +98,7 @@ func NewDiffCmd() *cobra.Command {
 	f := cmd.Flags()
 	cmdutil.StringEnumFlag(cmd, &colorFlag, "color", "", render.ColorFlagAuto, render.ColorFlags, "Use color in diff output")
 	f.BoolVar(&exitCode, "exit-code", false, "Return exit code 1 if there are differences")
-	f.StringVar(&owner, "owner", "", "The owner of the repositories")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

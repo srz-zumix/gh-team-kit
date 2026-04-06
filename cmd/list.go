@@ -30,7 +30,7 @@ func NewListCmd() *cobra.Command {
 			if len(args) > 0 {
 				owner = args[0]
 			}
-			repository, err := parser.Repository(parser.RepositoryOwner(owner), parser.RepositoryInput(repo))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner), parser.RepositoryInput(repo))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}

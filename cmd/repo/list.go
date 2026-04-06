@@ -29,7 +29,7 @@ func NewListCmd() *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			teamSlug := args[0]
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -56,7 +56,7 @@ func NewListCmd() *cobra.Command {
 	f := cmd.Flags()
 	f.BoolVar(&nameOnly, "name-only", false, "Output only repository names")
 	f.BoolVar(&noInherit, "no-inherit", false, "Disable inherited permissions")
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.PermissionsList, "List of permissions to filter repositories")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

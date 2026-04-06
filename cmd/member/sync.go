@@ -21,11 +21,11 @@ func NewSyncCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			srcTeam := args[0]
 			dstTeam := args[1]
-			srcRepo, srcTeamSlug, err := parser.RepositoryFromTeamSlugs(owner, srcTeam)
+			srcRepo, srcTeamSlug, err := parser.RepositoryWithTeamSlugs(srcTeam, parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing source team: %w", err)
 			}
-			dstRepo, dstTeamSlug, err := parser.RepositoryFromTeamSlugs(owner, dstTeam)
+			dstRepo, dstTeamSlug, err := parser.RepositoryWithTeamSlugs(dstTeam, parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing destination team: %w", err)
 			}
@@ -45,7 +45,7 @@ func NewSyncCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Default owner for team slugs")
+	f.StringVar(&owner, "owner", "", "Default organization ([HOST/]OWNER)")
 
 	return cmd
 }

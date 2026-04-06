@@ -19,7 +19,7 @@ func NewUnsetCmd() *cobra.Command {
 		Long:  "Remove the connection between an external group and a team in the organization (Enterprise Managed Users).",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
+			repository, teamSlug, err := parser.RepositoryWithTeamSlugs(args[0], parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
@@ -39,7 +39,7 @@ func NewUnsetCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&owner, "owner", "", "Specify the organization name")
+	cmd.Flags().StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 
 	return cmd
 }

@@ -198,7 +198,7 @@ Randomly select a specified number of members from the team. If count is 0 (defa
 #### Perform set operations on two teams members
 
 ```sh
-gh team-kit member sets <[owner]/team-slug1> <|,&,-,^> <[owner]/team-slug2>
+gh team-kit member sets <[[HOST/]OWNER/]team-slug1> <|,&,-,^> <[[HOST/]OWNER/]team-slug2>
 ```
 
 Perform set operations on the members of two teams. The operation can be union (`|`), intersection (`&`), difference (`-`), or symmetric difference (`^`).
@@ -206,7 +206,7 @@ Perform set operations on the members of two teams. The operation can be union (
 #### Sync members from one team to another
 
 ```sh
-gh team-kit member sync <[owner/]src-team-slug> <[owner/]dst-team-slug>
+gh team-kit member sync <[[HOST/]OWNER/]src-team-slug> <[[HOST/]OWNER/]dst-team-slug>
 ```
 
 Sync members from the source team to the destination team. Members in the source team will be added to the destination team, and members not in the source team will be removed from the destination team.
@@ -214,7 +214,7 @@ Sync members from the source team to the destination team. Members in the source
 #### Copy members from one team to another
 
 ```sh
-gh team-kit member copy <[owner/]src-team-slug> <[owner/]dst-team-slug>
+gh team-kit member copy <[[HOST/]OWNER/]src-team-slug> <[[HOST/]OWNER/]dst-team-slug>
 ```
 
 Copy members from the source team to the destination team. Members in the source team will be added to the destination team, but no members will be removed from the destination team.
@@ -314,7 +314,7 @@ Check the role of a specified user in the organization.
 #### Import users into the organization
 
 ```sh
-gh team-kit user import <input> [--owner <org>] [--role <member|admin>] [--usermap <file>] [--dryrun]
+gh team-kit user import <input> [--owner <[HOST/]OWNER>] [--role <member|admin>] [--usermap <file>] [--dryrun]
 ```
 
 Read a JSON list of users (as produced by `user list --format json`) and add each user to the organization.
@@ -324,7 +324,7 @@ Specify `-` as `<input>` to read from stdin.
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `--owner <org>` | (current repo owner) | Organization name |
+| `--owner <[HOST/]OWNER>` | (current repo owner) | Organization ([HOST/]OWNER) |
 | `--role <member\|admin>` | `member` | Default role when not specified in input |
 | `--usermap <file>` | — | User mapping file for login conversion during import |
 | `--dryrun`, `-n` | `false` | Dry run: show count without applying changes |
@@ -458,7 +458,7 @@ Remove a specified user's access to a repository.
 #### Get or set the default repository permission (base permissions)
 
 ```sh
-gh team-kit member-privilege base-permissions [--set <read|write|admin|none>] [--owner <org>]
+gh team-kit member-privilege base-permissions [--set <read|write|admin|none>] [--owner <[HOST/]OWNER>]
 ```
 
 Get or set the default repository permission for organization members. When `--set` is specified, the setting is updated and the result is displayed; otherwise the current value is displayed.
@@ -466,12 +466,12 @@ Get or set the default repository permission for organization members. When `--s
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--set <read\|write\|admin\|none>` | — | New value to set. Omit to get the current value. |
-| `--owner <org>` | (current repo owner) | Organization name |
+| `--owner <[HOST/]OWNER>` | (current repo owner) | Organization ([HOST/]OWNER) |
 
 #### Get or set whether members can create teams
 
 ```sh
-gh team-kit member-privilege can-create-teams [--set[=false]] [--owner <org>]
+gh team-kit member-privilege can-create-teams [--set[=false]] [--owner <[HOST/]OWNER>]
 ```
 
 Get or set whether organization members can create teams. When `--set` is specified, the setting is updated and the result is displayed; otherwise the current value is displayed.
@@ -479,7 +479,7 @@ Get or set whether organization members can create teams. When `--set` is specif
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--set` | — | Allow members to create teams. Use `--set=false` to disallow. Omit to get the current value. |
-| `--owner <org>` | (current repo owner) | Organization name |
+| `--owner <[HOST/]OWNER>` | (current repo owner) | Organization ([HOST/]OWNER) |
 
 #### Copy member privileges from one organization to another
 
@@ -492,14 +492,14 @@ Copy all member privileges settings from the source organization to the destinat
 #### Get member privileges of an organization
 
 ```sh
-gh team-kit member-privilege get [--owner <org>] [--fields <fields>]
+gh team-kit member-privilege get [--owner <[HOST/]OWNER>] [--fields <fields>]
 ```
 
 Get the member privileges settings of the specified organization. Displays a table with fields such as default repository permission, repository creation, forking, pages, team creation, and web commit signoff settings.
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `--owner <org>` | (current repo owner) | Organization name |
+| `--owner <[HOST/]OWNER>` | (current repo owner) | Organization ([HOST/]OWNER) |
 | `--fields <fields>` | (all fields) | Comma-separated list of fields to display |
 
 #### Set member privileges of an organization
@@ -512,7 +512,7 @@ Update one or more member privileges settings of the specified organization. Onl
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `--owner <org>` | (current repo owner) | Organization name |
+| `--owner <[HOST/]OWNER>` | (current repo owner) | Organization ([HOST/]OWNER) |
 | `--default-repo-permission <read\|write\|admin\|none>` | — | Default repository permission for organization members |
 | `--members-can-create-repos` / `--no-members-can-create-repos` | — | Allow or disallow members to create repositories |
 | `--members-can-create-public-repos` / `--no-members-can-create-public-repos` | — | Allow or disallow members to create public repositories |
@@ -554,7 +554,7 @@ Remove a specified team from the specified role in the organization.
 #### Import custom organization roles
 
 ```sh
-gh team-kit org-role import <input> [--owner <org>] [--dryrun]
+gh team-kit org-role import <input> [--owner <[HOST/]OWNER>] [--dryrun]
 ```
 
 Read a JSON list of custom organization roles (as produced by `org-role list --format json`) and create or update each role in the organization.
@@ -563,7 +563,7 @@ Specify `-` as `<input>` to read from stdin.
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `--owner <org>` | (current repo owner) | Organization name |
+| `--owner <[HOST/]OWNER>` | (current repo owner) | Organization ([HOST/]OWNER) |
 | `--dryrun`, `-n` | `false` | Dry run: show count without applying changes |
 
 #### List organization roles
@@ -647,7 +647,7 @@ With `--usermap`, the mannequin login (`src`) and target user login (`dst`) are 
 #### Reattribute a mannequin to a user
 
 ```sh
-gh team-kit mannequin reattribute <mannequin-login> <target-user-login> [--owner <org>] [--skip-invitation] [--force]
+gh team-kit mannequin reattribute <mannequin-login> <target-user-login> [--owner <[HOST/]OWNER>] [--skip-invitation] [--force]
 ```
 
 Send an attribution invitation to a user to claim the specified mannequin. The target user must be a member of the organization.
@@ -655,7 +655,7 @@ Use `--skip-invitation` to skip the invitation step and directly reclaim the man
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `--owner <org>` | (current repo owner) | Organization name |
+| `--owner <[HOST/]OWNER>` | (current repo owner) | Organization ([HOST/]OWNER) |
 | `--skip-invitation` | `false` | Skip invitation and directly reclaim (requires GitHub Support enablement) |
 | `--force` | `false` | Proceed even if mannequin is already claimed |
 
@@ -664,7 +664,7 @@ Use `--skip-invitation` to skip the invitation step and directly reclaim the man
 #### Connect an external group to a team
 
 ```sh
-gh team-kit idp emu set <group-name> <team-slug> [--owner <org>] [--field <field>] [--format <json|table>]
+gh team-kit idp emu set <group-name> <team-slug> [--owner <[HOST/]OWNER>] [--field <field>] [--format <json|table>]
 ```
 
 Connect an external group to a team in the organization (Enterprise Managed Users). Resolves the group by name and connects it to the specified team. Use `--field` to display specific fields (`ID`, `NAME`, `UPDATED_AT`, `TEAM_COUNT`, `MEMBER_COUNT`). On success, prints a confirmation message unless `--field` or `--format` is used.
@@ -672,7 +672,7 @@ Connect an external group to a team in the organization (Enterprise Managed User
 #### Get an external group
 
 ```sh
-gh team-kit idp emu get <group-name> [--owner <org>] [--field <field>] [--format <json|table>]
+gh team-kit idp emu get <group-name> [--owner <[HOST/]OWNER>] [--field <field>] [--format <json|table>]
 ```
 
 Get details of a single external group by name in the organization (Enterprise Managed Users). Available fields: `ID`, `NAME`, `UPDATED_AT`, `TEAM_COUNT`, `MEMBER_COUNT`.
@@ -680,7 +680,7 @@ Get details of a single external group by name in the organization (Enterprise M
 #### List external groups in the organization or connected to a team
 
 ```sh
-gh team-kit idp emu list [team-slug] [--owner <org>] [--query <name-filter>] [--details] [--field <field>] [--format <json|table>]
+gh team-kit idp emu list [team-slug] [--owner <[HOST/]OWNER>] [--query <name-filter>] [--details] [--field <field>] [--format <json|table>]
 ```
 
 List all external groups available in the organization, or list external groups connected to the specified team (Enterprise Managed Users). Use `--query` to filter by name. Use `--details` to fetch full details (teams list) for each group by calling the detail API per entry. Available fields: `ID`, `NAME`, `UPDATED_AT`, `TEAM_COUNT`, `TEAMS`.
@@ -688,7 +688,7 @@ List all external groups available in the organization, or list external groups 
 #### List IDP groups in the organization or connected to a team
 
 ```sh
-gh team-kit idp list [team-slug] [--owner <org>] [--query <name-filter>] [--field <field>] [--format <json|table>]
+gh team-kit idp list [team-slug] [--owner <[HOST/]OWNER>] [--query <name-filter>] [--field <field>] [--format <json|table>]
 ```
 
 List all IDP groups available in the organization (SAML team sync), or list IDP groups connected to the specified team. Use `--query` to filter by name when listing all groups (not available when a team slug is provided). Available fields: `ID`, `NAME`, `DESCRIPTION`.
@@ -696,7 +696,7 @@ List all IDP groups available in the organization (SAML team sync), or list IDP 
 #### List teams connected to an external group
 
 ```sh
-gh team-kit idp emu teams <group-name> [--owner <org>] [--field <field>] [--format <json|table>]
+gh team-kit idp emu teams <group-name> [--owner <[HOST/]OWNER>] [--field <field>] [--format <json|table>]
 ```
 
 List the teams connected to an external group, with detailed team info fetched from the organization (Enterprise Managed Users). Available fields: `TEAM_ID`, `TEAM_NAME`, `SLUG`, `DESCRIPTION`, `PRIVACY`, `HTML_URL`.
@@ -704,7 +704,7 @@ List the teams connected to an external group, with detailed team info fetched f
 #### Remove the connection between an external group and a team
 
 ```sh
-gh team-kit idp emu unset <team-slug> [--owner <org>]
+gh team-kit idp emu unset <team-slug> [--owner <[HOST/]OWNER>]
 ```
 
 Remove the connection between an external group and a team in the organization (Enterprise Managed Users). Only the team slug is required.
@@ -714,7 +714,7 @@ Remove the connection between an external group and a team in the organization (
 #### Show Copilot metrics for a team
 
 ```sh
-gh team-kit copilot metrics <team-slug> [--org <org>] [--since <RFC3339>] [--until <RFC3339>]
+gh team-kit copilot metrics <team-slug> [--owner <[HOST/]OWNER>] [--since <RFC3339>] [--until <RFC3339>]
 ```
 
 Display GitHub Copilot usage metrics for the specified team. You can optionally specify the organization and date range.
@@ -724,7 +724,7 @@ Display GitHub Copilot usage metrics for the specified team. You can optionally 
 #### Get code review settings
 
 ```sh
-gh team-kit code-review get <team-slug> [--owner <org>] [--format <json|table>]
+gh team-kit code-review get <team-slug> [--owner <[HOST/]OWNER>] [--format <json|table>]
 ```
 
 Retrieve code review assignment settings for the specified team, including auto-assignment status, algorithm, member count, and notification preferences.
@@ -732,7 +732,7 @@ Retrieve code review assignment settings for the specified team, including auto-
 #### Set code review settings
 
 ```sh
-gh team-kit code-review set <team-slug> [--owner <org>] [--enabled|--disable-enabled] [--algorithm <ROUND_ROBIN|LOAD_BALANCE>] [--member-count <int>] [--notify-team|--disable-notify-team]
+gh team-kit code-review set <team-slug> [--owner <[HOST/]OWNER>] [--enabled|--disable-enabled] [--algorithm <ROUND_ROBIN|LOAD_BALANCE>] [--member-count <int>] [--notify-team|--disable-notify-team]
 ```
 
 Update code review assignment settings for the specified team. You can enable/disable auto-assignment, set the assignment algorithm, configure the number of members to assign, and control team notifications.
@@ -742,7 +742,7 @@ Update code review assignment settings for the specified team. You can enable/di
 #### Export team information
 
 ```sh
-gh team-kit export [--output <file>] [--owner <org>] [--host <host>] [--no-export-repositories] [--no-export-group] [--no-export-org-roles] [--no-suspended] [--format <json|table>]
+gh team-kit export [--output <file>] [--owner <[HOST/]OWNER>] [--host <host>] [--no-export-repositories] [--no-export-group] [--no-export-org-roles] [--no-suspended] [--format <json|table>]
 ```
 
 Retrieve and display team information from the specified organization. Exports team structure, members, maintainers, repositories, external group connections (EMU), custom organization role assignments, and code review settings to a file or stdout. Use `--output` to specify the output file (default: stdout). Use `--no-export-repositories` to skip repository permissions, `--no-export-group` to skip external group connections, `--no-export-org-roles` to skip custom org role assignments, and `--no-suspended` to exclude suspended users.
@@ -750,7 +750,7 @@ Retrieve and display team information from the specified organization. Exports t
 #### Import team information
 
 ```sh
-gh team-kit import <input> [--dryrun] [--verify] [--owner <org>] [--host <host>] [--usermap <file>] [--format <json|yaml>]
+gh team-kit import <input> [--dryrun] [--verify] [--owner <[HOST/]OWNER>] [--host <host>] [--usermap <file>] [--format <json|yaml>]
 ```
 
 Read and apply team information to the specified organization from a file or stdin. Use `--dryrun` to preview changes without applying them. Specify `-` as input to read from stdin. Accepts YAML or JSON format. When `--usermap` is specified, source logins are resolved using the mapping file (as produced by `user map`). The `src` field supports regular expressions and `dst` may contain `$N` or `${name}` capture-group references. If the input contains a `group` field for a team, the corresponding external group is connected automatically (EMU only; only applicable to leaf teams without parent/child teams). When the organization supports external groups and a team has no `group` specified, any existing external group connection is removed. If a team has an `org_roles` field, the listed custom organization roles are assigned to that team on import. See [docs/migrate.md](docs/migrate.md) for migration examples.

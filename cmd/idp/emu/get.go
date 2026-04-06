@@ -27,7 +27,7 @@ func NewGetCmd() *cobra.Command {
 		Long:  "Get details of a single external group in the organization (Enterprise Managed Users).",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -51,7 +51,7 @@ func NewGetCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	cmdutil.StringSliceEnumFlag(cmd, &fields, "field", "", nil, render.ExternalGroupDetailFieldList, "Fields to display")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

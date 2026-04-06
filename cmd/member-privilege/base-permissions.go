@@ -23,7 +23,7 @@ func NewBasePermissionsCmd() *cobra.Command {
 		Long:  `Get or set the default repository permission (base permissions) for organization members. When --set is specified, the setting is updated and the result is displayed; otherwise the current value is displayed.`,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -52,7 +52,7 @@ func NewBasePermissionsCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	cmdutil.StringEnumFlag(cmd, &setValue, "set", "", "", gh.OrgDefaultRepoPermissionList, "Set the default repository permission")
 	cmdutil.AddFormatFlags(cmd, &exporter)
 

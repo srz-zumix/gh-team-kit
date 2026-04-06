@@ -36,7 +36,7 @@ When --usermap is specified, source logins are automatically converted to target
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			input := args[0]
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -102,7 +102,7 @@ When --usermap is specified, source logins are automatically converted to target
 	f := cmd.Flags()
 	f.BoolVarP(&dryrun, "dryrun", "n", false, "Perform a dry run: verify configuration but do not apply team changes")
 	f.BoolVar(&verify, "verify", false, "Verify configuration before applying changes (implied by --dryrun)")
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	f.StringVarP(&host, "host", "H", "", "Specify the GitHub host")
 	f.StringVar(&mapFile, "usermap", "", "User mapping file (as produced by 'user map') for login conversion during import")
 

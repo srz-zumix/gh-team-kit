@@ -23,7 +23,7 @@ func NewCanCreateTeamsCmd() *cobra.Command {
 		Long:  `Get or set whether organization members can create teams. When --set is specified, the setting is updated and the result is displayed; otherwise the current value is displayed.`,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -52,7 +52,7 @@ func NewCanCreateTeamsCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	cmdutil.NilBoolFlag(cmd, &setValue, "set", "", "Set whether members can create teams")
 	cmdutil.AddFormatFlags(cmd, &exporter)
 

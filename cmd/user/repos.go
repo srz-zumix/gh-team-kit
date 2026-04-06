@@ -43,7 +43,7 @@ func NewReposCmd() *cobra.Command {
 				return fmt.Errorf("the 'sources' option cannot be used with 'fork', 'mirror', or 'archived' options")
 			}
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("failed to parse repository: %w", err)
 			}
@@ -96,7 +96,7 @@ func NewReposCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.BoolVar(&nameOnly, "name-only", false, "Output only repository names")
-	f.StringVar(&owner, "owner", "", "Specify the owner of the repository")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.PermissionsList, "List of permissions to filter repositories")
 	cmdutil.StringSliceEnumFlag(cmd, &visibilities, "visibility", "v", nil, gh.RepoVisibilityList, "List of visibility to filter repositories")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)

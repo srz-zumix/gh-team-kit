@@ -25,7 +25,7 @@ func NewGetCmd() *cobra.Command {
 		Aliases: []string{"view"},
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
+			repository, teamSlug, err := parser.RepositoryWithTeamSlugs(args[0], parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
@@ -47,7 +47,7 @@ func NewGetCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

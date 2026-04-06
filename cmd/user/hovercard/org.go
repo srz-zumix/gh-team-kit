@@ -27,7 +27,7 @@ func NewOrgCmd() *cobra.Command {
 				username = args[0]
 			}
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -53,7 +53,7 @@ func NewOrgCmd() *cobra.Command {
 		},
 	}
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Specify the organization owner")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 	return cmd
 }

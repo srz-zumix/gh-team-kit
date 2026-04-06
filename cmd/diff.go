@@ -37,11 +37,11 @@ func NewDiffCmd() *cobra.Command {
 
 			team1 := args[0]
 			team2 := args[1]
-			repo1, teamSlug1, err := parser.RepositoryFromTeamSlugs(owner, team1)
+			repo1, teamSlug1, err := parser.RepositoryWithTeamSlugs(team1, parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing source team: %w", err)
 			}
-			repo2, teamSlug2, err := parser.RepositoryFromTeamSlugs(owner, team2)
+			repo2, teamSlug2, err := parser.RepositoryWithTeamSlugs(team2, parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing destination team: %w", err)
 			}
@@ -86,7 +86,7 @@ func NewDiffCmd() *cobra.Command {
 	f := cmd.Flags()
 	cmdutil.StringEnumFlag(cmd, &colorFlag, "color", "", render.ColorFlagAuto, render.ColorFlags, "Use color in diff output")
 	f.BoolVar(&exitCode, "exit-code", false, "Return exit code 1 if there are differences")
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

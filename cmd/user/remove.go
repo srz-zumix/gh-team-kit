@@ -22,7 +22,7 @@ func NewRemoveCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			usernames := args
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("failed to parse owner: %w", err)
 			}
@@ -51,7 +51,7 @@ func NewRemoveCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Owner of the organization (optional)")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 
 	return cmd
 }

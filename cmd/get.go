@@ -27,7 +27,7 @@ func NewGetCmd() *cobra.Command {
 		Aliases: []string{"view"},
 		Args:    cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -49,7 +49,7 @@ func NewGetCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	f.BoolVarP(&child, "child", "c", false, "Retrieve and display the parent team if it exists")
 	f.BoolVarP(&recursive, "recursive", "r", false, "Retrieve teams recursively")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)

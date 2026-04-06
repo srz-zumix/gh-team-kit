@@ -27,7 +27,7 @@ Use --skip-invitation to skip the invitation step and directly reclaim the manne
 			mannequinLogin := args[0]
 			targetUserLogin := args[1]
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -89,7 +89,7 @@ Use --skip-invitation to skip the invitation step and directly reclaim the manne
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Organization name (uses current repository's organization if omitted)")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER; uses current repository's organization if omitted)")
 	f.BoolVar(&skipInvitation, "skip-invitation", false, "Skip the invitation step and directly reclaim the mannequin (requires the feature to be enabled by GitHub Support)")
 	f.BoolVar(&force, "force", false, "Skip the claimant check and proceed even if the mannequin is already claimed")
 

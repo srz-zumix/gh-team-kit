@@ -34,7 +34,7 @@ func NewExportCmd() *cobra.Command {
 		Long:  `Retrieve and display team information from the specified organization.`,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -78,7 +78,7 @@ func NewExportCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVarP(&output, "output", "o", "", "Output file for exported team data")
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	f.StringVarP(&host, "host", "H", "", "Specify the GitHub host")
 	f.BoolVar(&noExportRepositories, "no-export-repositories", false, "Specify whether to export repositories")
 	f.BoolVar(&noExportGroup, "no-export-group", false, "Specify whether to export external group connections")

@@ -29,7 +29,7 @@ func NewUpdateCmd() *cobra.Command {
 		Long:  `Update the details of an existing team in the specified organization, such as its description or settings.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
+			repository, teamSlug, err := parser.RepositoryWithTeamSlugs(args[0], parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
@@ -86,7 +86,7 @@ func NewUpdateCmd() *cobra.Command {
 	f := cmd.Flags()
 	f.StringVarP(&description, "description", "d", "", "New description for the team")
 	f.StringVar(&nameValue, "name", "", "New name for the team")
-	f.StringVar(&owner, "owner", "", "Specify the organization owner")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	cmdutil.StringEnumFlag(cmd, &privacyValue, "privacy", "", "closed", []string{"closed", "secret"}, "Privacy level of the team")
 	f.StringVarP(&parentValue, "parent", "p", "", "Parent team slug. if empty, the team will be a top-level team")
 	cmdutil.StringEnumFlag(cmd, &notificationValue, "notification", "", "enabled", []string{"enabled", "disabled"}, "Enable notifications for the team")

@@ -20,11 +20,11 @@ func NewCopyCmd() *cobra.Command {
 			srcOwner := args[0]
 			dstOwner := args[1]
 
-			srcRepo, err := parser.Repository(parser.RepositoryOwner(srcOwner))
+			srcRepo, err := parser.Repository(parser.RepositoryOwnerWithHost(srcOwner))
 			if err != nil {
 				return fmt.Errorf("error parsing source repository: %w", err)
 			}
-			dstRepo, err := parser.Repository(parser.RepositoryOwner(dstOwner))
+			dstRepo, err := parser.Repository(parser.RepositoryOwnerWithHost(dstOwner))
 			if err != nil {
 				return fmt.Errorf("error parsing destination repository: %w", err)
 			}

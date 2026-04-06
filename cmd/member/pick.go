@@ -48,7 +48,7 @@ func NewPickCmd() *cobra.Command {
 				details = true
 			}
 
-			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
+			repository, teamSlug, err := parser.RepositoryWithTeamSlugs(args[0], parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
@@ -133,7 +133,7 @@ func NewPickCmd() *cobra.Command {
 	f := cmd.Flags()
 	f.BoolVarP(&details, "details", "d", false, "Include detailed information about members")
 	f.BoolVar(&nameOnly, "name-only", false, "Output only member names")
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	suspended.AddNoPrefixFlag(cmd, "suspended", "Output only suspended members", "Exclude suspended members")
 	f.StringSliceVarP(&excludeMembers, "exclude", "e", nil, "Exclude specified members from pick selection")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.TeamMembershipList, "List of roles to filter members")

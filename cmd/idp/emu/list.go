@@ -35,7 +35,7 @@ func NewListCmd() *cobra.Command {
 				teamSlug = args[0]
 			}
 
-			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, teamSlug)
+			repository, teamSlug, err := parser.RepositoryWithTeamSlugs(teamSlug, parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -68,7 +68,7 @@ func NewListCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	f.StringVar(&query, "query", "", "Filter external groups by name")
 	f.BoolVar(&details, "details", false, "Fetch detailed info (teams/members) for each group")
 	cmdutil.StringSliceEnumFlag(cmd, &fields, "field", "", nil, render.ExternalGroupFieldList, "Fields to display")

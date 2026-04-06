@@ -31,7 +31,7 @@ func NewCreateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -69,7 +69,7 @@ func NewCreateCmd() *cobra.Command {
 	f := cmd.Flags()
 	f.BoolVar(&disableNotification, "disable-notification", false, "Disable notifications for the team")
 	f.StringVarP(&description, "description", "d", "", "Description of the team")
-	f.StringVar(&owner, "owner", "", "Specify the organization owner")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	f.StringVarP(&parentTeamSlug, "parent", "p", "", "Slug of the parent team")
 	cmdutil.StringEnumFlag(cmd, &privacy, "privacy", "", "closed", []string{"closed", "secret"}, "Privacy level of the team")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)

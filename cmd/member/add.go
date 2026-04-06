@@ -28,7 +28,7 @@ func NewAddCmd() *cobra.Command {
 		Args:  cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			usernames := args[1:]
-			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
+			repository, teamSlug, err := parser.RepositoryWithTeamSlugs(args[0], parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
@@ -61,7 +61,7 @@ func NewAddCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.BoolVar(&allowNonOrganizationMember, "allow-non-organization-member", false, "Allow adding non-organization member to the team")
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	cmdutil.StringEnumFlag(cmd, &role, "role", "r", gh.TeamMembershipRoleMember, gh.TeamMembershipList, "Role to assign to the user (default: member)")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
