@@ -717,7 +717,7 @@ Remove the connection between an external group and a team in the organization (
 gh team-kit copilot metrics <team-slug> [--owner <[HOST/]OWNER>] [--since <RFC3339>] [--until <RFC3339>]
 ```
 
-Display GitHub Copilot usage metrics for the specified team. You can optionally specify the organization and date range.
+Display GitHub Copilot usage metrics for the specified team. You can optionally specify the owner with `--owner` and limit the date range with `--since` and `--until`.
 
 ### Code Review Management
 
