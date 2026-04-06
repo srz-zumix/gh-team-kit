@@ -669,6 +669,14 @@ gh team-kit idp emu set <group-name> <team-slug> [--owner <[HOST/]OWNER>] [--fie
 
 Connect an external group to a team in the organization (Enterprise Managed Users). Resolves the group by name and connects it to the specified team. Use `--field` to display specific fields (`ID`, `NAME`, `UPDATED_AT`, `TEAM_COUNT`, `MEMBER_COUNT`). On success, prints a confirmation message unless `--field` or `--format` is used.
 
+#### Find the external group connected to a team
+
+```sh
+gh team-kit idp emu find <team-slug> [--owner <[HOST/]OWNER>] [--field <field>] [--format <json|table>]
+```
+
+Find the external group connected to a team in the organization (Enterprise Managed Users). Exits with no output if no external group is connected (e.g. the team has explicit members). Available fields: `ID`, `NAME`, `UPDATED_AT`, `TEAM_COUNT`, `MEMBER_COUNT`.
+
 #### Get an external group
 
 ```sh
