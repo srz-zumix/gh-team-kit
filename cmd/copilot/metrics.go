@@ -61,7 +61,7 @@ func NewMetricsCmd() *cobra.Command {
 		},
 	}
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER; required)")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER, optional)")
 	f.StringVar(&opts.Since, "since", "", "Start date (RFC3339, optional)")
 	f.StringVar(&opts.Until, "until", "", "End date (RFC3339, optional)")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
