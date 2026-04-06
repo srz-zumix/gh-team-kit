@@ -15,6 +15,7 @@ func NewEmuCmd() *cobra.Command {
 
 	cmd.AddCommand(emu.NewListCmd())
 	cmd.AddCommand(emu.NewGetCmd())
+	cmd.AddCommand(emu.NewFindCmd())
 	cmd.AddCommand(emu.NewSetCmd())
 	cmd.AddCommand(emu.NewUnsetCmd())
 	cmd.AddCommand(emu.NewTeamsCmd())

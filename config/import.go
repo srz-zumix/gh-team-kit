@@ -59,7 +59,7 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 		if existingTeam != nil && allowExternalGroups {
 			existingGroup, err := gh.FindExternalGroupByTeamSlug(i.ctx, i.client, i.Owner, teamConfig.Slug)
 			if err != nil {
-				return errorList, fmt.Errorf("error retrieving external group for team %s: %w", teamConfig.Slug, err)
+				logger.Warn("error looking up existing external group for team; proceeding without external group checks", "team", teamConfig.Slug, "error", err)
 			}
 			if existingGroup != nil {
 				existingGroupName := existingGroup.GetGroupName()
