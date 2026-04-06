@@ -32,7 +32,7 @@ func NewSetCmd() *cobra.Command {
 		Long:  `Update one or more member privileges settings of the specified organization.`,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -69,7 +69,7 @@ func NewSetCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	cmdutil.StringEnumFlag(cmd, &defaultRepoPermission, "default-repo-permission", "", "", gh.OrgDefaultRepoPermissionList, "Default repository permission for organization members")
 	membersCanCreateRepos.AddNoPrefixFlag(cmd, "members-can-create-repos", "Allow members to create repositories", "Disallow members from creating repositories")
 	membersCanCreatePublicRepos.AddNoPrefixFlag(cmd, "members-can-create-public-repos", "Allow members to create public repositories", "Disallow members from creating public repositories")

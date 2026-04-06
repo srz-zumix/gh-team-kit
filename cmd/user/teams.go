@@ -31,7 +31,7 @@ func NewTeamsCmd() *cobra.Command {
 				username = args[0]
 			}
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("failed to parse repository: %w", err)
 			}
@@ -68,7 +68,7 @@ func NewTeamsCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.BoolVar(&nameOnly, "name-only", false, "Output only repository names")
-	f.StringVar(&owner, "owner", "", "Specify the owner of the repository")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd

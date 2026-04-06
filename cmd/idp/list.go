@@ -34,7 +34,7 @@ func NewListCmd() *cobra.Command {
 			}
 
 			if len(args) > 0 {
-				repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
+				repository, teamSlug, err := parser.RepositoryWithTeamSlugs(args[0], parser.RepositoryOwnerWithHost(owner))
 				if err != nil {
 					return fmt.Errorf("error parsing repository with team slug: %w", err)
 				}
@@ -54,7 +54,7 @@ func NewListCmd() *cobra.Command {
 				return renderer.RenderIDPGroups(groups, fields)
 			}
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -76,7 +76,7 @@ func NewListCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	f.StringVar(&query, "query", "", "Filter IDP groups by name (only applies when listing all groups)")
 	cmdutil.StringSliceEnumFlag(cmd, &fields, "field", "", nil, render.IDPGroupFieldList, "Fields to display")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)

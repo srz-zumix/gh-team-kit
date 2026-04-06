@@ -23,7 +23,7 @@ func NewCheckCmd() *cobra.Command {
 				cmd.SilenceUsage = true
 			}
 
-			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
+			repository, teamSlug, err := parser.RepositoryWithTeamSlugs(args[0], parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
@@ -55,7 +55,7 @@ func NewCheckCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.BoolVar(&exitCode, "exit-code", false, "Return an exit code of 1 if the user is not a member")
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 
 	return cmd
 }

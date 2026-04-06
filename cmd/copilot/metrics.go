@@ -41,7 +41,7 @@ func NewMetricsCmd() *cobra.Command {
 				}
 				until = &t
 			}
-			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
+			repository, teamSlug, err := parser.RepositoryWithTeamSlugs(args[0], parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
@@ -61,7 +61,7 @@ func NewMetricsCmd() *cobra.Command {
 		},
 	}
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Organization name (required)")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER, optional)")
 	f.StringVar(&opts.Since, "since", "", "Start date (RFC3339, optional)")
 	f.StringVar(&opts.Until, "until", "", "End date (RFC3339, optional)")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)

@@ -38,7 +38,7 @@ func NewListCmd() *cobra.Command {
 				details = true
 			}
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -83,7 +83,7 @@ func NewListCmd() *cobra.Command {
 	f := cmd.Flags()
 	f.BoolVarP(&details, "details", "d", false, "Include detailed information about members")
 	f.BoolVar(&nameOnly, "name-only", false, "Output only user names")
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	suspended.AddNoPrefixFlag(cmd, "suspended", "Output only suspended members", "Exclude suspended members")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

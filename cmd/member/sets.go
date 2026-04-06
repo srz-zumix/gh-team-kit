@@ -51,13 +51,13 @@ Special team slugs:
 				details = true
 			}
 
-			repo1, teamSlug1, err := parser.RepositoryFromTeamSlugs(owner, team1)
+			repo1, teamSlug1, err := parser.RepositoryWithTeamSlugs(team1, parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing team-slug1 '%s': %w", team1, err)
 			}
-			repo2, teamSlug2, err := parser.RepositoryFromTeamSlugs(owner, team2)
+			repo2, teamSlug2, err := parser.RepositoryWithTeamSlugs(team2, parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
-				return fmt.Errorf("error parsing team-slug2 '%s': %w", team1, err)
+				return fmt.Errorf("error parsing team-slug2 '%s': %w", team2, err)
 			}
 
 			client1, err := gh.NewGitHubClientWithRepo(repo1)
@@ -127,7 +127,7 @@ Special team slugs:
 	f := cmd.Flags()
 	f.BoolVarP(&details, "details", "d", false, "Include detailed information about members")
 	f.BoolVar(&nameOnly, "name-only", false, "Output only member names")
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	suspended.AddNoPrefixFlag(cmd, "suspended", "Output only suspended members", "Exclude suspended members")
 	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.TeamMembershipList, "List of roles to filter members")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)

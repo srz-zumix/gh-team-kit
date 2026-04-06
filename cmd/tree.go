@@ -25,7 +25,7 @@ func NewTreeCmd() *cobra.Command {
 		Long:  `Displays a team hierarchy in a tree structure based on the team's slug.`,
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -56,7 +56,7 @@ func NewTreeCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	f.BoolVarP(&recursive, "recursive", "r", false, "Retrieve teams recursively")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

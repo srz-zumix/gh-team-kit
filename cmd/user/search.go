@@ -33,7 +33,7 @@ func NewSearchCmd() *cobra.Command {
 			if email != "" {
 				query += " in:email " + email
 			}
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -56,7 +56,7 @@ func NewSearchCmd() *cobra.Command {
 		},
 	}
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	f.StringVar(&email, "email", "", "Filter users by email address")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 	return cmd

@@ -21,7 +21,7 @@ func NewDeleteCmd() *cobra.Command {
 		Aliases: []string{"del"},
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repository, teamSlug, err := parser.RepositoryFromTeamSlugs(owner, args[0])
+			repository, teamSlug, err := parser.RepositoryWithTeamSlugs(args[0], parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository with team slug: %w", err)
 			}
@@ -70,7 +70,7 @@ func NewDeleteCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Specify the organization owner")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	f.BoolVar(&withChild, "with-child", false, "Allow deletion of a team with child teams")
 	f.BoolVarP(&force, "force", "f", false, "Skip member and repository count checks")
 

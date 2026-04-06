@@ -22,7 +22,7 @@ func NewRemoveCmd() *cobra.Command {
 			username := args[0]
 			orgRole := args[1]
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository owner: %w", err)
 			}
@@ -43,7 +43,7 @@ func NewRemoveCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 
 	return cmd
 }

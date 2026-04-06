@@ -28,7 +28,7 @@ func NewAddCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			username := args[0]
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("failed to parse owner: %w", err)
 			}
@@ -55,7 +55,7 @@ func NewAddCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Owner of the organization")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	cmdutil.StringEnumFlag(cmd, &role, "role", "r", gh.TeamMembershipRoleMember, gh.OrgMembershipList, "Role to assign to the user (default: member)")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 

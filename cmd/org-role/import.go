@@ -26,7 +26,7 @@ Specify '-' as input to read from stdin.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			input := args[0]
 
-			repository, err := parser.Repository(parser.RepositoryOwner(owner))
+			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -73,7 +73,7 @@ Specify '-' as input to read from stdin.`,
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&owner, "owner", "", "Specify the organization name")
+	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: do not actually apply changes")
 
 	return cmd
