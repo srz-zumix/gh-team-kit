@@ -492,7 +492,7 @@ Copy all member privileges settings from the source organization to the destinat
 #### Get member privileges of an organization
 
 ```sh
-gh team-kit member-privilege get [--owner <[HOST/]OWNER>] [--fields <fields>]
+gh team-kit member-privilege get [--owner <[HOST/]OWNER>] [--field <fields>]
 ```
 
 Get the member privileges settings of the specified organization. Displays a table with fields such as default repository permission, repository creation, forking, pages, team creation, and web commit signoff settings.
@@ -500,7 +500,7 @@ Get the member privileges settings of the specified organization. Displays a tab
 | Flag | Default | Description |
 | --- | --- | --- |
 | `--owner <[HOST/]OWNER>` | (current repo owner) | Organization ([HOST/]OWNER) |
-| `--fields <fields>` | (all fields) | Comma-separated list of fields to display |
+| `--field <fields>` | (all fields) | Comma-separated list of fields to display |
 
 #### Set member privileges of an organization
 

@@ -50,7 +50,7 @@ func NewGetCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
-	cmdutil.StringSliceEnumFlag(cmd, &fields, "fields", "", nil, render.OrgMemberPrivilegeFieldList, "Fields to display")
+	cmdutil.StringSliceEnumFlag(cmd, &fields, "field", "", nil, render.OrgMemberPrivilegeFieldList, "Fields to display")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd
