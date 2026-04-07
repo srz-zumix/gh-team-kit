@@ -25,6 +25,7 @@ func NewImportCmd() *cobra.Command {
 	var host string
 	var owner string
 	var format string
+	var noRemoveExtraMembers bool
 
 	var mapFile string
 
@@ -49,6 +50,7 @@ When --usermap is specified, source logins are automatically converted to target
 			if err != nil {
 				return fmt.Errorf("error creating importer: %w", err)
 			}
+			importer.NoRemoveExtraMembers = noRemoveExtraMembers
 			var organizationConfig *config.OrganizationConfig
 			if input == "-" {
 				organizationConfig, err = importer.Read(os.Stdin)
@@ -105,6 +107,7 @@ When --usermap is specified, source logins are automatically converted to target
 	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
 	f.StringVarP(&host, "host", "H", "", "Specify the GitHub host")
 	f.StringVar(&mapFile, "usermap", "", "User mapping file (as produced by 'user map') for login conversion during import")
+	f.BoolVar(&noRemoveExtraMembers, "no-remove-extra-members", false, "Do not remove team members that are not in the imported configuration")
 
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 	cmdflags.SetupFormatFlagWithNonJSONFormats(cmd, &opts.Exporter, &format, "", []string{"yaml"})
