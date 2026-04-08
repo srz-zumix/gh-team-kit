@@ -14,9 +14,10 @@ import (
 )
 
 type Importer struct {
-	ctx    context.Context
-	client *client.GitHubClient
-	Owner  repository.Repository
+	ctx                  context.Context
+	client               *client.GitHubClient
+	Owner                repository.Repository
+	NoRemoveExtraMembers bool
 }
 
 func NewImporter(ctx context.Context, repository repository.Repository) (*Importer, error) {
@@ -165,12 +166,14 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 				errorList = append(errorList, fmt.Errorf("error adding maintainers to team %s: %w", teamConfig.Slug, err))
 			}
 
-			allMembers := make([]string, len(teamConfig.Members), len(teamConfig.Members)+len(teamConfig.Maintainers))
-			copy(allMembers, teamConfig.Members)
-			allMembers = append(allMembers, teamConfig.Maintainers...)
-			err = gh.RemoveTeamMembersOther(i.ctx, i.client, i.Owner, teamConfig.Slug, allMembers)
-			if err != nil {
-				errorList = append(errorList, fmt.Errorf("error removing members from team %s: %w", teamConfig.Slug, err))
+			if !i.NoRemoveExtraMembers {
+				allMembers := make([]string, len(teamConfig.Members), len(teamConfig.Members)+len(teamConfig.Maintainers))
+				copy(allMembers, teamConfig.Members)
+				allMembers = append(allMembers, teamConfig.Maintainers...)
+				err = gh.RemoveTeamMembersOther(i.ctx, i.client, i.Owner, teamConfig.Slug, allMembers)
+				if err != nil {
+					errorList = append(errorList, fmt.Errorf("error removing members from team %s: %w", teamConfig.Slug, err))
+				}
 			}
 		}
 
