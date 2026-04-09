@@ -147,8 +147,7 @@ Example:
 	f.BoolVar(&emu, "emu", false, "Compact matched pairs sharing the same base login into regex entries (e.g. (.+)_srcslug → $1_dstslug)")
 	f.BoolVar(&noSuspended, "no-suspended", false, "Exclude suspended users from source and target before matching")
 
-	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
-	cmdflags.SetupFormatFlagWithNonJSONFormats(cmd, &opts.Exporter, &format, "", []string{"yaml"})
+	_ = cmdflags.AddFormatFlags(cmd, &opts.Exporter, &format, "", []string{"yaml"})
 
 	cmd.MarkFlagsMutuallyExclusive("output", "format")
 

@@ -85,8 +85,7 @@ func NewExportCmd() *cobra.Command {
 	f.BoolVar(&noExportOrgRoles, "no-export-org-roles", false, "Specify whether to export custom organization roles")
 	f.BoolVar(&noSuspended, "no-suspended", false, "Exclude suspended users from export")
 
-	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
-	cmdflags.SetupFormatFlagWithNonJSONFormats(cmd, &opts.Exporter, &format, "", []string{"yaml"})
+	_ = cmdflags.AddFormatFlags(cmd, &opts.Exporter, &format, "", []string{"yaml"})
 
 	return cmd
 }
