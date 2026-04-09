@@ -109,8 +109,7 @@ When --usermap is specified, source logins are automatically converted to target
 	f.StringVar(&mapFile, "usermap", "", "User mapping file (as produced by 'user map') for login conversion during import")
 	f.BoolVar(&noRemoveExtraMembers, "no-remove-extra-members", false, "Skip removing existing team members that are not in the imported configuration; this does not affect removals required when setting an external group")
 
-	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
-	cmdflags.SetupFormatFlagWithNonJSONFormats(cmd, &opts.Exporter, &format, "", []string{"yaml"})
+	_ = cmdflags.AddFormatFlags(cmd, &opts.Exporter, &format, "", []string{"yaml"})
 
 	return cmd
 }
