@@ -36,7 +36,7 @@ type TeamConfig struct {
 type TeamCodeReviewSettings struct {
 	Enabled                      bool     `yaml:"enabled" json:"enabled"`
 	Algorithm                    string   `yaml:"algorithm" json:"algorithm"`
-	TeamMemberCount              int      `yaml:"member_count" json:"member_count"`
+	TeamMemberCount              int      `yaml:"team_member_count" json:"team_member_count"`
 	NotifyTeam                   bool     `yaml:"notify_team" json:"notify_team"`
 	ExcludedTeamMembers          []string `yaml:"excluded_team_members" json:"excluded_team_members"`
 	IncludeChildTeamMembers      *bool    `yaml:"include_child_team_members" json:"include_child_team_members"`

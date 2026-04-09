@@ -199,6 +199,7 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 				TeamSlug:                     teamConfig.Slug,
 				Enabled:                      teamConfig.CodeReviewSettings.Enabled,
 				Algorithm:                    teamConfig.CodeReviewSettings.Algorithm,
+				TeamMemberCount:              teamConfig.CodeReviewSettings.TeamMemberCount,
 				NotifyTeam:                   teamConfig.CodeReviewSettings.NotifyTeam,
 				ExcludedTeamMembers:          teamConfig.CodeReviewSettings.ExcludedTeamMembers,
 				IncludeChildTeamMembers:      teamConfig.CodeReviewSettings.IncludeChildTeamMembers,
