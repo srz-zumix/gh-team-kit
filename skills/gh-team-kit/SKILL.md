@@ -27,18 +27,14 @@ gh auth login
 gh team-kit --version
 ```
 
-## Global Options
+## Persistent Global Flags
 
 | Flag | Description |
 | --- | --- |
-| `--owner [HOST/]OWNER` | Organization to operate on (defaults to repo owner) |
-| `-R`, `--repo owner/repo` | Filter by or operate on a specific repository |
 | `--read-only` | Prevent any write operations |
 | `-L`, `--log-level` | Log level (debug, info, warn, error) |
-| `--jq <expr>` | Filter JSON output with jq |
-| `--json <fields>` | Output JSON with specified fields |
-| `--template <string>` | Format output with Go template |
 
+Common flags such as `--owner`, `--repo`, `--jq`, `--json`, and `--template` are available only on specific subcommands. Check each subcommand's help for supported options.
 ---
 
 ## Team Commands
