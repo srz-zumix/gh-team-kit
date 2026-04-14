@@ -26,6 +26,7 @@ The following commands are available in `gh-team-kit`. Each command is designed 
 - **Configuration Management**: Export and import team information for backup and bulk operations.
 - **Member Management**: Add, remove, check, and modify roles of team members.
 - **Repository Management**: Add, remove, list, and compare repositories associated with teams.
+- **Skills Management**: Install, update, and manage embedded agent skills for AI assistants.
 - **User Management**: Add, remove, list, and check users in the organization or repositories.
 - **Organization-Role Management**: Manage roles within the organization, including listing available roles.
 - **Code Review Management**: Get and set code review assignment settings for teams.
@@ -762,3 +763,60 @@ gh team-kit import <input> [--dryrun] [--verify] [--owner <[HOST/]OWNER>] [--hos
 ```
 
 Read and apply team information to the specified organization from a file or stdin. Use `--dryrun` to preview changes without applying them. Specify `-` as input to read from stdin. Accepts YAML or JSON format. When `--usermap` is specified, source logins are resolved using the mapping file (as produced by `user map`). The `src` field supports regular expressions and `dst` may contain `$N` or `${name}` capture-group references. If the input contains a `group` field for a team, the corresponding external group is connected automatically (EMU only; only applicable to leaf teams without parent/child teams). When the organization supports external groups and a team has no `group` specified, any existing external group connection is removed. If a team has an `org_roles` field, the listed custom organization roles are assigned to that team on import. By default, team members not present in the imported configuration are removed; use `--no-remove-extra-members` to skip this removal. See [docs/migrate.md](docs/migrate.md) for migration examples.
+
+### Skills Management
+
+#### Install agent skills
+
+```sh
+gh team-kit skills install [--scope <user|repo>] [--prefix <dir>] [--dry-run] [--force]
+```
+
+Install embedded agent skills into the skills directory. By default installs to `~/.agents/skills` (user scope). Use `--scope repo` to install to the current repository's `.agents/skills` directory. Use `--prefix` to specify a custom directory. Use `--dry-run` to preview changes without applying them. Use `--force` to overwrite unmanaged skills.
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--scope <user\|repo>` | `user` | Installation scope: `user` (`~/.agents/skills`) or `repo` (repository root) |
+| `--prefix <dir>` | — | Override the installation directory (ignores `--scope`) |
+| `--dry-run` | `false` | Preview changes without applying them |
+| `--force` | `false` | Overwrite unmanaged skills |
+
+#### List embedded agent skills
+
+```sh
+gh team-kit skills list
+```
+
+List all agent skills bundled with this tool.
+
+#### Reinstall agent skills
+
+```sh
+gh team-kit skills reinstall [--scope <user|repo>] [--prefix <dir>] [--dry-run] [--force]
+```
+
+Reinstall all managed skills regardless of version.
+
+#### Show agent skills status
+
+```sh
+gh team-kit skills status [--scope <user|repo>] [--prefix <dir>]
+```
+
+Show the installation status of each skill, including installed and available versions.
+
+#### Uninstall agent skills
+
+```sh
+gh team-kit skills uninstall [--scope <user|repo>] [--prefix <dir>] [--dry-run]
+```
+
+Remove all managed skills installed by this tool.
+
+#### Update agent skills
+
+```sh
+gh team-kit skills update [--scope <user|repo>] [--prefix <dir>] [--dry-run] [--force]
+```
+
+Update installed skills when a newer version is available.
