@@ -197,6 +197,8 @@ gh team-kit export --no-suspended
 
 ### `import`
 
+`<input>`: Path to a YAML file containing team configuration (as produced by `export`), or `-` to read from standard input.
+
 ```bash
 # Import team configuration from file
 gh team-kit import teams.yaml

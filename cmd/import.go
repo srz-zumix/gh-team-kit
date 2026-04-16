@@ -33,6 +33,7 @@ func NewImportCmd() *cobra.Command {
 		Use:   "import <input>",
 		Short: "Import team information",
 		Long: `Read and apply team information to the specified organization.
+<input>: Path to a YAML file containing team configuration, or '-' to read from standard input.
 When --usermap is specified, source logins are automatically converted to target logins using the mapping file (as produced by 'user map').`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
