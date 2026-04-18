@@ -10,6 +10,107 @@ compatibility:
 
 `gh-team-kit` is a GitHub CLI extension for team-related operations in GitHub Organizations.
 
+## CLI Structure
+
+```
+gh team-kit
+├── list                        # List teams in the organization
+├── get                         # Get a team by slug
+├── create                      # Create a new team
+├── update                      # Update an existing team
+├── delete                      # Delete a team
+├── rename                      # Rename a team
+├── move                        # Move a team to a new parent
+├── diff                        # Compare repositories between two teams
+├── tree                        # Display team hierarchy as a tree
+├── export                      # Export team configuration to file
+├── import                      # Import team configuration from file
+├── member                      # Manage team members
+│   ├── add
+│   ├── check
+│   ├── copy
+│   ├── list
+│   ├── only
+│   ├── pick
+│   ├── remove
+│   ├── role
+│   ├── sets
+│   └── sync
+├── repo                        # Manage team repository access
+│   ├── add
+│   ├── check
+│   ├── copy
+│   ├── diff
+│   ├── list
+│   ├── remove
+│   ├── sync
+│   └── user
+│       ├── add
+│       ├── check
+│       ├── list
+│       └── remove
+├── org-role                    # Manage organization roles
+│   ├── import
+│   ├── list
+│   ├── team
+│   │   ├── add
+│   │   ├── list
+│   │   └── remove
+│   └── user
+│       ├── add
+│       ├── list
+│       └── remove
+├── user                        # Manage organization members
+│   ├── add
+│   ├── check
+│   ├── hovercard
+│   │   ├── get
+│   │   ├── issue
+│   │   ├── org
+│   │   ├── pr
+│   │   └── repo
+│   ├── import
+│   ├── list
+│   ├── map
+│   ├── remove
+│   ├── repos
+│   ├── role
+│   ├── search
+│   └── teams
+├── member-privilege            # Manage organization member privileges
+│   ├── base-permissions
+│   ├── can-create-teams
+│   ├── copy
+│   ├── get
+│   └── set
+├── idp                         # Manage IDP group connections
+│   ├── list
+│   └── emu                     # Enterprise Managed Users external groups
+│       ├── find
+│       ├── get
+│       ├── list
+│       ├── set
+│       ├── teams
+│       └── unset
+├── copilot                     # Copilot metrics
+│   └── metrics
+├── mannequin                   # Manage mannequins
+│   ├── list
+│   ├── migrate
+│   ├── reattribute
+│   └── reattribute-by-email
+├── code-review                 # Code review assignment settings
+│   ├── get
+│   └── set
+└── skills                      # Manage embedded agent skills
+    ├── install
+    ├── list
+    ├── reinstall
+    ├── status
+    ├── uninstall
+    └── update
+```
+
 ## Prerequisites
 
 ```bash

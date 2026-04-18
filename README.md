@@ -768,6 +768,8 @@ Use `--dryrun` to preview changes without applying them. When `--usermap` is spe
 
 ### Skills Management
 
+> **Note:** The `skills` subcommands use `--dry-run` (with a hyphen), which differs from other `gh team-kit` commands that use `--dryrun` (no hyphen). This is intentional: `skills` is powered by the upstream [skillsmith](https://github.com/Songmu/skillsmith) library, which defines its own flag names.
+
 #### Install agent skills
 
 ```sh
@@ -780,7 +782,7 @@ Install embedded agent skills into the skills directory. By default installs to 
 | --- | --- | --- |
 | `--scope <user\|repo>` | `user` | Installation scope: `user` (`~/.agents/skills`) or `repo` (repository root) |
 | `--prefix <dir>` | — | Override the installation directory (ignores `--scope`) |
-| `--dry-run` | `false` | Preview changes without applying them |
+| `--dry-run` | `false` | Preview changes without applying them (note: uses `--dry-run`, not `--dryrun`) |
 | `--force` | `false` | Overwrite unmanaged skills |
 
 #### List embedded agent skills
