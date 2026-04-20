@@ -135,7 +135,8 @@ gh team-kit --version
 | `--read-only` | Prevent any write operations |
 | `-L`, `--log-level` | Log level (debug, info, warn, error) |
 
-Common flags such as `--owner`, `--repo`, `--jq`, `--json`, and `--template` are available only on specific subcommands. Check each subcommand's help for supported options.
+Common flags such as `--owner`, `--repo`, `--jq`, `--format`, and `--template` are available only on specific subcommands. Check each subcommand's help for supported options.
+JSON output uses `--format json`; `--jq` and `--template` require `--format json`.
 ---
 
 ## Team Commands
@@ -156,7 +157,7 @@ gh team-kit list --repo owner/repo
 gh team-kit list --name-only
 
 # JSON output
-gh team-kit list --json name,slug,description
+gh team-kit list --format json
 ```
 
 ### `get` (alias: `view`)
@@ -686,7 +687,7 @@ gh team-kit user role <username> admin
 gh team-kit user import users.json
 
 # Import from stdin
-gh team-kit user list --json login,role_name | gh team-kit user import -
+gh team-kit user list --format json | gh team-kit user import -
 
 # Dry run
 gh team-kit user import users.json --dryrun
@@ -753,17 +754,21 @@ gh team-kit user repos <username> --no-archived
 ### `user hovercard`
 
 ```bash
-# Get hovercard for a user in an org context
-gh team-kit user hovercard org <username> --owner <org>
+# Get hovercard (basic, with optional subject type/id)
+gh team-kit user hovercard get [username]
+gh team-kit user hovercard get [username] --subject-type organization --subject-id 12345
 
-# In repo context
-gh team-kit user hovercard repo <username> --repo owner/repo
+# In org context (username is optional positional arg)
+gh team-kit user hovercard org [username] --owner <org>
 
-# In issue context
-gh team-kit user hovercard issue <username> --repo owner/repo --number 123
+# In repo context (username is optional positional arg)
+gh team-kit user hovercard repo [username] --repo owner/repo
 
-# In PR context
-gh team-kit user hovercard pr <username> --repo owner/repo --number 456
+# In issue context (issue-number is first positional arg, username is optional second)
+gh team-kit user hovercard issue <issue-number> [username] --repo owner/repo
+
+# In PR context (pr-number is first positional arg, username is optional second)
+gh team-kit user hovercard pr <pr-number> [username] --repo owner/repo
 ```
 
 ---
@@ -882,7 +887,7 @@ gh team-kit copilot metrics <team-slug>
 gh team-kit copilot metrics <team-slug> --since 2025-01-01T00:00:00Z --until 2025-03-31T23:59:59Z
 
 # JSON output
-gh team-kit copilot metrics <team-slug> --json
+gh team-kit copilot metrics <team-slug> --format json
 ```
 
 ---
