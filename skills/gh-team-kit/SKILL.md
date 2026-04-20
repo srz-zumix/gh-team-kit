@@ -135,7 +135,8 @@ gh team-kit --version
 | `--read-only` | Prevent any write operations |
 | `-L`, `--log-level` | Log level (debug, info, warn, error) |
 
-Common flags such as `--owner`, `--repo`, `--jq`, `--json`, and `--template` are available only on specific subcommands. Check each subcommand's help for supported options.
+Common flags such as `--owner`, `--repo`, `--jq`, `--format`, and `--template` are available only on specific subcommands. Check each subcommand's help for supported options.
+JSON output uses `--format json`; `--jq` and `--template` require `--format json`.
 ---
 
 ## Team Commands
@@ -156,7 +157,7 @@ gh team-kit list --repo owner/repo
 gh team-kit list --name-only
 
 # JSON output
-gh team-kit list --json name,slug,description
+gh team-kit list --format json
 ```
 
 ### `get` (alias: `view`)
@@ -355,6 +356,9 @@ gh team-kit member remove <team-slug> user1 user2
 ```bash
 # List team members
 gh team-kit member list <team-slug>
+
+# Specify organization explicitly
+gh team-kit member list <team-slug> --owner myorg
 
 # Include detailed info
 gh team-kit member list <team-slug> --details
@@ -686,7 +690,7 @@ gh team-kit user role <username> admin
 gh team-kit user import users.json
 
 # Import from stdin
-gh team-kit user list --json login,role_name | gh team-kit user import -
+gh team-kit user list --format json | gh team-kit user import -
 
 # Dry run
 gh team-kit user import users.json --dryrun
@@ -753,17 +757,21 @@ gh team-kit user repos <username> --no-archived
 ### `user hovercard`
 
 ```bash
-# Get hovercard for a user in an org context
-gh team-kit user hovercard org <username> --owner <org>
+# Get hovercard (basic, with optional subject type/id)
+gh team-kit user hovercard get [username]
+gh team-kit user hovercard get [username] --subject-type organization --subject-id 12345
 
-# In repo context
-gh team-kit user hovercard repo <username> --repo owner/repo
+# In org context (username is optional positional arg)
+gh team-kit user hovercard org [username] --owner <org>
 
-# In issue context
-gh team-kit user hovercard issue <username> --repo owner/repo --number 123
+# In repo context (username is optional positional arg)
+gh team-kit user hovercard repo [username] --repo owner/repo
 
-# In PR context
-gh team-kit user hovercard pr <username> --repo owner/repo --number 456
+# In issue context (issue-number is first positional arg, username is optional second)
+gh team-kit user hovercard issue <issue-number> [username] --repo owner/repo
+
+# In PR context (pr-number is first positional arg, username is optional second)
+gh team-kit user hovercard pr <pr-number> [username] --repo owner/repo
 ```
 
 ---
@@ -882,7 +890,7 @@ gh team-kit copilot metrics <team-slug>
 gh team-kit copilot metrics <team-slug> --since 2025-01-01T00:00:00Z --until 2025-03-31T23:59:59Z
 
 # JSON output
-gh team-kit copilot metrics <team-slug> --json
+gh team-kit copilot metrics <team-slug> --format json
 ```
 
 ---
@@ -895,6 +903,55 @@ gh team-kit mannequin list
 
 # Output only login names
 gh team-kit mannequin list --name-only
+```
+
+---
+
+## `code-review` — Code Review Assignment Settings
+
+### `code-review get` (alias: `view`)
+
+```bash
+# Get code review assignment settings for a team
+gh team-kit code-review get <team-slug>
+```
+
+### `code-review set`
+
+```bash
+# Enable code review assignment
+gh team-kit code-review set <team-slug> --enable
+
+# Disable code review assignment
+gh team-kit code-review set <team-slug> --disable
+
+# Set number of reviewers to assign
+gh team-kit code-review set <team-slug> --member-count 3
+
+# Set assignment algorithm (ROUND_ROBIN or LOAD_BALANCE)
+gh team-kit code-review set <team-slug> --algorithm ROUND_ROBIN
+gh team-kit code-review set <team-slug> --algorithm LOAD_BALANCE
+
+# Notify the entire team when a review is requested
+gh team-kit code-review set <team-slug> --notify-team
+
+# Disable team notification
+gh team-kit code-review set <team-slug> --no-notify-team
+
+# Include child team members in review pool
+gh team-kit code-review set <team-slug> --include-child-team-members
+
+# Count members who have already been requested
+gh team-kit code-review set <team-slug> --count-members-already-requested
+
+# Remove the team from the review request when assigning individuals
+gh team-kit code-review set <team-slug> --remove-team-request
+
+# Exclude specific members from code review assignment
+gh team-kit code-review set <team-slug> --exclude-members user1,user2
+
+# Combined example
+gh team-kit code-review set <team-slug> --enable --member-count 3 --algorithm ROUND_ROBIN --notify-team --exclude-members alice
 ```
 
 ---
