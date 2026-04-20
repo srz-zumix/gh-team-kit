@@ -357,6 +357,9 @@ gh team-kit member remove <team-slug> user1 user2
 # List team members
 gh team-kit member list <team-slug>
 
+# Specify organization explicitly
+gh team-kit member list <team-slug> --owner myorg
+
 # Include detailed info
 gh team-kit member list <team-slug> --details
 
@@ -900,6 +903,55 @@ gh team-kit mannequin list
 
 # Output only login names
 gh team-kit mannequin list --name-only
+```
+
+---
+
+## `code-review` — Code Review Assignment Settings
+
+### `code-review get` (alias: `view`)
+
+```bash
+# Get code review assignment settings for a team
+gh team-kit code-review get <team-slug>
+```
+
+### `code-review set`
+
+```bash
+# Enable code review assignment
+gh team-kit code-review set <team-slug> --enable
+
+# Disable code review assignment
+gh team-kit code-review set <team-slug> --disable
+
+# Set number of reviewers to assign
+gh team-kit code-review set <team-slug> --member-count 3
+
+# Set assignment algorithm (ROUND_ROBIN or LOAD_BALANCE)
+gh team-kit code-review set <team-slug> --algorithm ROUND_ROBIN
+gh team-kit code-review set <team-slug> --algorithm LOAD_BALANCE
+
+# Notify the entire team when a review is requested
+gh team-kit code-review set <team-slug> --notify-team
+
+# Disable team notification
+gh team-kit code-review set <team-slug> --no-notify-team
+
+# Include child team members in review pool
+gh team-kit code-review set <team-slug> --include-child-team-members
+
+# Count members who have already been requested
+gh team-kit code-review set <team-slug> --count-members-already-requested
+
+# Remove the team from the review request when assigning individuals
+gh team-kit code-review set <team-slug> --remove-team-request
+
+# Exclude specific members from code review assignment
+gh team-kit code-review set <team-slug> --exclude-members user1,user2
+
+# Combined example
+gh team-kit code-review set <team-slug> --enable --member-count 3 --algorithm ROUND_ROBIN --notify-team --exclude-members alice
 ```
 
 ---
