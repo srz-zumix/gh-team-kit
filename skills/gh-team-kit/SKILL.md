@@ -319,6 +319,9 @@ gh team-kit import teams.yaml --usermap usermap.yaml
 
 # Skip removing extra members not in config
 gh team-kit import teams.yaml --no-remove-extra-members
+
+# Continue on errors without exiting
+gh team-kit import teams.yaml --ignore-errors
 ```
 
 ---
@@ -700,6 +703,9 @@ gh team-kit user import users.json --usermap usermap.yaml
 
 # Set default role
 gh team-kit user import users.json --role admin
+
+# Continue on errors without exiting
+gh team-kit user import users.json --ignore-errors
 ```
 
 ### `user map`

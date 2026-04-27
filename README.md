@@ -315,7 +315,7 @@ Check the role of a specified user in the organization.
 #### Import users into the organization
 
 ```sh
-gh team-kit user import <input> [--owner <[HOST/]OWNER>] [--role <member|admin>] [--usermap <file>] [--dryrun]
+gh team-kit user import <input> [--owner <[HOST/]OWNER>] [--role <member|admin>] [--usermap <file>] [--dryrun] [--ignore-errors]
 ```
 
 Read a JSON list of users (as produced by `user list --format json`) and add each user to the organization.
@@ -329,6 +329,7 @@ Specify `-` as `<input>` to read from stdin.
 | `--role <member\|admin>` | `member` | Default role when not specified in input |
 | `--usermap <file>` | — | User mapping file for login conversion during import |
 | `--dryrun`, `-n` | `false` | Dry run: show count without applying changes |
+| `--ignore-errors` | `false` | Continue without exiting on error during import |
 
 #### Create a user mapping file between source and target organizations
 
@@ -759,12 +760,12 @@ Retrieve and display team information from the specified organization. Exports t
 #### Import team information
 
 ```sh
-gh team-kit import <input> [--dryrun] [--verify] [--owner <[HOST/]OWNER>] [--host <host>] [--usermap <file>] [--no-remove-extra-members] [--format <json|yaml>]
+gh team-kit import <input> [--dryrun] [--verify] [--owner <[HOST/]OWNER>] [--host <host>] [--usermap <file>] [--no-remove-extra-members] [--ignore-errors] [--format <json|yaml>]
 ```
 
 Read and apply team information to the specified organization from a file or stdin.
 `<input>`: Path to a YAML file containing team configuration (as produced by `export`), or `-` to read from standard input.
-Use `--dryrun` to preview changes without applying them. When `--usermap` is specified, source logins are resolved using the mapping file (as produced by `user map`). The `src` field supports regular expressions and `dst` may contain `$N` or `${name}` capture-group references. If the input contains a `group` field for a team, the corresponding external group is connected automatically (EMU only; only applicable to leaf teams without parent/child teams). When the organization supports external groups and a team has no `group` specified, any existing external group connection is removed. If a team has an `org_roles` field, the listed custom organization roles are assigned to that team on import. By default, team members not present in the imported configuration are removed; use `--no-remove-extra-members` to skip this removal. See [docs/migrate.md](docs/migrate.md) for migration examples.
+Use `--dryrun` to preview changes without applying them. When `--usermap` is specified, source logins are resolved using the mapping file (as produced by `user map`). The `src` field supports regular expressions and `dst` may contain `$N` or `${name}` capture-group references. If the input contains a `group` field for a team, the corresponding external group is connected automatically (EMU only; only applicable to leaf teams without parent/child teams). When the organization supports external groups and a team has no `group` specified, any existing external group connection is removed. If a team has an `org_roles` field, the listed custom organization roles are assigned to that team on import. By default, team members not present in the imported configuration are removed; use `--no-remove-extra-members` to skip this removal. Use `--ignore-errors` to continue without exiting on error during import. See [docs/migrate.md](docs/migrate.md) for migration examples.
 
 ### Skills Management
 
