@@ -89,10 +89,11 @@ Specify '-' as input to read from stdin.`,
 			}
 
 			if len(errs) > 0 {
+				joinedErr := errors.Join(errs...)
 				if !ignoreErrors {
-					return fmt.Errorf("encountered errors during import: %w", errors.Join(errs...))
+					return fmt.Errorf("encountered errors during import: %w", joinedErr)
 				}
-				logger.Warn(fmt.Sprintf("encountered errors during import: %v", errors.Join(errs...)))
+				logger.Warn("Encountered errors during import.", "error", joinedErr, "count", len(errs))
 			}
 			return nil
 		},
