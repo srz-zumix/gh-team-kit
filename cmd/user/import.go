@@ -19,6 +19,7 @@ func NewImportCmd() *cobra.Command {
 	var dryrun bool
 	var defaultRole string
 	var mapFile string
+	var ignoreErrors bool
 
 	cmd := &cobra.Command{
 		Use:   "import <input>",
@@ -88,7 +89,10 @@ Specify '-' as input to read from stdin.`,
 			}
 
 			if len(errs) > 0 {
-				return fmt.Errorf("encountered errors during import: %w", errors.Join(errs...))
+				if !ignoreErrors {
+					return fmt.Errorf("encountered errors during import: %w", errors.Join(errs...))
+				}
+				logger.Warn(fmt.Sprintf("encountered errors during import: %v", errors.Join(errs...)))
 			}
 			return nil
 		},
@@ -99,6 +103,7 @@ Specify '-' as input to read from stdin.`,
 	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: do not actually apply changes")
 	f.StringVar(&mapFile, "usermap", "", "User mapping file (as produced by 'user map') for login conversion during import")
 	cmdutil.StringEnumFlag(cmd, &defaultRole, "role", "", gh.TeamMembershipRoleMember, gh.OrgMembershipList, "Default role when not specified in input (member or admin)")
+	f.BoolVar(&ignoreErrors, "ignore-errors", false, "Continue without exiting on error during import")
 
 	return cmd
 }
