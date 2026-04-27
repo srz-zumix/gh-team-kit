@@ -87,7 +87,7 @@ When --usermap is specified, source logins are automatically converted to target
 					if !ignoreErrors {
 						return fmt.Errorf("error applying organization config: %w", err)
 					}
-					logger.Warn(fmt.Sprintf("error applying organization config: %v", err))
+					logger.Warn("error applying organization config", "error", err)
 				}
 				logger.Info("Teams imported successfully.")
 			}
