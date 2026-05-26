@@ -14,8 +14,10 @@ func NewUserCmd() *cobra.Command {
 
 	userCmd.AddCommand(user.NewAddCmd())
 	userCmd.AddCommand(user.NewCheckCmd())
+	userCmd.AddCommand(user.NewCopyCmd())
 	userCmd.AddCommand(user.NewListCmd())
 	userCmd.AddCommand(user.NewRemoveCmd())
+	userCmd.AddCommand(user.NewSyncCmd())
 
 	return userCmd
 }
