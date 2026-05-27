@@ -24,7 +24,7 @@ func NewCopyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "copy <dst-repository...>",
 		Short: "Copy direct user permissions to multiple destination repos",
-		Long:  `Copy direct user collaborator permissions from the source repository to multiple destination repositories. The destination repositories can be specified by their full name (owner/repo) or just the repo name if the owner is provided as a flag.`,
+		Long:  `Copy direct user collaborator permissions from the source repository to multiple destination repositories. The destination repositories can be specified by their full name (owner/repo).`,
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repository, err := parser.Repository(parser.RepositoryInput(repo))
