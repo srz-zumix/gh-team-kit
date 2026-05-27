@@ -3,20 +3,14 @@ package user
 import (
 	"fmt"
 
-	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 )
 
-type SyncOptions struct {
-	Exporter cmdutil.Exporter
-}
-
 // NewSyncCmd creates a new `repo user sync` command
 func NewSyncCmd() *cobra.Command {
-	opts := &SyncOptions{}
 	var repo string
 	var dstHost string
 
@@ -66,7 +60,6 @@ func NewSyncCmd() *cobra.Command {
 	f := cmd.Flags()
 	f.StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
 	f.StringVar(&dstHost, "dst-host", "", "The destination host")
-	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd
 }

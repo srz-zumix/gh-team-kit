@@ -3,20 +3,14 @@ package user
 import (
 	"fmt"
 
-	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
 )
 
-type CopyOptions struct {
-	Exporter cmdutil.Exporter
-}
-
 // NewCopyCmd creates a new `repo user copy` command
 func NewCopyCmd() *cobra.Command {
-	opts := &CopyOptions{}
 	var force bool
 	var repo string
 	var dstHost string
@@ -68,7 +62,6 @@ func NewCopyCmd() *cobra.Command {
 	f.BoolVarP(&force, "force", "f", false, "Force overwrite existing permissions if they exist")
 	f.StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
 	f.StringVar(&dstHost, "dst-host", "", "The destination host")
-	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd
 }
