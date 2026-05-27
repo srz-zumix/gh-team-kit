@@ -62,7 +62,7 @@ func NewCopyCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.BoolVarP(&force, "force", "f", false, "Force overwrite existing permissions if they exist")
-	f.StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
+	f.StringVarP(&repo, "repo", "R", "", "The repository in the format '[HOST/]OWNER/REPO'")
 	f.StringVar(&dstHost, "dst-host", "", "The destination host")
 
 	return cmd
