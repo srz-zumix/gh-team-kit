@@ -32,9 +32,10 @@ func NewSyncCmd() *cobra.Command {
 
 			ctx := cmd.Context()
 			for _, dstArg := range args {
+			for _, dstArg := range args {
 				dstRepository, err := parser.Repository(parser.RepositoryInput(dstArg))
 				if err != nil {
-					return fmt.Errorf("error parsing destination repository: %w", err)
+					return fmt.Errorf("error parsing destination repository %q: %w", dstArg, err)
 				}
 				if dstHost != "" {
 					dstRepository.Host = dstHost
