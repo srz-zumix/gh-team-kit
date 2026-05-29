@@ -44,8 +44,9 @@ func NewSyncCmd() *cobra.Command {
 				if repository.Host != dstRepository.Host {
 					dstClient, err = gh.NewGitHubClientWithRepo(dstRepository)
 					if err != nil {
-						return fmt.Errorf("error creating GitHub client: %w", err)
+						return fmt.Errorf("error creating destination GitHub client: %w", err)
 					}
+				}
 				}
 
 				if err := gh.SyncRepoUserPermissions(ctx, srcClient, repository, dstClient, dstRepository); err != nil {
