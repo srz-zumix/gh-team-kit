@@ -60,7 +60,7 @@ func NewSyncCmd() *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVarP(&repo, "repo", "R", "", "The repository in the format 'owner/repo'")
+	f.StringVarP(&repo, "repo", "R", "", "The repository in the format '[HOST/]OWNER/REPO'")
 	f.StringVar(&dstHost, "dst-host", "", "The destination host")
 
 	return cmd
