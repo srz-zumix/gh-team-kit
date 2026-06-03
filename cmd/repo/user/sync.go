@@ -17,7 +17,7 @@ func NewSyncCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sync <dst-repository...>",
 		Short: "Sync direct user permissions to multiple destination repos",
-		Long:  `Sync direct user collaborator permissions from the source repository to multiple destination repositories. The destination repositories can be specified by their full name (owner/repo).`,
+		Long:  `Sync direct user collaborator permissions from the source repository to multiple destination repositories. The destination repositories can be specified by their full name ([HOST/]OWNER/REPO).`,
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repository, err := parser.Repository(parser.RepositoryInput(repo))
