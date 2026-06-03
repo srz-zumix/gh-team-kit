@@ -445,7 +445,7 @@ Check the permissions of a specified user for a repository.
 gh team-kit repo user copy [-R <[HOST/]OWNER/REPO>] [--dst-host <host>] [-f] <dst-repository...>
 ```
 
-Copy direct user collaborator permissions from the source repository to multiple destination repositories. Only direct collaborators (not team-inherited) are copied. If a user already has a different permission on the destination, the command fails unless `--force` is specified.
+Copy direct user collaborator permissions from the source repository to multiple destination repositories. Only direct collaborators (not team-inherited) are copied. If a user already has a different permission on the destination, the command fails unless `--force` (or `-f`) is specified.
 
 | Flag | Default | Description |
 | --- | --- | --- |
