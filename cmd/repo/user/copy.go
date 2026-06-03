@@ -33,7 +33,6 @@ func NewCopyCmd() *cobra.Command {
 
 			ctx := cmd.Context()
 			for _, dstArg := range args {
-			for _, dstArg := range args {
 				dstRepository, err := parser.Repository(parser.RepositoryInput(dstArg))
 				if err != nil {
 					return fmt.Errorf("error parsing destination repository %q: %w", dstArg, err)
@@ -47,7 +46,6 @@ func NewCopyCmd() *cobra.Command {
 					if err != nil {
 						return fmt.Errorf("error creating destination GitHub client: %w", err)
 					}
-				}
 				}
 
 				if err := gh.CopyRepoUserPermissions(ctx, srcClient, repository, dstClient, dstRepository, force); err != nil {
