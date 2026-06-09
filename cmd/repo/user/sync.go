@@ -48,7 +48,7 @@ func NewSyncCmd() *cobra.Command {
 				}
 
 				if err := gh.SyncRepoUserPermissions(ctx, srcClient, repository, dstClient, dstRepository); err != nil {
-					return fmt.Errorf("failed to sync user permissions to %s: %w", dstArg, err)
+					return fmt.Errorf("failed to sync user permissions to %s: %w", parser.GetRepositoryFullName(dstRepository), err)
 				}
 				logger.Info("User permissions synced successfully.", "from", parser.GetRepositoryFullName(repository), "to", parser.GetRepositoryFullName(dstRepository))
 			}
