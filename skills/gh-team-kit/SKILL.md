@@ -574,6 +574,21 @@ gh team-kit repo user list --repo owner/repo --affiliation outside
 
 # Check a user's permission
 gh team-kit repo user check <username> --repo owner/repo --exit-code
+
+# Copy direct user permissions to another repository
+gh team-kit repo user copy owner/dst-repo --repo owner/src-repo
+
+# Copy and overwrite existing permissions
+gh team-kit repo user copy owner/dst-repo --repo owner/src-repo --force
+
+# Copy across hosts
+gh team-kit repo user copy owner/dst-repo --repo owner/src-repo --dst-host ghe.example.com
+
+# Sync direct user permissions to another repository (adds, updates, and removes)
+gh team-kit repo user sync owner/dst-repo --repo owner/src-repo
+
+# Sync across hosts
+gh team-kit repo user sync owner/dst-repo --repo owner/src-repo --dst-host ghe.example.com
 ```
 
 ---

@@ -439,6 +439,20 @@ gh team-kit repo user check <username>
 
 Check the permissions of a specified user for a repository.
 
+#### Copy direct user permissions to multiple destination repos
+
+```sh
+gh team-kit repo user copy [-R <[HOST/]OWNER/REPO>] [--dst-host <host>] [-f] <dst-repository...>
+```
+
+Copy direct user collaborator permissions from the source repository to multiple destination repositories. Only direct collaborators (not team-inherited) are copied. If a user already has a different permission on the destination, the command fails unless `--force` (or `-f`) is specified.
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `-R, --repo <[HOST/]OWNER/REPO>` | (current repo) | Source repository |
+| `--dst-host <host>` | (same as source) | Destination host for cross-host copy |
+| `-f, --force` | `false` | Overwrite existing permissions if they differ |
+
 #### List users with access to a repository
 
 ```sh
@@ -454,6 +468,19 @@ gh team-kit repo user remove <username>
 ```
 
 Remove a specified user's access to a repository.
+
+#### Sync direct user permissions to multiple destination repos
+
+```sh
+gh team-kit repo user sync [-R <[HOST/]OWNER/REPO>] [--dst-host <host>] <dst-repository...>
+```
+
+Synchronize direct user collaborator permissions from the source repository to multiple destination repositories. Users are added or updated to match the source, and users not present in the source are removed from the destination.
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `-R, --repo <[HOST/]OWNER/REPO>` | (current repo) | Source repository |
+| `--dst-host <host>` | (same as source) | Destination host for cross-host sync |
 
 ### Member Privileges Management
 
