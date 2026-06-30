@@ -107,7 +107,7 @@ Example:
 				}
 
 				// Bot accounts cannot be reattributed via mannequin reclamation, skip them
-				if strings.Contains(targetLogin, "[bot]") {
+				if strings.HasSuffix(targetLogin, "[bot]") {
 					logger.Warn("Target user is a bot, skipping", "mannequin", mannequinLogin, "target-user", targetLogin)
 					continue
 				}
