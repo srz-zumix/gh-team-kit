@@ -31,7 +31,7 @@ The mapping file (--usermap) must be a YAML file as produced by 'user map'.
 Each mannequin is matched to a mapping entry first by src login, then by email.
 Mannequins already claimed are skipped unless --force is specified.
 Entries whose dst login is empty are skipped.
-Bot accounts (login containing '[bot]') are skipped because they cannot be reclaimed.
+Bot accounts (login ending with '[bot]') are skipped because they cannot be reclaimed.
 Processing continues on per-mannequin errors; all collected errors are reported at the end.
 
 Example:
