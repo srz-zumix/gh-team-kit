@@ -1,7 +1,9 @@
 package mannequin
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
@@ -29,6 +31,8 @@ The mapping file (--usermap) must be a YAML file as produced by 'user map'.
 Each mannequin is matched to a mapping entry first by src login, then by email.
 Mannequins already claimed are skipped unless --force is specified.
 Entries whose dst login is empty are skipped.
+Bot accounts (login ending with '[bot]') are skipped because they cannot be reclaimed.
+Processing continues on per-mannequin errors; all collected errors are reported at the end.
 
 Example:
   gh team-kit mannequin migrate --owner myorg --usermap user-map.yaml
@@ -69,6 +73,7 @@ Example:
 			}
 			orgNodeID := *org.NodeID
 
+			var errs []error
 			for i := range mannequins {
 				m := &mannequins[i]
 				mannequinLogin := string(m.Login)
@@ -101,6 +106,12 @@ Example:
 					continue
 				}
 
+				// Bot accounts cannot be reattributed via mannequin reclamation, skip them
+				if strings.HasSuffix(targetLogin, "[bot]") {
+					logger.Warn("Target user is a bot, skipping", "mannequin", mannequinLogin, "target-user", targetLogin)
+					continue
+				}
+
 				if dryrun {
 					logger.Info("Would reattribute mannequin", "mannequin", mannequinLogin, "target-user", targetLogin)
 					continue
@@ -111,24 +122,35 @@ Example:
 				// Get target user node ID
 				targetUser, err := gh.FindUser(ctx, client, targetLogin)
 				if err != nil {
-					return fmt.Errorf("failed to find user '%s': %w", targetLogin, err)
+					logger.Error("Failed to find target user, skipping", "mannequin", mannequinLogin, "target-user", targetLogin, "error", err)
+					errs = append(errs, fmt.Errorf("failed to find user '%s' for mannequin '%s': %w", targetLogin, mannequinLogin, err))
+					continue
 				}
 				if targetUser.NodeID == nil {
-					return fmt.Errorf("failed to get node ID for user '%s'", targetLogin)
+					logger.Error("Failed to get node ID for target user, skipping", "mannequin", mannequinLogin, "target-user", targetLogin)
+					errs = append(errs, fmt.Errorf("failed to get node ID for user '%s'", targetLogin))
+					continue
 				}
 				targetUserNodeID := targetUser.GetNodeID()
 
 				if skipInvitation {
 					if err := gh.ReattributeMannequinToUser(ctx, client, repository, orgNodeID, mannequinNodeID, targetUserNodeID); err != nil {
-						return fmt.Errorf("failed to reattribute mannequin '%s': %w", mannequinLogin, err)
+						logger.Error("Failed to reattribute mannequin, skipping", "mannequin", mannequinLogin, "target-user", targetLogin, "error", err)
+						errs = append(errs, fmt.Errorf("failed to reattribute mannequin '%s': %w", mannequinLogin, err))
+						continue
 					}
 					logger.Info("Mannequin reattributed successfully.", "mannequin", mannequinLogin, "target-user", targetLogin)
 				} else {
 					if err := gh.CreateAttributionInvitation(ctx, client, repository, orgNodeID, mannequinNodeID, targetUserNodeID); err != nil {
-						return fmt.Errorf("failed to invite user to claim mannequin '%s': %w", mannequinLogin, err)
+						logger.Error("Failed to invite user to claim mannequin, skipping", "mannequin", mannequinLogin, "target-user", targetLogin, "error", err)
+						errs = append(errs, fmt.Errorf("failed to invite user to claim mannequin '%s': %w", mannequinLogin, err))
+						continue
 					}
 					logger.Info("Attribution invitation sent.", "mannequin", mannequinLogin, "target-user", targetLogin)
 				}
+			}
+			if len(errs) > 0 {
+				return errors.Join(errs...)
 			}
 			return nil
 		},
