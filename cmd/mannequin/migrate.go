@@ -128,7 +128,7 @@ Example:
 				}
 				if targetUser.NodeID == nil {
 					logger.Error("Failed to get node ID for target user, skipping", "mannequin", mannequinLogin, "target-user", targetLogin)
-					errs = append(errs, fmt.Errorf("failed to get node ID for user '%s'", targetLogin))
+					errs = append(errs, fmt.Errorf("failed to get node ID for user '%s' for mannequin '%s'", targetLogin, mannequinLogin))
 					continue
 				}
 				targetUserNodeID := targetUser.GetNodeID()
@@ -136,21 +136,21 @@ Example:
 				if skipInvitation {
 					if err := gh.ReattributeMannequinToUser(ctx, client, repository, orgNodeID, mannequinNodeID, targetUserNodeID); err != nil {
 						logger.Error("Failed to reattribute mannequin, skipping", "mannequin", mannequinLogin, "target-user", targetLogin, "error", err)
-						errs = append(errs, fmt.Errorf("failed to reattribute mannequin '%s': %w", mannequinLogin, err))
+						errs = append(errs, fmt.Errorf("failed to reattribute mannequin '%s' to user '%s': %w", mannequinLogin, targetLogin, err))
 						continue
 					}
 					logger.Info("Mannequin reattributed successfully.", "mannequin", mannequinLogin, "target-user", targetLogin)
 				} else {
 					if err := gh.CreateAttributionInvitation(ctx, client, repository, orgNodeID, mannequinNodeID, targetUserNodeID); err != nil {
 						logger.Error("Failed to invite user to claim mannequin, skipping", "mannequin", mannequinLogin, "target-user", targetLogin, "error", err)
-						errs = append(errs, fmt.Errorf("failed to invite user to claim mannequin '%s': %w", mannequinLogin, err))
+						errs = append(errs, fmt.Errorf("failed to invite user '%s' to claim mannequin '%s': %w", targetLogin, mannequinLogin, err))
 						continue
 					}
 					logger.Info("Attribution invitation sent.", "mannequin", mannequinLogin, "target-user", targetLogin)
 				}
 			}
 			if len(errs) > 0 {
-				return errors.Join(errs...)
+				return fmt.Errorf("encountered errors during mannequin migration: %w", errors.Join(errs...))
 			}
 			return nil
 		},
