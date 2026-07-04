@@ -27,6 +27,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  bump_version_pr:
+    needs: draft_release
+    if: github.event_name != 'workflow_dispatch'
+    uses: srz-zumix/go-gh-extension/.github/workflows/reusable-bump-version-pr.yml@a86e7120e8ece693df01b6f67c72af6a6fdc2d42 # v0.5.2
+    permissions:
+      contents: write
+      pull-requests: write
+    with:
+      tag_name: ${{ needs.draft_release.outputs.tag_name }}
+
   publish_release:
     needs: draft_release
     uses: ./.github/workflows/release.yml
