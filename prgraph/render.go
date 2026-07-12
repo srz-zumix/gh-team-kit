@@ -111,14 +111,15 @@ func dotNodeShape(t NodeType) string {
 
 // mermaidNodeID creates a collision-free Mermaid node identifier from a string.
 // All non-alphanumeric characters are hex-encoded using their Unicode code point
-// in lowercase hexadecimal, prefixed with '_'.
+// as six lowercase hexadecimal digits prefixed with '_', so that encoded
+// sequences cannot be confused with adjacent alphanumeric characters.
 func mermaidNodeID(name string) string {
 	var b strings.Builder
 	for _, c := range name {
 		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') {
 			b.WriteRune(c)
 		} else {
-			fmt.Fprintf(&b, "_%02x", c)
+			fmt.Fprintf(&b, "_%06x", c)
 		}
 	}
 	return b.String()
