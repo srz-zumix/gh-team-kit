@@ -30,6 +30,7 @@ The following commands are available in `gh-team-kit`. Each command is designed 
 - **User Management**: Add, remove, list, and check users in the organization or repositories.
 - **Organization-Role Management**: Manage roles within the organization, including listing available roles.
 - **Code Review Management**: Get and set code review assignment settings for teams.
+- **Pull Request Analysis**: Generate relationship graphs from pull request activity, including users, teams, labels, and code areas.
 - **IDP Management**: Manage IDP groups (SAML team sync) and external groups (Enterprise Managed Users).
 - **Mannequin Management**: List and reattribute mannequins (placeholder accounts for unclaimed users), individually or in bulk via a user mapping file.
 - **Permission Management**: Check and synchronize permissions for teams and users across repositories.
@@ -773,6 +774,16 @@ gh team-kit code-review set <team-slug> [--owner <[HOST/]OWNER>] [--enabled|--di
 ```
 
 Update code review assignment settings for the specified team. You can enable/disable auto-assignment, set the assignment algorithm, configure the number of members to assign, and control team notifications.
+
+### Pull Request Analysis
+
+#### Generate a relationship graph from pull request activity
+
+```sh
+gh team-kit pr-graph [<[HOST/]OWNER/REPO>...] [--owner <[HOST/]OWNER>] [--state <open|closed|all>] [--since <date>] [--until <date>] [--limit <int>] [--format <json|dot|markdown|mermaid>]
+```
+
+Analyze pull request activity and generate a graph showing relationships between users, teams, labels, and code areas. The graph contains user, team, label, file, and directory nodes. Edges represent review, approval, comment, review request, team membership, file change, directory containment, CODEOWNERS ownership, and labeling relationships, weighted by the number of occurrences. Repository arguments are optional: specify one or more repositories, use `--owner` to analyze all repositories of an organization (mutually exclusive with repository arguments), or omit both to use the current repository. Use `--state` to filter pull requests by state (default: `all`), `--since` and `--until` to limit the analysis to pull requests created in a date range (`YYYY-MM-DD` or RFC 3339), and `--limit` to cap the number of pull requests analyzed per repository (default: `30`, `0` = unlimited). The output format defaults to `mermaid`; `dot`, `markdown` (Mermaid in a code fence), and `json` (node/edge data) are also supported.
 
 ### Configuration Management
 

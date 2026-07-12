@@ -1,6 +1,6 @@
 ---
 name: gh-team-kit
-description: gh-team-kit GitHub CLI extension for managing GitHub Organization teams, members, repositories, org roles, member privileges, IDP/EMU groups, and Copilot metrics. Use when performing team membership operations, syncing teams, managing org roles, comparing repository permissions, exporting/importing team configurations, or handling Enterprise Managed Users (EMU).
+description: gh-team-kit GitHub CLI extension for managing GitHub Organization teams, members, repositories, org roles, member privileges, IDP/EMU groups, and Copilot metrics. Use when performing team membership operations, syncing teams, managing org roles, comparing repository permissions, exporting/importing team configurations, handling Enterprise Managed Users (EMU), or generating pull request activity relationship graphs.
 license: MIT
 compatibility:
   - Requires gh CLI (https://cli.github.com) with gh-team-kit extension installed (`gh extension install srz-zumix/gh-team-kit`)
@@ -102,6 +102,7 @@ gh team-kit
 ├── code-review                 # Code review assignment settings
 │   ├── get
 │   └── set
+├── pr-graph                    # Generate PR activity relationship graph
 └── skills                      # Manage embedded agent skills
     ├── install
     ├── list
@@ -974,6 +975,34 @@ gh team-kit code-review set <team-slug> --exclude-members user1,user2
 # Combined example
 gh team-kit code-review set <team-slug> --enable --member-count 3 --algorithm ROUND_ROBIN --notify-team --exclude-members alice
 ```
+
+---
+
+## `pr-graph` — Pull Request Activity Relationship Graph
+
+```bash
+# Generate a Mermaid relationship graph for the current repository
+gh team-kit pr-graph
+
+# Analyze specific repositories
+gh team-kit pr-graph owner/repo1 owner/repo2
+
+# Analyze all repositories of an organization
+gh team-kit pr-graph --owner my-org
+
+# Filter pull requests by state and creation date range
+gh team-kit pr-graph --state closed --since 2025-01-01 --until 2025-03-31
+
+# Limit the number of pull requests analyzed per repository (default: 30, 0 = unlimited)
+gh team-kit pr-graph --limit 100
+
+# Output as Graphviz DOT, Markdown (fenced Mermaid), or JSON node/edge data
+gh team-kit pr-graph --format dot
+gh team-kit pr-graph --format markdown
+gh team-kit pr-graph --format json
+```
+
+Nodes: users, teams, labels, files, and directories. Edges (weighted by occurrence count): `approved`, `changes-requested`, `reviewed`, `commented`, `review-commented`, `review-requested`, `member-of`, `changed`, `in` (directory containment), `owned-by` (CODEOWNERS), and `labeled`.
 
 ---
 
