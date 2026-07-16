@@ -50,7 +50,7 @@ Specify one or more repositories as arguments, or use --owner to analyze all rep
 				collectOpts.Since = &t
 			}
 			if until != "" {
-				t, err := parseDateTime(until)
+				t, err := parseUntil(until)
 				if err != nil {
 					return fmt.Errorf("failed to parse --until: %w", err)
 				}
@@ -138,6 +138,20 @@ func parseDateTime(s string) (time.Time, error) {
 		return t, nil
 	}
 	return time.Parse("2006-01-02", s)
+}
+
+// parseUntil parses the --until value. RFC 3339 values are used as an exact
+// instant, while a date-only value (YYYY-MM-DD) is treated as inclusive through
+// the end of that UTC day so PRs created later on that date are not excluded.
+func parseUntil(s string) (time.Time, error) {
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t, nil
+	}
+	t, err := time.Parse("2006-01-02", s)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return t.AddDate(0, 0, 1).Add(-time.Nanosecond), nil
 }
 
 func init() {
