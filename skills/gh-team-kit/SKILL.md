@@ -1004,6 +1004,8 @@ gh team-kit pr-graph --format json
 
 Nodes: users, teams, labels, files, and directories. Edges (weighted by occurrence count): `approved`, `changes-requested`, `reviewed`, `commented`, `review-commented`, `review-requested`, `member-of`, `changed`, `in` (directory containment), `owned-by` (CODEOWNERS), and `labeled`.
 
+When multiple repositories are given they must all be on the same host, and team nodes are namespaced by owner (`owner/slug`) to avoid collisions across organizations. A date-only `--until` is inclusive through the end of that day.
+
 ---
 
 ## Common Workflows

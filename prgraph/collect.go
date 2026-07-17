@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"sort"
 	"time"
 
 	"github.com/cli/go-gh/v2/pkg/repository"
@@ -28,6 +29,9 @@ type collector struct {
 	// involvedUsers tracks users that appeared in PR activity per organization owner
 	involvedUsers map[string]map[string]bool
 	multiRepo     bool
+	// multiOwner is true when the analysis spans more than one repository owner,
+	// requiring team nodes to be namespaced to avoid cross-owner slug collisions.
+	multiOwner bool
 }
 
 // Collect analyzes pull request activity in the given repositories and builds
@@ -39,6 +43,7 @@ func Collect(ctx context.Context, client *gh.GitHubClient, repos []repository.Re
 		opts:          opts,
 		involvedUsers: make(map[string]map[string]bool),
 		multiRepo:     len(repos) > 1,
+		multiOwner:    distinctOwners(repos) > 1,
 	}
 	for _, repo := range repos {
 		if err := c.collectRepository(ctx, repo); err != nil {
@@ -74,8 +79,10 @@ func (c *collector) collectRepository(ctx context.Context, repo repository.Repos
 	count := 0
 	for _, pr := range prs {
 		created := pr.GetCreatedAt().Time
+		// PRs are sorted by creation date descending, so once a PR is older
+		// than --since all remaining PRs are older too and can be skipped.
 		if c.opts.Since != nil && created.Before(*c.opts.Since) {
-			continue
+			break
 		}
 		if c.opts.Until != nil && created.After(*c.opts.Until) {
 			continue
@@ -115,7 +122,7 @@ func (c *collector) collectPullRequest(ctx context.Context, repo repository.Repo
 	}
 	for _, team := range pr.RequestedTeams {
 		if slug := team.GetSlug(); slug != "" {
-			teamNode := c.graph.AddNode(NodeTypeTeam, slug)
+			teamNode := c.graph.AddNode(NodeTypeTeam, c.teamName(repo.Owner, slug))
 			c.graph.AddEdge(teamNode, authorNode, RelationReviewRequested)
 		}
 	}
@@ -204,6 +211,25 @@ func (c *collector) pathName(repo repository.Repository, p string) string {
 	return p
 }
 
+// teamName returns the team node name. When the analysis spans multiple owners,
+// the slug is namespaced with its organization so that same-slug teams in
+// different organizations do not collide into a single node.
+func (c *collector) teamName(org, slug string) string {
+	if c.multiOwner {
+		return org + "/" + slug
+	}
+	return slug
+}
+
+// distinctOwners counts the distinct owners (per host) among the repositories.
+func distinctOwners(repos []repository.Repository) int {
+	owners := make(map[string]bool)
+	for _, repo := range repos {
+		owners[repo.Host+"/"+repo.Owner] = true
+	}
+	return len(owners)
+}
+
 // addDirectoryChain links a file node to its parent directories up to the repository root.
 func (c *collector) addDirectoryChain(repo repository.Repository, fileNode *Node, filename string) {
 	child := fileNode
@@ -224,7 +250,7 @@ func (c *collector) addCodeownersEdges(repo repository.Repository, fileNode *Nod
 		return
 	}
 	for _, owner := range rule.Owners {
-		ownerNode := codeownersOwnerNode(c.graph, repo, owner)
+		ownerNode := codeownersOwnerNode(c.graph, repo, owner, c.multiOwner)
 		c.graph.AddEdge(fileNode, ownerNode, RelationOwnedBy)
 	}
 }
@@ -239,17 +265,28 @@ func (c *collector) collectTeamMemberships(ctx context.Context, repos []reposito
 			continue
 		}
 		seen[key] = true
+		logins := make([]string, 0, len(c.involvedUsers[key]))
 		for login := range c.involvedUsers[key] {
+			logins = append(logins, login)
+		}
+		// Sort logins so node/edge insertion order is deterministic across runs.
+		sort.Strings(logins)
+		for _, login := range logins {
 			teams, err := gh.ListUserTeams(ctx, c.client, repo, login)
 			if err != nil {
 				continue // skip users whose teams cannot be listed
 			}
 			userNode := c.graph.AddNode(NodeTypeUser, login)
+			slugs := make([]string, 0, len(teams))
 			for _, team := range teams {
 				if slug := team.GetSlug(); slug != "" {
-					teamNode := c.graph.AddNode(NodeTypeTeam, slug)
-					c.graph.AddEdge(userNode, teamNode, RelationMemberOf)
+					slugs = append(slugs, slug)
 				}
+			}
+			sort.Strings(slugs)
+			for _, slug := range slugs {
+				teamNode := c.graph.AddNode(NodeTypeTeam, c.teamName(repo.Owner, slug))
+				c.graph.AddEdge(userNode, teamNode, RelationMemberOf)
 			}
 		}
 	}

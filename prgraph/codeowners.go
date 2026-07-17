@@ -31,11 +31,18 @@ func fetchCodeowners(ctx context.Context, g *gh.GitHubClient, repo repository.Re
 }
 
 // codeownersOwnerNode adds a graph node for a CODEOWNERS owner entry.
-// Team owners belonging to the repository owner are shortened to the team slug.
-func codeownersOwnerNode(graph *Graph, repo repository.Repository, owner codeowners.Owner) *Node {
+// When the analysis spans a single owner, team owners belonging to the
+// repository owner are shortened to the team slug so they merge with org team
+// nodes. When it spans multiple owners, the full "org/team" value is kept so
+// same-slug teams in different organizations do not collide.
+func codeownersOwnerNode(graph *Graph, repo repository.Repository, owner codeowners.Owner, multiOwner bool) *Node {
 	switch owner.Type {
 	case codeowners.TeamOwner:
-		return graph.AddNode(NodeTypeTeam, trimTeamOrg(owner.Value, repo.Owner))
+		name := owner.Value
+		if !multiOwner {
+			name = trimTeamOrg(owner.Value, repo.Owner)
+		}
+		return graph.AddNode(NodeTypeTeam, name)
 	default:
 		return graph.AddNode(NodeTypeUser, owner.Value)
 	}

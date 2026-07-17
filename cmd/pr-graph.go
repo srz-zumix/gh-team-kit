@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -71,6 +72,11 @@ Specify one or more repositories as arguments, or use --owner to analyze all rep
 						return fmt.Errorf("failed to parse repository %q: %w", arg, err)
 					}
 					repos = append(repos, repo)
+				}
+				for _, repo := range repos[1:] {
+					if !strings.EqualFold(repo.Host, repos[0].Host) {
+						return fmt.Errorf("cannot analyze repositories across multiple hosts: %q and %q", repos[0].Host, repo.Host)
+					}
 				}
 				c, err := gh.NewGitHubClientWithRepo(repos[0])
 				if err != nil {
