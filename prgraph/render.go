@@ -7,8 +7,8 @@ import (
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
 )
 
-// Render writes the graph to the renderer in the specified format.
-// Supported formats: "mermaid", "markdown", and "dot".
+// Render writes the graph using the configured exporter, if any.
+// Without an exporter, format selects the output: "mermaid", "markdown", or "dot".
 func Render(r *render.Renderer, format string, graph *Graph) error {
 	if r.HasExporter() {
 		return r.RenderExportedData(graph)
