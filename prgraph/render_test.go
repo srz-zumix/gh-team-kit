@@ -1,6 +1,7 @@
 package prgraph
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -85,10 +86,34 @@ func TestRenderUnsupportedFormat(t *testing.T) {
 	}
 }
 
-func TestMermaidNodeID(t *testing.T) {
-	a := mermaidNodeID("ci-test")
-	b := mermaidNodeID("ci_test")
-	if a == b {
-		t.Errorf("expected distinct IDs for ci-test and ci_test, got %q", a)
+func TestMermaidCompactNodeIDs(t *testing.T) {
+	sr := render.NewStringRenderer(nil)
+	if err := Render(&sr.Renderer, "mermaid", buildTestGraph()); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	out := sr.Stdout.String()
+
+	// Node definition lines must use short sequential identifiers (n0, n1, ...)
+	// so that long file/directory paths are not repeated across edges, which
+	// would inflate the diagram beyond Mermaid's maximum text size.
+	defRe := regexp.MustCompile(`(?m)^    (n\d+)`)
+	defined := make(map[string]bool)
+	for _, m := range defRe.FindAllStringSubmatch(out, -1) {
+		defined[m[1]] = true
+	}
+	if len(defined) == 0 {
+		t.Fatalf("expected compact node identifiers in output:\n%s", out)
+	}
+
+	// Every edge endpoint must reference a defined node identifier.
+	edgeRe := regexp.MustCompile(`(?m)^    (n\d+) -- ".*" --> (n\d+)$`)
+	edges := edgeRe.FindAllStringSubmatch(out, -1)
+	if len(edges) == 0 {
+		t.Fatalf("expected edges referencing compact node identifiers:\n%s", out)
+	}
+	for _, e := range edges {
+		if !defined[e[1]] || !defined[e[2]] {
+			t.Errorf("edge references undefined node id: %q -> %q", e[1], e[2])
+		}
 	}
 }

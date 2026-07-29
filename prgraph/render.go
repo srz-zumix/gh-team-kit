@@ -29,17 +29,24 @@ func Render(r *render.Renderer, format string, graph *Graph) error {
 }
 
 // renderMermaid writes the graph as a Mermaid flowchart with typed node
-// shapes and edge labels including the relation name and weight.
+// shapes and edge labels including the relation name and weight. Nodes are
+// referenced by short sequential identifiers (n0, n1, ...) instead of encoding
+// each node's full name into its identifier: long file and directory paths
+// would otherwise be repeated across every edge, bloating the diagram text
+// until it exceeds Mermaid's maximum text size and fails to render.
 func renderMermaid(r *render.Renderer, graph *Graph) error {
 	r.WriteLine("graph LR")
-	for _, node := range graph.Nodes {
-		r.WriteLine(fmt.Sprintf("    %s%s", mermaidNodeID(node.ID), mermaidNodeShape(node)))
+	ids := make(map[string]string, len(graph.Nodes))
+	for i, node := range graph.Nodes {
+		id := fmt.Sprintf("n%d", i)
+		ids[node.ID] = id
+		r.WriteLine(fmt.Sprintf("    %s%s", id, mermaidNodeShape(node)))
 	}
 	for _, edge := range graph.Edges {
 		r.WriteLine(fmt.Sprintf("    %s -- \"%s\" --> %s",
-			mermaidNodeID(edge.From),
+			ids[edge.From],
 			edgeLabel(edge),
-			mermaidNodeID(edge.To),
+			ids[edge.To],
 		))
 	}
 	return nil
@@ -107,22 +114,6 @@ func dotNodeShape(t NodeType) string {
 	default: // NodeTypeFile
 		return "box"
 	}
-}
-
-// mermaidNodeID creates a collision-free Mermaid node identifier from a string.
-// All non-alphanumeric characters are hex-encoded using their Unicode code point
-// as six lowercase hexadecimal digits prefixed with '_', so that encoded
-// sequences cannot be confused with adjacent alphanumeric characters.
-func mermaidNodeID(name string) string {
-	var b strings.Builder
-	for _, c := range name {
-		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') {
-			b.WriteRune(c)
-		} else {
-			fmt.Fprintf(&b, "_%06x", c)
-		}
-	}
-	return b.String()
 }
 
 // dotQuote returns a DOT-safe quoted string by escaping backslashes and double quotes.
