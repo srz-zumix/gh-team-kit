@@ -31,7 +31,7 @@ The mapping file (--usermap) must be a YAML file as produced by 'user map'.
 Each mannequin is matched to a mapping entry first by src login, then by email.
 Mannequins already claimed are skipped unless --force is specified.
 Entries whose dst login is empty are skipped.
-Bot accounts (login ending with '[bot]') are skipped because they cannot be reclaimed.
+Bot accounts (mannequin login ending with '[bot]') are skipped because they cannot be reclaimed.
 Processing continues on per-mannequin errors; all collected errors are reported at the end.
 
 Example:
@@ -84,6 +84,14 @@ Example:
 					continue
 				}
 
+				// Bot accounts cannot be reattributed via mannequin reclamation, skip them.
+				// Detect bots by the mannequin's own login so that usermap replacements
+				// (e.g. EMU suffix rules) do not hide the '[bot]' suffix from this check.
+				if strings.HasSuffix(mannequinLogin, "[bot]") {
+					logger.Warn("Mannequin is a bot, skipping", "mannequin", mannequinLogin)
+					continue
+				}
+
 				// Find matching mapping entry: prefer src-login match (with regex), fallback to email
 				var targetLogin string
 				var found bool
@@ -103,12 +111,6 @@ Example:
 				}
 				if targetLogin == "" {
 					logger.Warn("Mapping dst is empty, skipping", "mannequin", mannequinLogin)
-					continue
-				}
-
-				// Bot accounts cannot be reattributed via mannequin reclamation, skip them
-				if strings.HasSuffix(targetLogin, "[bot]") {
-					logger.Warn("Target user is a bot, skipping", "mannequin", mannequinLogin, "target-user", targetLogin)
 					continue
 				}
 
