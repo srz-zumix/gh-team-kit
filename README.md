@@ -645,7 +645,7 @@ gh team-kit mannequin migrate --usermap <file> [--owner <[HOST/]OWNER>] [--skip-
 
 List all mannequins in the organization and reattribute each one to its mapped target user.
 The mapping file (`--usermap`) must be a YAML file as produced by `user map`. Each mannequin is matched first by src login (supports regular expressions), then by email.
-Mannequins already claimed are skipped unless `--force` is specified. Entries whose dst is empty are skipped.
+Mannequins already claimed are skipped unless `--force` is specified. Entries whose dst is empty are skipped. Bot mannequins (login ending with `[bot]`) are skipped because they cannot be reclaimed.
 
 | Flag | Default | Description |
 | --- | --- | --- |
