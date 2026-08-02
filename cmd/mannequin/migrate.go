@@ -50,6 +50,13 @@ Example:
 
 			ctx := cmd.Context()
 
+			// Load and compile usermap before performing any API calls so that an
+			// invalid/missing mapping file fails fast without wasting source-org lookups.
+			compiledMappings, err := settings.NewCompiledMappingsFromFile(mapFile)
+			if err != nil {
+				return fmt.Errorf("error loading mapping file: %w", err)
+			}
+
 			var client *gh.GitHubClient
 			var suspendedSrcLogins map[string]struct{}
 			if noSuspended {
@@ -83,12 +90,6 @@ Example:
 				if err != nil {
 					return fmt.Errorf("error creating GitHub client: %w", err)
 				}
-			}
-
-			// Load and compile usermap
-			compiledMappings, err := settings.NewCompiledMappingsFromFile(mapFile)
-			if err != nil {
-				return fmt.Errorf("error loading mapping file: %w", err)
 			}
 
 			// List all mannequins in the organization
