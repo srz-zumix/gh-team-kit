@@ -55,3 +55,82 @@ func TestNodeID(t *testing.T) {
 		t.Errorf("unexpected node ID: %s", got)
 	}
 }
+
+func TestFilterEdgesNoop(t *testing.T) {
+	g := NewGraph()
+	a := g.AddNode(NodeTypeUser, "alice")
+	b := g.AddNode(NodeTypeUser, "bob")
+	g.AddEdge(a, b, RelationReviewed)
+	g.FilterEdges(nil, nil)
+	if len(g.Edges) != 1 {
+		t.Errorf("expected FilterEdges with no filters to keep all edges, got %d", len(g.Edges))
+	}
+}
+
+func TestFilterEdgesInclude(t *testing.T) {
+	g := NewGraph()
+	a := g.AddNode(NodeTypeUser, "alice")
+	b := g.AddNode(NodeTypeUser, "bob")
+	c := g.AddNode(NodeTypeFile, "main.go")
+	g.AddEdge(a, b, RelationReviewed)
+	g.AddEdge(a, c, RelationChanged)
+	g.FilterEdges([]string{RelationChanged}, nil)
+	if len(g.Edges) != 1 || g.Edges[0].Relation != RelationChanged {
+		t.Errorf("expected only %q edges to remain, got %+v", RelationChanged, g.Edges)
+	}
+}
+
+func TestFilterEdgesExclude(t *testing.T) {
+	g := NewGraph()
+	a := g.AddNode(NodeTypeUser, "alice")
+	b := g.AddNode(NodeTypeUser, "bob")
+	c := g.AddNode(NodeTypeFile, "main.go")
+	g.AddEdge(a, b, RelationReviewed)
+	g.AddEdge(a, c, RelationChanged)
+	g.FilterEdges(nil, []string{RelationReviewed})
+	if len(g.Edges) != 1 || g.Edges[0].Relation != RelationChanged {
+		t.Errorf("expected %q edges to be excluded, got %+v", RelationReviewed, g.Edges)
+	}
+}
+
+func TestFilterMinWeightNoop(t *testing.T) {
+	g := NewGraph()
+	a := g.AddNode(NodeTypeUser, "alice")
+	b := g.AddNode(NodeTypeUser, "bob")
+	g.AddEdge(a, b, RelationReviewed)
+	g.FilterMinWeight(0)
+	if len(g.Edges) != 1 {
+		t.Errorf("expected FilterMinWeight(0) to keep all edges, got %d", len(g.Edges))
+	}
+}
+
+func TestFilterMinWeightRemovesLightEdges(t *testing.T) {
+	g := NewGraph()
+	a := g.AddNode(NodeTypeUser, "alice")
+	b := g.AddNode(NodeTypeUser, "bob")
+	c := g.AddNode(NodeTypeFile, "main.go")
+	g.AddEdge(a, b, RelationReviewed)
+	g.AddEdge(a, c, RelationChanged)
+	g.AddEdge(a, c, RelationChanged)
+	g.FilterMinWeight(2)
+	if len(g.Edges) != 1 || g.Edges[0].Relation != RelationChanged {
+		t.Errorf("expected only the weight-2 edge to remain, got %+v", g.Edges)
+	}
+}
+
+func TestRemoveOrphanNodes(t *testing.T) {
+	g := NewGraph()
+	a := g.AddNode(NodeTypeUser, "alice")
+	b := g.AddNode(NodeTypeUser, "bob")
+	dir := g.AddNode(NodeTypeDirectory, "src")
+	g.AddEdge(a, b, RelationReviewed)
+	g.AddEdge(a, dir, RelationChanged)
+	g.FilterEdges(nil, []string{RelationChanged})
+	g.RemoveOrphanNodes()
+	if len(g.Nodes) != 2 {
+		t.Errorf("expected the orphaned directory node to be removed, got %+v", g.Nodes)
+	}
+	if g.Node(dir.ID) != nil {
+		t.Error("expected the orphaned node to be dropped from the index")
+	}
+}

@@ -95,6 +95,8 @@ func mermaidNodeShape(node *Node) string {
 		return fmt.Sprintf("{{\"%s\"}}", name)
 	case NodeTypeDirectory:
 		return fmt.Sprintf("[(\"%s\")]", name)
+	case NodeTypeSubmodule:
+		return fmt.Sprintf("[/\"%s\"/]", name)
 	default: // NodeTypeFile
 		return fmt.Sprintf("[\"%s\"]", name)
 	}
@@ -111,6 +113,8 @@ func dotNodeShape(t NodeType) string {
 		return "hexagon"
 	case NodeTypeDirectory:
 		return "folder"
+	case NodeTypeSubmodule:
+		return "component"
 	default: // NodeTypeFile
 		return "box"
 	}

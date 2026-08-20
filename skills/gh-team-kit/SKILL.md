@@ -993,8 +993,73 @@ gh team-kit pr-graph --owner my-org
 # Filter pull requests by state and creation date range
 gh team-kit pr-graph --state closed --since 2025-01-01 --until 2025-03-31
 
-# Limit the number of pull requests analyzed per repository (default: 30, 0 = unlimited)
+# Only include merged pull requests (excludes closed-without-merge)
+gh team-kit pr-graph --state merged
+
+# Limit the number of pull requests analyzed per repository, counted after
+# state/date/label/branch/--exclude-author filtering (default: 30, 0 = unlimited)
 gh team-kit pr-graph --limit 100
+
+# Only include pull requests with at least one of these labels
+gh team-kit pr-graph --label bug,feature
+
+# Skip pull requests with any of these labels (e.g. merge-relay bots)
+gh team-kit pr-graph --exclude-label auto-merge,merge-relay
+
+# Only include pull requests targeting a base branch matching this glob pattern
+gh team-kit pr-graph --base main
+
+# Only include pull requests from a head branch matching this glob pattern
+gh team-kit pr-graph --head 'feature/*'
+
+# Skip pull requests whose head branch matches any of these glob patterns
+gh team-kit pr-graph --exclude-head-branch 'relay/*,cherry-pick/*'
+
+# Skip draft pull requests
+gh team-kit pr-graph --exclude-draft
+
+# Automatically exclude and hide users whose login has a "[bot]" suffix
+gh team-kit pr-graph --no-bots
+
+# Keep only specific edge relation types in the graph
+gh team-kit pr-graph --edge-type changed,reviewed,approved
+
+# Exclude specific edge relation types from the graph (e.g. directory containment)
+gh team-kit pr-graph --exclude-edge-type in
+
+# Remove edges with a weight below this threshold from the graph
+gh team-kit pr-graph --min-weight 3
+
+# Keep nodes that lost all their edges to edge filtering
+gh team-kit pr-graph --exclude-edge-type in,member-of --keep-orphans
+
+# Fold changed file paths into their ancestor directory truncated to 2 segments
+gh team-kit pr-graph --depth 2
+
+# Fold changed file paths using glob-style prefix patterns (first match wins)
+gh team-kit pr-graph --group-by 'LocalPackages/*,Assets/*/*'
+
+# Combine both: unmatched paths fall back to --depth
+gh team-kit pr-graph --group-by 'LocalPackages/*' --depth 1
+
+# Drop pull requests authored by these users from analysis entirely
+gh team-kit pr-graph --exclude-author dependabot --exclude-author alice,bob
+
+# Omit a user's non-author activity and CODEOWNERS relationships without
+# excluding their pull requests
+gh team-kit pr-graph --hide-user dependabot
+
+# Deprecated: equivalent to --exclude-author and --hide-user for these logins
+gh team-kit pr-graph --exclude-user dependabot --exclude-user alice,bob
+
+# Exclude files using .gitignore-style patterns
+gh team-kit pr-graph --exclude-file "*.md" --exclude-file "vendor/**"
+
+# Only include files matching these .gitignore-style patterns
+gh team-kit pr-graph --include-file "src/**"
+
+# Raise the per-request API timeout for repositories with a huge PR history
+gh team-kit pr-graph --since 2026-01-01 --http-timeout 5m
 
 # Output as Graphviz DOT, Markdown (fenced Mermaid), or JSON node/edge data
 gh team-kit pr-graph --format dot
@@ -1002,9 +1067,9 @@ gh team-kit pr-graph --format markdown
 gh team-kit pr-graph --format json
 ```
 
-Nodes: users, teams, labels, files, and directories. Edges (weighted by occurrence count): `approved`, `changes-requested`, `reviewed`, `commented`, `review-commented`, `review-requested`, `member-of`, `changed`, `in` (directory containment), `owned-by` (CODEOWNERS), and `labeled`.
+Nodes: users, teams, labels, files, directories, and submodules. Edges (weighted by occurrence count): `approved`, `changes-requested`, `reviewed`, `commented`, `review-commented`, `review-requested`, `member-of`, `changed`, `in` (directory containment), `owned-by` (CODEOWNERS), and `labeled`.
 
-When multiple repositories are given they must all be on the same host, and team nodes are namespaced by owner (`owner/slug`) to avoid collisions across organizations. A date-only `--until` is inclusive through the end of that day.
+When multiple repositories are given they must all be on the same host, and team nodes are namespaced by owner (`owner/slug`) to avoid collisions across organizations. A date-only `--until` is inclusive through the end of that day. `--state merged` selects closed pull requests that were actually merged. Use `--label`/`--exclude-label` to filter by pull request labels, and `--base`/`--head`/`--exclude-head-branch` to filter by branch name glob patterns; exclusion takes precedence when both an include and exclude filter match. Use `--exclude-draft` to skip draft pull requests, and `--no-bots` to automatically exclude and hide users whose login has a `[bot]` suffix. Use `--edge-type`/`--exclude-edge-type` to keep or remove specific edge relation types (`approved`, `changes-requested`, `reviewed`, `commented`, `review-commented`, `review-requested`, `member-of`, `changed`, `in`, `owned-by`, `labeled`) from the rendered graph, and `--min-weight` to remove edges below a given weight. Nodes left without any edge after edge filtering are removed from the graph; use `--keep-orphans` to retain them. Use `--group-by` to fold changed file paths into package-level nodes using glob-style prefix patterns such as `LocalPackages/*,Assets/*/*` (repeatable or comma-separated; evaluated in order, first match wins), and `--depth` to fold the remaining paths into their ancestor directory truncated to the given number of path segments; the two can be combined, with `--depth` acting as the fallback. A folded path is emitted as a directory node rather than a file node. A changed path registered in the repository's `.gitmodules` is emitted as a submodule node, distinguishing submodule pointer updates from ordinary file changes. Use `--exclude-author` to drop pull requests authored by the given users from analysis entirely, and `--hide-user` to omit a user's non-author activity and CODEOWNERS relationships from the graph without excluding their pull requests. `--exclude-user` is deprecated and equivalent to setting both `--exclude-author` and `--hide-user`. Login matching is case-insensitive. Use `--exclude-file`/`--include-file` to omit or restrict files (and their directory/CODEOWNERS relationships) by `.gitignore`-style pattern. Use the global `--http-timeout` flag to raise the timeout of each GitHub API request (default: `30s`) when analyzing repositories with a very large pull request history. When `--since` is set, pagination stops as soon as a fetched page is entirely older than the given date, and transient request failures such as timeouts are retried automatically.
 
 ---
 
