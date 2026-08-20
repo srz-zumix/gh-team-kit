@@ -142,7 +142,7 @@ func (c *collector) collectRepository(ctx context.Context, repo repository.Repos
 		if c.opts.Until != nil && created.After(*c.opts.Until) {
 			continue
 		}
-		if c.opts.State == "merged" && pr.GetMergedAt().Time.IsZero() {
+		if c.opts.State == "merged" && pr.GetMergedAt().IsZero() {
 			continue
 		}
 		if c.opts.ExcludeDraft && pr.GetDraft() {
