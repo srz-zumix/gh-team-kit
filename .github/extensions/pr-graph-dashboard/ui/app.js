@@ -133,6 +133,7 @@ function renderState() {
     void run(renderNodeList());
     renderDetails();
     renderPresets();
+    syncAskButtons();
     applyHighlight();
 }
 
@@ -328,8 +329,11 @@ function renderDetails() {
     );
     const askButton = document.createElement("button");
     askButton.type = "button";
+    askButton.dataset.askButton = "1";
+    askButton.dataset.askKey = "selection";
+    askButton.dataset.askLabel = "Ask agent";
     askButton.textContent = "Ask agent";
-    askButton.addEventListener("click", () => run(post("/api/ask", { presetId: "selection" }).then(onAsked)));
+    askButton.addEventListener("click", () => askAgent("selection", { presetId: "selection" }));
     buttons.append(focusButton, askButton);
 
     container.append(title, meta, buttons);
@@ -354,18 +358,67 @@ function renderPresets() {
         button.type = "button";
         button.className = "chip";
         button.textContent = preset.label;
+        button.dataset.askButton = "1";
+        button.dataset.askKey = `preset:${preset.id}`;
+        button.dataset.askLabel = preset.label;
+        button.dataset.askBaseDisabled = String(Boolean(preset.needsSelection && !state.selection));
         button.disabled = preset.needsSelection && !state.selection;
         button.addEventListener("click", () =>
-            run(post("/api/ask", { presetId: preset.id, prompt: $("agent-prompt").value.trim() }).then(onAsked)),
+            askAgent(`preset:${preset.id}`, { presetId: preset.id, prompt: $("agent-prompt").value.trim() }),
         );
         container.append(button);
     }
 }
 
+// The agent's reply lands in the chat panel, not in this canvas, so a send is
+// otherwise invisible from here and gets repeated. The guard lives in module
+// state rather than on the buttons because the panels re-render on push
+// updates, which would swap a disabled button for a fresh enabled one.
+const ASK_CONFIRM_MS = 2500;
+const askState = { busy: false, sentAt: 0, key: "" };
+let askSyncTimer = null;
+
+function askConfirming() {
+    return askState.sentAt > 0 && Date.now() - askState.sentAt < ASK_CONFIRM_MS;
+}
+
+function syncAskButtons() {
+    const confirming = askConfirming();
+    for (const button of document.querySelectorAll("[data-ask-button]")) {
+        const key = button.dataset.askKey ?? "";
+        const base = button.dataset.askLabel ?? button.textContent;
+        const mine = key === askState.key;
+        button.textContent = askState.busy && mine ? "Sending…" : confirming && mine ? "Sent ✓" : base;
+        button.disabled = askState.busy || confirming || button.dataset.askBaseDisabled === "true";
+    }
+    clearTimeout(askSyncTimer);
+    if (confirming) {
+        askSyncTimer = setTimeout(syncAskButtons, ASK_CONFIRM_MS - (Date.now() - askState.sentAt) + 20);
+    }
+}
+
+async function askAgent(key, payload) {
+    if (askState.busy || askConfirming()) return;
+    askState.busy = true;
+    askState.key = key;
+    syncAskButtons();
+    try {
+        await post("/api/ask", payload);
+        askState.sentAt = Date.now();
+        onAsked();
+    } catch (error) {
+        setStatus(error.message, true);
+    } finally {
+        askState.busy = false;
+        syncAskButtons();
+    }
+}
+
 function onAsked() {
     $("agent-prompt").value = "";
-    $("agent-status").textContent = "Sent to the agent. Check the chat for its reply.";
-    setStatus("Message sent to the agent.");
+    const time = new Date().toLocaleTimeString();
+    $("agent-status").textContent = `Sent at ${time}. The reply appears in the chat, not in this panel.`;
+    setStatus("Sent to the agent — its reply appears in the chat.");
 }
 
 /* ------------------------------------------------------------- graph view */
@@ -690,7 +743,7 @@ function wireSidebar() {
             setStatus("Enter a message first.", true);
             return;
         }
-        run(post("/api/ask", { prompt }).then(onAsked));
+        askAgent("free", { prompt });
     });
 }
 
