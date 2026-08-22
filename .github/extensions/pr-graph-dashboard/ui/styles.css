@@ -186,8 +186,11 @@ textarea {
     cursor: grab;
 }
 
+/* Dragging zooms rather than pans, so the cursor shows a magnifier with a
+   vertical double arrow. `ns-resize` is the fallback when SVG cursors are
+   unavailable. */
 .graph-scroll.dragging {
-    cursor: grabbing;
+    cursor: url("zoom-cursor.svg") 10 10, ns-resize;
 }
 
 .graph {
