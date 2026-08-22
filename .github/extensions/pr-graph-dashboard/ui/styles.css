@@ -649,3 +649,114 @@ dialog menu {
         border-top: 1px solid var(--border-color-default, #d1d9e0);
     }
 }
+
+/* Confirmation that a prompt reached the agent. The reply lands in the chat
+   panel, so without this the dashboard looks like it did nothing. */
+.toast {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    max-width: min(420px, calc(100% - 24px));
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color-default, #d1d9e0);
+    border-radius: 8px;
+    background: var(--background-color-default, #ffffff);
+    box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
+    font-size: var(--text-body-small, 12px);
+    line-height: var(--leading-body-small, 18px);
+    animation: toast-in 140ms ease-out;
+}
+
+.toast[hidden] {
+    display: none;
+}
+
+.toast::before {
+    content: "✓";
+    flex: none;
+    font-weight: var(--font-weight-semibold, 600);
+    color: var(--true-color-blue, #0969da);
+}
+
+.toast.error::before {
+    content: "!";
+    color: var(--true-color-red, #cf222e);
+}
+
+.toast strong {
+    display: block;
+    font-weight: var(--font-weight-semibold, 600);
+}
+
+.toast span {
+    color: var(--text-color-muted, #59636e);
+}
+
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%);
+    }
+}
+
+.tabs button .badge {
+    display: inline-block;
+    min-width: 6px;
+    height: 6px;
+    margin-left: 5px;
+    border-radius: 50%;
+    background: var(--true-color-blue, #0969da);
+    vertical-align: middle;
+}
+
+.tabs button .badge[hidden] {
+    display: none;
+}
+
+.ask-log-wrap {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color-default, #d1d9e0);
+}
+
+.ask-log-wrap[hidden] {
+    display: none;
+}
+
+.ask-log {
+    margin: 0 0 6px;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ask-log li {
+    display: flex;
+    gap: 8px;
+    font-size: var(--text-body-small, 12px);
+    line-height: var(--leading-body-small, 18px);
+}
+
+.ask-log time {
+    flex: none;
+    color: var(--text-color-muted, #59636e);
+    font-family: var(--font-mono, "SFMono-Regular", Consolas, monospace);
+}
+
+.ask-log .label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

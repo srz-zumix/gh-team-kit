@@ -25,6 +25,7 @@
 
             <div class="body">
                 <main class="viewport">
+                    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
                     <div class="graph-scroll" id="graph-scroll">
                         <div class="graph" id="graph"></div>
                     </div>
@@ -50,7 +51,7 @@
                         <button type="button" data-tab="filters" class="active">Filters</button>
                         <button type="button" data-tab="nodes">Nodes</button>
                         <button type="button" data-tab="details">Details</button>
-                        <button type="button" data-tab="agent">Agent</button>
+                        <button type="button" data-tab="agent">Agent<span class="badge" id="agent-badge" hidden></span></button>
                     </nav>
 
                     <section class="panel active" data-panel="filters">
@@ -125,6 +126,11 @@
                         </div>
                         <button type="button" id="agent-send" class="wide primary" data-ask-button="1" data-ask-key="free" data-ask-label="Send to agent">Send to agent</button>
                         <p class="hint muted" id="agent-status"></p>
+                        <div class="ask-log-wrap" id="ask-log-wrap" hidden>
+                            <h3>Sent messages</h3>
+                            <ol class="ask-log" id="ask-log"></ol>
+                            <p class="hint muted">Replies appear in the chat panel, not here.</p>
+                        </div>
                     </section>
                 </aside>
             </div>

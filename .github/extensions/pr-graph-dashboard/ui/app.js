@@ -333,7 +333,9 @@ function renderDetails() {
     askButton.dataset.askKey = "selection";
     askButton.dataset.askLabel = "Ask agent";
     askButton.textContent = "Ask agent";
-    askButton.addEventListener("click", () => askAgent("selection", { presetId: "selection" }));
+    askButton.addEventListener("click", () =>
+        askAgent("selection", { presetId: "selection" }, `Analyse ${selection.name}`),
+    );
     buttons.append(focusButton, askButton);
 
     container.append(title, meta, buttons);
@@ -364,7 +366,7 @@ function renderPresets() {
         button.dataset.askBaseDisabled = String(Boolean(preset.needsSelection && !state.selection));
         button.disabled = preset.needsSelection && !state.selection;
         button.addEventListener("click", () =>
-            askAgent(`preset:${preset.id}`, { presetId: preset.id, prompt: $("agent-prompt").value.trim() }),
+            askAgent(`preset:${preset.id}`, { presetId: preset.id, prompt: $("agent-prompt").value.trim() }, preset.label),
         );
         container.append(button);
     }
@@ -375,8 +377,12 @@ function renderPresets() {
 // state rather than on the buttons because the panels re-render on push
 // updates, which would swap a disabled button for a fresh enabled one.
 const ASK_CONFIRM_MS = 2500;
+const ASK_LOG_KEY = "pr-graph-dashboard:ask-log";
+const ASK_LOG_MAX = 8;
 const askState = { busy: false, sentAt: 0, key: "" };
 let askSyncTimer = null;
+let toastTimer = null;
+let askLog = [];
 
 function askConfirming() {
     return askState.sentAt > 0 && Date.now() - askState.sentAt < ASK_CONFIRM_MS;
@@ -397,7 +403,65 @@ function syncAskButtons() {
     }
 }
 
-async function askAgent(key, payload) {
+function showToast(title, detail, isError = false) {
+    const toast = $("toast");
+    toast.replaceChildren();
+    const strong = document.createElement("strong");
+    strong.textContent = title;
+    toast.append(strong);
+    if (detail) {
+        const span = document.createElement("span");
+        span.textContent = detail;
+        toast.append(span);
+    }
+    toast.classList.toggle("error", isError);
+    toast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        toast.hidden = true;
+    }, isError ? 8000 : 6000);
+}
+
+function loadAskLog() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(ASK_LOG_KEY) ?? "[]");
+        if (Array.isArray(stored)) askLog = stored.slice(0, ASK_LOG_MAX);
+    } catch {
+        askLog = [];
+    }
+    renderAskLog();
+}
+
+function renderAskLog() {
+    const list = $("ask-log");
+    list.replaceChildren();
+    for (const entry of askLog) {
+        const item = document.createElement("li");
+        const time = document.createElement("time");
+        time.textContent = entry.time;
+        const label = document.createElement("span");
+        label.className = "label";
+        label.textContent = entry.label;
+        label.title = entry.label;
+        item.append(time, label);
+        list.append(item);
+    }
+    $("ask-log-wrap").hidden = askLog.length === 0;
+}
+
+function recordAsk(label) {
+    const now = new Date();
+    askLog.unshift({ time: now.toLocaleTimeString(), label });
+    askLog = askLog.slice(0, ASK_LOG_MAX);
+    try {
+        localStorage.setItem(ASK_LOG_KEY, JSON.stringify(askLog));
+    } catch {
+        /* storage is optional */
+    }
+    renderAskLog();
+}
+
+async function askAgent(key, payload, label) {
     if (askState.busy || askConfirming()) return;
     askState.busy = true;
     askState.key = key;
@@ -405,20 +469,26 @@ async function askAgent(key, payload) {
     try {
         await post("/api/ask", payload);
         askState.sentAt = Date.now();
-        onAsked();
+        onAsked(label);
     } catch (error) {
         setStatus(error.message, true);
+        showToast("Could not send", error.message, true);
     } finally {
         askState.busy = false;
         syncAskButtons();
     }
 }
 
-function onAsked() {
+function onAsked(label) {
     $("agent-prompt").value = "";
     const time = new Date().toLocaleTimeString();
-    $("agent-status").textContent = `Sent at ${time}. The reply appears in the chat, not in this panel.`;
+    $("agent-status").textContent = `Sent at ${time}.`;
     setStatus("Sent to the agent — its reply appears in the chat.");
+    showToast("Sent to the agent", "The reply appears in the chat panel, not here.");
+    recordAsk(label ?? "Message");
+    // Draw attention to the log if the user is looking at another tab.
+    const agentVisible = $("tabs").querySelector('[data-tab="agent"]').classList.contains("active");
+    $("agent-badge").hidden = agentVisible;
 }
 
 /* ------------------------------------------------------------- graph view */
@@ -695,6 +765,7 @@ function activateTab(name) {
     for (const panel of document.querySelectorAll(".panel")) {
         panel.classList.toggle("active", panel.dataset.panel === name);
     }
+    if (name === "agent") $("agent-badge").hidden = true;
 }
 
 function wireSidebar() {
@@ -743,7 +814,7 @@ function wireSidebar() {
             setStatus("Enter a message first.", true);
             return;
         }
-        askAgent("free", { prompt });
+        askAgent("free", { prompt }, prompt.length > 60 ? `${prompt.slice(0, 60)}…` : prompt);
     });
 }
 
@@ -870,6 +941,7 @@ wireGraphInteractions();
 wireSidebar();
 wireResizer();
 wireToolbar();
+loadAskLog();
 connectEvents();
 window.addEventListener("resize", debounce(fitToView, 150));
 void run(refresh());
