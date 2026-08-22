@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>pr-graph dashboard</title>
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+    <body>
+        <div class="app">
+            <header class="toolbar">
+                <div class="source">
+                    <div class="source-label" id="source-label">No graph loaded</div>
+                    <div class="source-path muted" id="source-path" title=""></div>
+                </div>
+                <div class="toolbar-actions">
+                    <button type="button" id="btn-open">Open…</button>
+                    <button type="button" id="btn-generate">Generate…</button>
+                    <button type="button" id="btn-reload" title="Reload the current file">Reload</button>
+                    <button type="button" id="btn-export">Export…</button>
+                    <button type="button" id="btn-sidebar" class="icon" title="Toggle panel">☰</button>
+                </div>
+            </header>
+
+            <div class="body">
+                <main class="viewport">
+                    <div class="graph-scroll" id="graph-scroll">
+                        <div class="graph" id="graph"></div>
+                    </div>
+                    <div class="empty" id="empty">
+                        <p>No graph is loaded yet.</p>
+                        <p class="muted">
+                            Open an existing <code>.dot</code> file, or generate one with
+                            <code>gh team-kit pr-graph</code>.
+                        </p>
+                    </div>
+                    <div class="zoom">
+                        <button type="button" id="zoom-out" title="Zoom out">−</button>
+                        <button type="button" id="zoom-reset" title="Fit to view">Fit</button>
+                        <button type="button" id="zoom-in" title="Zoom in">+</button>
+                    </div>
+                </main>
+
+                <aside class="sidebar" id="sidebar">
+                    <nav class="tabs" id="tabs">
+                        <button type="button" data-tab="filters" class="active">Filters</button>
+                        <button type="button" data-tab="nodes">Nodes</button>
+                        <button type="button" data-tab="details">Details</button>
+                        <button type="button" data-tab="agent">Agent</button>
+                    </nav>
+
+                    <section class="panel active" data-panel="filters">
+                        <div class="field">
+                            <label for="filter-search">Search</label>
+                            <input type="search" id="filter-search" placeholder="node name contains…" />
+                        </div>
+                        <div class="field">
+                            <label for="filter-hops">Neighbourhood radius (hops)</label>
+                            <input type="number" id="filter-hops" min="0" max="6" step="1" />
+                            <p class="hint muted">Applied to the search matches and the focused node.</p>
+                        </div>
+                        <div class="field" id="focus-field" hidden>
+                            <label>Focused node</label>
+                            <div class="chip-row">
+                                <span class="chip" id="focus-chip"></span>
+                                <button type="button" id="focus-clear" class="link">clear</button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label>Node types</label>
+                            <div class="checks" id="filter-node-types"></div>
+                        </div>
+                        <div class="field">
+                            <label>Relations</label>
+                            <div class="checks" id="filter-relations"></div>
+                        </div>
+                        <div class="field">
+                            <label for="filter-min-weight">Minimum edge weight</label>
+                            <input type="number" id="filter-min-weight" min="0" step="1" />
+                        </div>
+                        <div class="field">
+                            <label class="inline">
+                                <input type="checkbox" id="filter-keep-orphans" />
+                                Keep nodes without edges
+                            </label>
+                        </div>
+                        <div class="field split">
+                            <div>
+                                <label for="view-engine">Layout</label>
+                                <select id="view-engine"></select>
+                            </div>
+                            <div>
+                                <label for="view-rankdir">Direction</label>
+                                <select id="view-rankdir"></select>
+                            </div>
+                        </div>
+                        <button type="button" id="filters-reset" class="wide">Reset filters</button>
+                    </section>
+
+                    <section class="panel" data-panel="nodes">
+                        <div class="field">
+                            <label for="nodes-query">Filter list</label>
+                            <input type="search" id="nodes-query" placeholder="name contains…" />
+                        </div>
+                        <p class="hint muted">Click to select, double-click to focus the graph on a node.</p>
+                        <ul class="node-list" id="node-list"></ul>
+                    </section>
+
+                    <section class="panel" data-panel="details">
+                        <div id="details"></div>
+                    </section>
+
+                    <section class="panel" data-panel="agent">
+                        <p class="hint muted">
+                            Sends a message to the agent in this session, together with the current graph context.
+                        </p>
+                        <div class="presets" id="presets"></div>
+                        <div class="field">
+                            <label for="agent-prompt">Ask the agent</label>
+                            <textarea id="agent-prompt" rows="5" placeholder="e.g. Which reviewers should I add to the payments directory?"></textarea>
+                        </div>
+                        <button type="button" id="agent-send" class="wide primary">Send to agent</button>
+                        <p class="hint muted" id="agent-status"></p>
+                    </section>
+                </aside>
+            </div>
+
+            <footer class="statusbar">
+                <span id="status-counts" class="muted"></span>
+                <span id="status-message"></span>
+            </footer>
+        </div>
+
+        <dialog id="dialog-open">
+            <form method="dialog">
+                <h2>Open a DOT file</h2>
+                <div class="field">
+                    <label for="open-path">Path</label>
+                    <input type="text" id="open-path" placeholder="graph.dot or /abs/path/graph.dot" />
+                    <p class="hint muted">Relative paths resolve against the workspace.</p>
+                </div>
+                <div class="field">
+                    <label>Found files</label>
+                    <ul class="file-list" id="open-file-list"></ul>
+                </div>
+                <menu>
+                    <button type="submit" value="cancel">Cancel</button>
+                    <button type="button" id="open-confirm" class="primary">Open</button>
+                </menu>
+            </form>
+        </dialog>
+
+        <dialog id="dialog-generate">
+            <form method="dialog">
+                <h2>Generate a graph</h2>
+                <p class="hint muted">
+                    Runs <code>gh team-kit pr-graph &lt;arguments&gt; --format dot</code> in the workspace and stores the
+                    result as an artifact.
+                </p>
+                <div class="field">
+                    <label for="generate-args">Arguments</label>
+                    <textarea id="generate-args" rows="3" placeholder="--limit 100 --state merged --no-bots"></textarea>
+                </div>
+                <div class="field">
+                    <label>Quick flags</label>
+                    <div class="chip-row" id="generate-chips"></div>
+                </div>
+                <menu>
+                    <button type="submit" value="cancel">Cancel</button>
+                    <button type="button" id="generate-confirm" class="primary">Run</button>
+                </menu>
+            </form>
+        </dialog>
+
+        <dialog id="dialog-export">
+            <form method="dialog">
+                <h2>Export</h2>
+                <div class="field split">
+                    <div>
+                        <label for="export-kind">Format</label>
+                        <select id="export-kind">
+                            <option value="svg">SVG (rendered)</option>
+                            <option value="dot">DOT (filtered)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="export-path">Path</label>
+                        <input type="text" id="export-path" placeholder="pr-graph.svg" />
+                    </div>
+                </div>
+                <menu>
+                    <button type="submit" value="cancel">Cancel</button>
+                    <button type="button" id="export-confirm" class="primary">Save</button>
+                </menu>
+            </form>
+        </dialog>
+
+        <script type="module" src="app.js"></script>
+    </body>
+</html>
