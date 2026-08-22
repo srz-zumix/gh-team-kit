@@ -186,7 +186,7 @@ textarea {
     cursor: grab;
 }
 
-.graph-scroll.panning {
+.graph-scroll.dragging {
     cursor: grabbing;
 }
 

@@ -32,6 +32,8 @@ let checksSignature = "";
 let statusTimer = null;
 
 const view = { scale: 1, x: 0, y: 0, size: { width: 0, height: 0 } };
+const MIN_SCALE = 0.05;
+const MAX_SCALE = 8;
 
 async function api(path, options = {}) {
     const response = await fetch(path, {
@@ -369,7 +371,19 @@ function onAsked() {
 /* ------------------------------------------------------------- graph view */
 
 function applyTransform() {
+    clampView();
     $("graph").style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.scale})`;
+}
+
+/** Keeps part of the graph inside the viewport so it cannot be scrolled away. */
+function clampView() {
+    const container = $("graph-scroll");
+    const width = view.size.width * view.scale;
+    const height = view.size.height * view.scale;
+    if (!width || !height) return;
+    const margin = 60;
+    view.x = Math.max(margin - width, Math.min(container.clientWidth - margin, view.x));
+    view.y = Math.max(margin - height, Math.min(container.clientHeight - margin, view.y));
 }
 
 function fitToView() {
@@ -386,14 +400,24 @@ function fitToView() {
 function zoomBy(factor, originX, originY) {
     const container = $("graph-scroll");
     const rect = container.getBoundingClientRect();
-    const cx = originX ?? rect.width / 2;
-    const cy = originY ?? rect.height / 2;
-    const next = Math.min(8, Math.max(0.05, view.scale * factor));
-    const ratio = next / view.scale;
-    view.x = cx - (cx - view.x) * ratio;
-    view.y = cy - (cy - view.y) * ratio;
+    zoomTo(view.scale * factor, originX ?? rect.width / 2, originY ?? rect.height / 2);
+}
+
+/** Applies an absolute scale while keeping the container point (cx, cy) fixed. */
+function zoomTo(scale, cx, cy, base = view) {
+    const next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
+    const ratio = next / base.scale;
+    view.x = cx - (cx - base.x) * ratio;
+    view.y = cy - (cy - base.y) * ratio;
     view.scale = next;
     applyTransform();
+}
+
+/** Converts a wheel delta to pixels regardless of the reported delta mode. */
+function wheelDelta(value, mode, pageSize) {
+    if (mode === 1) return value * 16;
+    if (mode === 2) return value * pageSize;
+    return value;
 }
 
 /** Splits a Graphviz edge title such as `user:a->file:b` into its endpoints. */
@@ -455,31 +479,45 @@ function wireGraphInteractions() {
     container.addEventListener("wheel", (event) => {
         event.preventDefault();
         const rect = container.getBoundingClientRect();
-        zoomBy(event.deltaY < 0 ? 1.12 : 1 / 1.12, event.clientX - rect.left, event.clientY - rect.top);
+        const dy = wheelDelta(event.deltaY, event.deltaMode, rect.height);
+        // Trackpad pinch gestures are reported as a wheel event with ctrlKey set.
+        if (event.ctrlKey || event.metaKey) {
+            zoomTo(view.scale * Math.exp(-dy / 320), event.clientX - rect.left, event.clientY - rect.top);
+            return;
+        }
+        view.x -= wheelDelta(event.deltaX, event.deltaMode, rect.width);
+        view.y -= dy;
+        applyTransform();
     }, { passive: false });
 
     container.addEventListener("pointerdown", (event) => {
         if (event.button !== 0) return;
-        dragging = { x: event.clientX, y: event.clientY, ox: view.x, oy: view.y, moved: false };
+        const rect = container.getBoundingClientRect();
+        dragging = {
+            x: event.clientX,
+            y: event.clientY,
+            cx: event.clientX - rect.left,
+            cy: event.clientY - rect.top,
+            base: { x: view.x, y: view.y, scale: view.scale },
+            moved: false,
+        };
         container.setPointerCapture(event.pointerId);
-        container.classList.add("panning");
+        container.classList.add("dragging");
     });
 
     container.addEventListener("pointermove", (event) => {
         if (!dragging) return;
-        const dx = event.clientX - dragging.x;
         const dy = event.clientY - dragging.y;
-        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragging.moved = true;
-        view.x = dragging.ox + dx;
-        view.y = dragging.oy + dy;
-        applyTransform();
+        if (Math.abs(event.clientX - dragging.x) > 3 || Math.abs(dy) > 3) dragging.moved = true;
+        // Dragging upwards zooms in, matching the Ctrl+wheel direction.
+        zoomTo(dragging.base.scale * Math.exp(-dy / 220), dragging.cx, dragging.cy, dragging.base);
     });
 
     const endDrag = (event) => {
         if (!dragging) return;
         const moved = dragging.moved;
         dragging = null;
-        container.classList.remove("panning");
+        container.classList.remove("dragging");
         if (container.hasPointerCapture?.(event.pointerId)) container.releasePointerCapture(event.pointerId);
         if (moved) return;
         const node = event.target.closest?.(".node");
@@ -489,7 +527,7 @@ function wireGraphInteractions() {
     container.addEventListener("pointerup", endDrag);
     container.addEventListener("pointercancel", () => {
         dragging = null;
-        container.classList.remove("panning");
+        container.classList.remove("dragging");
     });
 
     graph.addEventListener("dblclick", (event) => {
