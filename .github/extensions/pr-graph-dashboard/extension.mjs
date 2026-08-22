@@ -59,8 +59,47 @@ async function persist(dashboard) {
     await saveInstancePointer(dashboard.instanceId, {
         path: dashboard.sourcePath,
         command: dashboard.sourceCommand,
+        filters: dashboard.filters,
+        view: dashboard.view,
+        selection: dashboard.selection,
         updatedAt: new Date().toISOString(),
     });
+}
+
+/**
+ * Persists on every state change, coalescing bursts. Without this a provider
+ * restart drops the filters, layout and selection the user set up, because
+ * only explicit load/generate calls wrote the pointer.
+ */
+function autoPersist(dashboard, log) {
+    let timer = null;
+    dashboard.on("changed", () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            void persist(dashboard).catch((error) => {
+                log(`failed to persist dashboard state: ${error instanceof Error ? error.message : String(error)}`, "warning");
+            });
+        }, 400);
+    });
+}
+
+/** Restores the filters, layout and selection saved for the same graph. */
+function restoreViewState(dashboard, pointer) {
+    if (!pointer || pointer.path !== dashboard.sourcePath) return;
+    // Best effort: a saved value can no longer apply if the file changed, and
+    // that must not stop the graph from opening.
+    for (const [value, apply] of [
+        [pointer.filters, (v) => dashboard.setFilters(v)],
+        [pointer.view, (v) => dashboard.setView(v)],
+        [pointer.selection, (v) => dashboard.select(v)],
+    ]) {
+        if (!value) continue;
+        try {
+            apply(value);
+        } catch {
+            /* the saved value no longer fits this graph */
+        }
+    }
 }
 
 /** Applies an open input (or a persisted pointer) to a dashboard. */
@@ -289,12 +328,14 @@ const canvas = createCanvas({
             if (requested.path || requested.dot || requested.args !== undefined) {
                 try {
                     await applySource(dashboard, requested);
+                    restoreViewState(dashboard, pointer);
                 } catch (error) {
                     dashboard.error = error instanceof Error ? error.message : String(error);
                     dashboard.touch();
                     log(`failed to load graph: ${dashboard.error}`, "warning");
                 }
             }
+            autoPersist(dashboard, log);
         } else if (input.path || input.dot || input.args !== undefined) {
             await applySource(entry.dashboard, input);
         }
