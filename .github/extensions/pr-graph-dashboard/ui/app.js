@@ -27,13 +27,17 @@ const QUICK_FLAGS = [
 
 let state = null;
 let renderedRev = -1;
+let lastSelectRev = null;
 let nodeIds = [];
 let checksSignature = "";
 let statusTimer = null;
+let glideTimer = null;
+let skipCenter = 0;
 
 const view = { scale: 1, x: 0, y: 0, size: { width: 0, height: 0 } };
 const MIN_SCALE = 0.01;
 const MAX_SCALE = 8;
+const GLIDE_MS = 320;
 
 async function api(path, options = {}) {
     const response = await fetch(path, {
@@ -79,6 +83,37 @@ async function refresh() {
     state = await api("/api/state");
     renderState();
     if (state.renderRev !== renderedRev) await loadSvg();
+    followSelection();
+}
+
+/** Moves the view to the selected node whenever the selection is set anew. */
+function followSelection() {
+    const rev = state.selectRev ?? 0;
+    const moved = lastSelectRev !== null && rev !== lastSelectRev;
+    lastSelectRev = rev;
+    if (!moved) return;
+    if (skipCenter > 0) {
+        skipCenter -= 1;
+        return;
+    }
+    if (!state.selection) return;
+    if (!centerOnNode(state.selection.id)) {
+        setStatus(`${state.selection.id} is hidden by the current filters.`);
+    }
+}
+
+/**
+ * Selects a node. Picking one from a list moves the view to it; clicking it in
+ * the graph does not, because it is already where the pointer is.
+ */
+function selectNode(nodeId, { center = true } = {}) {
+    if (!center) skipCenter += 1;
+    return run(
+        post("/api/select", { nodeId }).catch((error) => {
+            if (!center) skipCenter = Math.max(0, skipCenter - 1);
+            throw error;
+        }),
+    );
 }
 
 async function loadSvg() {
@@ -125,6 +160,7 @@ function renderState() {
 
     $("btn-reload").disabled = !state.source.path;
     $("btn-export").disabled = !state.source.loaded;
+    $("zoom-center").disabled = !state.selection;
 
     renderStatusBar();
     renderChecks();
@@ -520,6 +556,44 @@ function fitToView() {
     applyTransform();
 }
 
+/** Finds the rendered SVG group of a node, or null when it is filtered out. */
+function nodeElement(nodeId) {
+    for (const element of $("graph").querySelectorAll(".node")) {
+        if ((element.querySelector("title")?.textContent ?? "") === nodeId) return element;
+    }
+    return null;
+}
+
+/** Pans the view so the given node sits in the middle of the viewport. */
+function centerOnNode(nodeId) {
+    const element = nodeElement(nodeId);
+    if (!element) return false;
+    const container = $("graph-scroll");
+    const node = element.getBoundingClientRect();
+    const box = container.getBoundingClientRect();
+    view.x += box.left + box.width / 2 - (node.left + node.width / 2);
+    view.y += box.top + box.height / 2 - (node.top + node.height / 2);
+    glide();
+    applyTransform();
+    return true;
+}
+
+/** Animates the next transform so a long jump stays easy to follow. */
+function glide() {
+    const graph = $("graph");
+    graph.classList.add("gliding");
+    clearTimeout(glideTimer);
+    glideTimer = setTimeout(() => graph.classList.remove("gliding"), GLIDE_MS);
+}
+
+/** Drops the animation so panning and zooming stay immediate. */
+function stopGlide() {
+    if (glideTimer === null) return;
+    clearTimeout(glideTimer);
+    glideTimer = null;
+    $("graph").classList.remove("gliding");
+}
+
 function zoomBy(factor, originX, originY) {
     const container = $("graph-scroll");
     const rect = container.getBoundingClientRect();
@@ -691,6 +765,7 @@ function wireGraphInteractions() {
 
     container.addEventListener("wheel", (event) => {
         event.preventDefault();
+        stopGlide();
         const rect = container.getBoundingClientRect();
         const dy = wheelDelta(event.deltaY, event.deltaMode, rect.height);
         // Trackpad pinch gestures are reported as a wheel event with ctrlKey set.
@@ -705,6 +780,7 @@ function wireGraphInteractions() {
 
     container.addEventListener("pointerdown", (event) => {
         if (event.button !== 0) return;
+        stopGlide();
         const rect = container.getBoundingClientRect();
         dragging = {
             x: event.clientX,
@@ -748,7 +824,7 @@ function wireGraphInteractions() {
         }
         lastClick = id ? { id, time: event.timeStamp } : null;
         if (id) activateTab("details");
-        run(post("/api/select", { nodeId: id }));
+        selectNode(id, { center: false });
     };
     container.addEventListener("pointerup", endDrag);
     container.addEventListener("pointercancel", () => {
@@ -797,7 +873,7 @@ function wireSidebar() {
     $("nodes-query").addEventListener("input", debounce(() => run(renderNodeList()), 200));
     $("node-list").addEventListener("click", (event) => {
         const item = event.target.closest("li[data-node-id]");
-        if (item) run(post("/api/select", { nodeId: item.dataset.nodeId }));
+        if (item) selectNode(item.dataset.nodeId);
     });
     $("node-list").addEventListener("dblclick", (event) => {
         const item = event.target.closest("li[data-node-id]");
@@ -805,7 +881,7 @@ function wireSidebar() {
     });
     $("details").addEventListener("click", (event) => {
         const peer = event.target.closest(".peer[data-node-id]");
-        if (peer) run(post("/api/select", { nodeId: peer.dataset.nodeId }));
+        if (peer) selectNode(peer.dataset.nodeId);
     });
 
     $("agent-send").addEventListener("click", () => {
@@ -822,6 +898,11 @@ function wireToolbar() {
     $("zoom-in").addEventListener("click", () => zoomBy(1.25));
     $("zoom-out").addEventListener("click", () => zoomBy(1 / 1.25));
     $("zoom-reset").addEventListener("click", fitToView);
+    $("zoom-center").addEventListener("click", () => {
+        const selection = state?.selection;
+        if (!selection) return;
+        if (!centerOnNode(selection.id)) setStatus(`${selection.id} is hidden by the current filters.`, true);
+    });
     $("btn-reload").addEventListener("click", () => run(post("/api/reload").then(() => setStatus("Reloaded."))));
 
     $("btn-open").addEventListener("click", async () => {

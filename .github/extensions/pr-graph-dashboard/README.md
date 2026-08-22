@@ -32,14 +32,17 @@ The agent opens it via `open_canvas` with `canvasId: "pr-graph"` and an optional
   re-read the current file, or write the SVG / filtered DOT to disk.
 - **Filters** — node types, edge relations, minimum edge weight, name search, neighbourhood
   radius, orphan handling, Graphviz layout engine and direction.
-- **Nodes** — ranked node list; click to select, double-click to focus the graph on a node.
+- **Nodes** — ranked node list; click to select and move the view to that node, double-click to focus
+  the graph on it.
 - **Details** — the selected node's incoming and outgoing relationships.
 - **Agent** — preset prompts (summarize, analyze selection, review load, ownership risk, next
   query) and a free-text box. Messages are sent to the agent in the current session together
   with the graph context.
 
 Click a node in the graph to select it, which highlights its neighbourhood and opens the Details tab;
-double-click to focus on it. Scroll to pan, and zoom either with `Ctrl`/`Cmd` + scroll (or a trackpad
+double-click to focus on it. Selecting a node anywhere else — the Nodes list, a peer in Details, or the
+`select_node` action — pans the graph to it; the ⌖ button repeats that move for the current selection.
+Scroll to pan, and zoom either with `Ctrl`/`Cmd` + scroll (or a trackpad
 pinch) or by dragging up and down. Drag the divider between the graph and the side panel to resize
 them, double-click it to reset, or focus it and use the arrow keys. The chosen size is remembered.
 
@@ -56,7 +59,7 @@ Invoke with `invoke_canvas_action({ instanceId, actionName, input })`:
 | `describe_node` | `node`, `useFilters`                                                                      | One node with its edges.                   |
 | `set_filters`   | `nodeTypes`, `relations`, `minWeight`, `search`, `focus`, `hops`, `keepOrphans`, `reset`   | Change what is displayed.                  |
 | `set_view`      | `engine`, `rankdir`                                                                       | Change layout engine / direction.          |
-| `select_node`   | `node`                                                                                    | Select or clear the selection.             |
+| `select_node`   | `node`                                                                                    | Select a node and move the view to it.     |
 | `export`        | `path`, `kind`, `filtered`                                                                | Write SVG or DOT to disk.                  |
 
 ## Storage

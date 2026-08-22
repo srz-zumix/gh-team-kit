@@ -269,7 +269,7 @@ const canvas = createCanvas({
         ),
         action(
             "select_node",
-            "Select a node in the dashboard, or clear the selection.",
+            "Select a node in the dashboard and move the view to it, or clear the selection.",
             {
                 type: "object",
                 additionalProperties: false,

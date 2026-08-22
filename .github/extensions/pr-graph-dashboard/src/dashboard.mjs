@@ -96,6 +96,7 @@ export class Dashboard extends EventEmitter {
         this.filters = { ...DEFAULT_FILTERS };
         this.view = { ...DEFAULT_VIEW };
         this.selection = null;
+        this.selectRev = 0;
         this.generateArgs = "";
         this.busy = "";
         this.error = "";
@@ -197,6 +198,9 @@ export class Dashboard extends EventEmitter {
             throw new Error(`node "${id}" is not present in the current graph`);
         }
         this.selection = id;
+        // Bumped on every call so the panel can move the view to the node again
+        // even when the same node is picked twice.
+        this.selectRev += 1;
         this.touch();
         return id;
     }
@@ -304,6 +308,7 @@ export class Dashboard extends EventEmitter {
             engines: ENGINES,
             rankdirs: RANKDIRS,
             selection,
+            selectRev: this.selectRev,
             stats,
             warnings: this.graph.warnings ?? [],
             generateArgs: this.generateArgs,

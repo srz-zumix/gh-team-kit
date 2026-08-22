@@ -219,6 +219,17 @@ textarea {
     will-change: transform;
 }
 
+/* Applied only while jumping to a node, so panning stays immediate otherwise. */
+.graph.gliding {
+    transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .graph.gliding {
+        transition: none;
+    }
+}
+
 .graph svg {
     display: block;
     overflow: visible;
