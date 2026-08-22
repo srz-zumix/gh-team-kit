@@ -866,3 +866,19 @@ gh team-kit skills update [--scope <user|repo>] [--prefix <dir>] [--dry-run] [--
 ```
 
 Update installed skills when a newer version is available.
+
+## Copilot CLI Canvas Extension
+
+This repository ships a [GitHub Copilot CLI](https://github.com/github/copilot-cli) canvas extension in
+[`.github/extensions/pr-graph-dashboard`](.github/extensions/pr-graph-dashboard) that renders `pr-graph` DOT output as an
+interactive graph in the Copilot app side panel.
+
+The extension is discovered automatically when the repository is opened in the Copilot app, so no installation step is
+required. Rendering uses the local Graphviz `dot` binary, which must be installed separately (for example
+`brew install graphviz`).
+
+The dashboard can load an existing `.dot` file or generate one by running `gh team-kit pr-graph <args> --format dot`, and it
+supports filtering by node type, edge relation, edge weight, free-text search, and a focus node with a configurable hop
+radius. It can also hand the current graph context back to the agent, either through preset prompts or a free-text box, and
+exposes the same operations as agent-callable canvas actions. See the
+[extension README](.github/extensions/pr-graph-dashboard/README.md) for details.
