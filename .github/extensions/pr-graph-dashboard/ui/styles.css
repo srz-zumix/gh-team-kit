@@ -122,6 +122,13 @@ textarea {
     height: 100vh;
 }
 
+/* Grid items default to a `min-width: auto` floor, which lets long paths and
+   the toolbar buttons push the whole layout wider than the panel. */
+.app > *,
+.sidebar > * {
+    min-width: 0;
+}
+
 .toolbar {
     display: flex;
     align-items: center;
@@ -160,16 +167,30 @@ textarea {
 
 .body {
     display: grid;
-    grid-template-columns: 1fr 300px;
+    grid-template-columns: 1fr 6px var(--sidebar-width, 300px);
     min-height: 0;
 }
 
 .body.collapsed {
-    grid-template-columns: 1fr 0;
+    grid-template-columns: 1fr 0 0;
 }
 
-.body.collapsed .sidebar {
+.body.collapsed .sidebar,
+.body.collapsed .resizer {
     display: none;
+}
+
+.resizer {
+    background: var(--border-color-default, #d1d9e0);
+    cursor: col-resize;
+    touch-action: none;
+}
+
+.resizer:hover,
+.resizer.active,
+.resizer:focus-visible {
+    background: var(--true-color-blue, #0969da);
+    outline: none;
 }
 
 .viewport {
@@ -251,11 +272,15 @@ textarea {
 
 .tabs button {
     flex: 1;
+    min-width: 0;
     border: none;
     border-radius: 0;
     padding: 8px 4px;
     color: var(--text-color-muted, #59636e);
     font-size: var(--text-body-small, 12px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .tabs button.active {
@@ -608,11 +633,15 @@ dialog menu {
 @media (max-width: 780px) {
     .body {
         grid-template-columns: 1fr;
-        grid-template-rows: minmax(140px, 1fr) minmax(180px, 45%);
+        grid-template-rows: minmax(140px, 1fr) 6px var(--sidebar-height, 45%);
     }
 
     .body.collapsed {
-        grid-template-rows: 1fr 0;
+        grid-template-rows: 1fr 0 0;
+    }
+
+    .resizer {
+        cursor: row-resize;
     }
 
     .sidebar {

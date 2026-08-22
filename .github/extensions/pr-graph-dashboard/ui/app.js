@@ -32,7 +32,7 @@ let checksSignature = "";
 let statusTimer = null;
 
 const view = { scale: 1, x: 0, y: 0, size: { width: 0, height: 0 } };
-const MIN_SCALE = 0.05;
+const MIN_SCALE = 0.01;
 const MAX_SCALE = 8;
 
 async function api(path, options = {}) {
@@ -390,8 +390,8 @@ function fitToView() {
     const container = $("graph-scroll");
     const { width, height } = view.size;
     if (!width || !height) return;
-    const scale = Math.min(container.clientWidth / width, container.clientHeight / height, 1.5);
-    view.scale = scale || 1;
+    const fitted = Math.min(container.clientWidth / width, container.clientHeight / height, 1.5);
+    view.scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, fitted || 1));
     view.x = Math.max(0, (container.clientWidth - width * view.scale) / 2);
     view.y = Math.max(0, (container.clientHeight - height * view.scale) / 2);
     applyTransform();
@@ -461,6 +461,96 @@ function applyHighlight() {
     }
 }
 
+/* ------------------------------------------------------------- side panel */
+
+const SIDEBAR_STORAGE_KEY = "pr-graph-dashboard:sidebar";
+const MIN_SIDEBAR = 200;
+const MIN_VIEWPORT = 160;
+
+/** True while the layout stacks the side panel below the graph. */
+function isStacked() {
+    return window.matchMedia("(max-width: 780px)").matches;
+}
+
+function sidebarSize() {
+    const body = document.querySelector(".body");
+    return isStacked() ? $("sidebar").offsetHeight : $("sidebar").offsetWidth || body.offsetWidth * 0.3;
+}
+
+function setSidebarSize(size) {
+    const body = document.querySelector(".body");
+    const stacked = isStacked();
+    const divider = stacked ? $("resizer").offsetHeight : $("resizer").offsetWidth;
+    const total = (stacked ? body.clientHeight : body.clientWidth) - divider;
+    const clamped = Math.max(MIN_SIDEBAR, Math.min(total - MIN_VIEWPORT, size));
+    body.style.setProperty(stacked ? "--sidebar-height" : "--sidebar-width", `${Math.round(clamped)}px`);
+    try {
+        localStorage.setItem(`${SIDEBAR_STORAGE_KEY}:${stacked ? "height" : "width"}`, String(Math.round(clamped)));
+    } catch {
+        // Storage can be unavailable; the size simply is not remembered.
+    }
+    applyTransform();
+}
+
+function restoreSidebarSize() {
+    const body = document.querySelector(".body");
+    const stacked = isStacked();
+    let stored = null;
+    try {
+        stored = localStorage.getItem(`${SIDEBAR_STORAGE_KEY}:${stacked ? "height" : "width"}`);
+    } catch {
+        stored = null;
+    }
+    const size = Number(stored);
+    if (!Number.isFinite(size) || size <= 0) return;
+    const total = stacked ? body.clientHeight : body.clientWidth;
+    if (total <= MIN_SIDEBAR + MIN_VIEWPORT) return;
+    setSidebarSize(size);
+}
+
+function wireResizer() {
+    const resizer = $("resizer");
+    let drag = null;
+
+    resizer.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        drag = { x: event.clientX, y: event.clientY, size: sidebarSize(), stacked: isStacked() };
+        resizer.setPointerCapture(event.pointerId);
+        resizer.classList.add("active");
+    });
+
+    resizer.addEventListener("pointermove", (event) => {
+        if (!drag) return;
+        // The side panel sits after the divider, so it grows as the pointer
+        // moves towards the start of the axis.
+        const delta = drag.stacked ? drag.y - event.clientY : drag.x - event.clientX;
+        setSidebarSize(drag.size + delta);
+    });
+
+    const stop = (event) => {
+        if (!drag) return;
+        drag = null;
+        resizer.classList.remove("active");
+        if (resizer.hasPointerCapture?.(event.pointerId)) resizer.releasePointerCapture(event.pointerId);
+    };
+    resizer.addEventListener("pointerup", stop);
+    resizer.addEventListener("pointercancel", stop);
+
+    resizer.addEventListener("dblclick", () => setSidebarSize(300));
+
+    resizer.addEventListener("keydown", (event) => {
+        const step = event.shiftKey ? 40 : 12;
+        const grow = isStacked() ? "ArrowUp" : "ArrowLeft";
+        const shrink = isStacked() ? "ArrowDown" : "ArrowRight";
+        if (event.key !== grow && event.key !== shrink) return;
+        event.preventDefault();
+        setSidebarSize(sidebarSize() + (event.key === grow ? step : -step));
+    });
+
+    restoreSidebarSize();
+}
+
 /* ----------------------------------------------------------------- events */
 
 function debounce(fn, delay) {
@@ -473,8 +563,8 @@ function debounce(fn, delay) {
 
 function wireGraphInteractions() {
     const container = $("graph-scroll");
-    const graph = $("graph");
     let dragging = null;
+    let lastClick = null;
 
     container.addEventListener("wheel", (event) => {
         event.preventDefault();
@@ -499,6 +589,9 @@ function wireGraphInteractions() {
             cx: event.clientX - rect.left,
             cy: event.clientY - rect.top,
             base: { x: view.x, y: view.y, scale: view.scale },
+            // Pointer capture retargets later events to the container, so the
+            // element actually under the pointer has to be captured up front.
+            target: event.target,
             moved: false,
         };
         container.setPointerCapture(event.pointerId);
@@ -515,13 +608,23 @@ function wireGraphInteractions() {
 
     const endDrag = (event) => {
         if (!dragging) return;
-        const moved = dragging.moved;
+        const { moved, target } = dragging;
         dragging = null;
         container.classList.remove("dragging");
         if (container.hasPointerCapture?.(event.pointerId)) container.releasePointerCapture(event.pointerId);
         if (moved) return;
-        const node = event.target.closest?.(".node");
+        const node = target?.closest?.(".node");
         const id = node?.querySelector("title")?.textContent ?? null;
+        // Double clicks are detected here rather than through a `dblclick`
+        // listener, because pointer capture retargets the derived mouse events
+        // away from the node that was actually clicked.
+        if (id && lastClick && lastClick.id === id && event.timeStamp - lastClick.time < 400) {
+            lastClick = null;
+            run(post("/api/filters", { focus: id }));
+            return;
+        }
+        lastClick = id ? { id, time: event.timeStamp } : null;
+        if (id) activateTab("details");
         run(post("/api/select", { nodeId: id }));
     };
     container.addEventListener("pointerup", endDrag);
@@ -529,23 +632,23 @@ function wireGraphInteractions() {
         dragging = null;
         container.classList.remove("dragging");
     });
+}
 
-    graph.addEventListener("dblclick", (event) => {
-        const node = event.target.closest(".node");
-        if (!node) return;
-        const id = node.querySelector("title")?.textContent;
-        if (id) run(post("/api/filters", { focus: id }));
-    });
+/** Activates a sidebar tab by its `data-tab` name. */
+function activateTab(name) {
+    for (const tab of $("tabs").querySelectorAll("button")) {
+        tab.classList.toggle("active", tab.dataset.tab === name);
+    }
+    for (const panel of document.querySelectorAll(".panel")) {
+        panel.classList.toggle("active", panel.dataset.panel === name);
+    }
 }
 
 function wireSidebar() {
     $("tabs").addEventListener("click", (event) => {
         const button = event.target.closest("button[data-tab]");
         if (!button) return;
-        for (const tab of $("tabs").querySelectorAll("button")) tab.classList.toggle("active", tab === button);
-        for (const panel of document.querySelectorAll(".panel")) {
-            panel.classList.toggle("active", panel.dataset.panel === button.dataset.tab);
-        }
+        activateTab(button.dataset.tab);
     });
 
     $("btn-sidebar").addEventListener("click", () => {
@@ -712,6 +815,7 @@ function connectEvents() {
 
 wireGraphInteractions();
 wireSidebar();
+wireResizer();
 wireToolbar();
 connectEvents();
 window.addEventListener("resize", debounce(fitToView, 150));

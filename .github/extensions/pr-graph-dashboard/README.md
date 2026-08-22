@@ -38,8 +38,10 @@ The agent opens it via `open_canvas` with `canvasId: "pr-graph"` and an optional
   query) and a free-text box. Messages are sent to the agent in the current session together
   with the graph context.
 
-Click a node in the graph to select it and double-click to focus on it. Scroll to pan, and zoom either
-with `Ctrl`/`Cmd` + scroll (or a trackpad pinch) or by dragging up and down.
+Click a node in the graph to select it, which highlights its neighbourhood and opens the Details tab;
+double-click to focus on it. Scroll to pan, and zoom either with `Ctrl`/`Cmd` + scroll (or a trackpad
+pinch) or by dragging up and down. Drag the divider between the graph and the side panel to resize
+them, double-click it to reset, or focus it and use the arrow keys. The chosen size is remembered.
 
 ## Agent-callable actions
 
