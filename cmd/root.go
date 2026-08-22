@@ -9,13 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/gh-team-kit/version"
 	"github.com/srz-zumix/go-gh-extension/pkg/actions"
-	"github.com/srz-zumix/go-gh-extension/pkg/gh/guardrails"
-	"github.com/srz-zumix/go-gh-extension/pkg/logger"
-)
-
-var (
-	logLevel string
-	readOnly bool
+	"github.com/srz-zumix/go-gh-extension/pkg/cmdflags"
 )
 
 var rootCmd = &cobra.Command{
@@ -23,10 +17,6 @@ var rootCmd = &cobra.Command{
 	Short:   "Team-related operations extensions for GitHub CLI",
 	Long:    `Team-related operations extensions for GitHub CLI`,
 	Version: version.Version,
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		logger.SetLogLevel(logLevel)
-		guardrails.NewGuardrail(guardrails.ReadOnlyOption(readOnly))
-	},
 }
 
 func Execute() {
@@ -40,6 +30,5 @@ func init() {
 	if actions.IsRunsOn() {
 		rootCmd.SetErrPrefix(actions.GetErrorPrefix())
 	}
-	logger.AddCmdFlag(rootCmd, rootCmd.PersistentFlags(), &logLevel, "log-level", "L")
-	rootCmd.PersistentFlags().BoolVar(&readOnly, "read-only", false, "Run in read-only mode (prevent write operations)")
+	cmdflags.AddPersistentFlags(rootCmd)
 }
