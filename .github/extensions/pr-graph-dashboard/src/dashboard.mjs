@@ -257,6 +257,9 @@ export class Dashboard extends EventEmitter {
             }
         } finally {
             this.rendering = false;
+            // Announce the end of the batch so the panel knows the SVG on screen
+            // now matches the current filters.
+            this.touch();
         }
     }
 
@@ -316,6 +319,7 @@ export class Dashboard extends EventEmitter {
             error: this.error,
             renderError: this.renderError,
             renderRev: this.renderRev,
+            rendering: this.rendering || this.renderPending,
             stateRev: this.stateRev,
             hasSvg: Boolean(this.svg),
         };

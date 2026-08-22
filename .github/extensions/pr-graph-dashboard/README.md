@@ -42,9 +42,14 @@ The agent opens it via `open_canvas` with `canvasId: "pr-graph"` and an optional
 Click a node in the graph to select it, which highlights its neighbourhood and opens the Details tab;
 double-click to focus on it. Selecting a node anywhere else — the Nodes list, a peer in Details, or the
 `select_node` action — pans the graph to it; the ⌖ button repeats that move for the current selection.
-Scroll to pan, and zoom either with `Ctrl`/`Cmd` + scroll (or a trackpad
+Focusing re-lays the graph out, so the view travels to the focused node once the new layout is on
+screen, and clearing the focus returns to the spot the view came from. Scroll to pan, and zoom either
+with `Ctrl`/`Cmd` + scroll (or a trackpad
 pinch) or by dragging up and down. Drag the divider between the graph and the side panel to resize
 them, double-click it to reset, or focus it and use the arrow keys. The chosen size is remembered.
+
+Large graphs take a while to lay out, so the status bar appends `· rendering…` to the counts while
+Graphviz is still working and the previous layout is still on screen.
 
 ## Agent-callable actions
 

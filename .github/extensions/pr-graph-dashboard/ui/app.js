@@ -33,6 +33,11 @@ let checksSignature = "";
 let statusTimer = null;
 let glideTimer = null;
 let skipCenter = 0;
+let focusValue = null;
+let savedView = null;
+let pendingView = null;
+let refreshing = null;
+let refreshQueued = false;
 
 const view = { scale: 1, x: 0, y: 0, size: { width: 0, height: 0 } };
 const MIN_SCALE = 0.01;
@@ -79,15 +84,93 @@ function run(promise) {
 
 /* ------------------------------------------------------------------ state */
 
-async function refresh() {
+/**
+ * Refreshes the panel. Calls are serialised and coalesced: overlapping runs
+ * would otherwise move the view while another one is still swapping the SVG.
+ */
+function refresh() {
+    if (refreshing) {
+        refreshQueued = true;
+        return refreshing;
+    }
+    refreshing = (async () => {
+        try {
+            do {
+                refreshQueued = false;
+                await refreshOnce();
+            } while (refreshQueued);
+        } finally {
+            refreshing = null;
+        }
+    })();
+    return refreshing;
+}
+
+async function refreshOnce() {
     state = await api("/api/state");
+    followFocus();
     renderState();
     if (state.renderRev !== renderedRev) await loadSvg();
-    followSelection();
+    // A focus move wins over a selection move queued in the same update.
+    const moved = applyPendingView();
+    followSelection({ move: !moved });
+}
+
+/**
+ * Tracks the focus filter. Focusing re-lays the graph out, so the view has to
+ * travel to the focused node; clearing it goes back to where the user was.
+ */
+function followFocus() {
+    const focus = state.filters.focus ?? "";
+    if (focusValue === null) {
+        focusValue = focus;
+        return;
+    }
+    if (focus === focusValue) return;
+    const wasFocused = Boolean(focusValue);
+    focusValue = focus;
+    if (focus) {
+        if (!wasFocused) savedView = { x: view.x, y: view.y, scale: view.scale, layout: layoutSignature() };
+        pendingView = { kind: "focus", node: focus };
+        return;
+    }
+    // Only return to the remembered spot when the graph is laid out as it was.
+    const restorable = savedView && savedView.layout === layoutSignature();
+    pendingView = restorable ? { kind: "restore", view: savedView } : { kind: "fit" };
+    savedView = null;
+}
+
+/** Everything except the focus node that changes how the graph is laid out. */
+function layoutSignature() {
+    const { focus, ...rest } = state.filters;
+    const { total } = state.stats;
+    return JSON.stringify([state.source.path, total.nodes, total.edges, rest, state.view]);
+}
+
+/**
+ * Runs a view move that was waiting for the graph to finish re-rendering.
+ * Returns true once the move has been applied.
+ */
+function applyPendingView() {
+    if (!pendingView || state.rendering) return false;
+    const request = pendingView;
+    pendingView = null;
+    // The graph content changed underneath, so animating the move is pointless.
+    stopGlide();
+    if (request.kind === "restore") {
+        view.x = request.view.x;
+        view.y = request.view.y;
+        view.scale = request.view.scale;
+        applyTransform();
+        return true;
+    }
+    fitToView();
+    if (request.kind === "focus") centerOnNode(request.node, { animate: false });
+    return true;
 }
 
 /** Moves the view to the selected node whenever the selection is set anew. */
-function followSelection() {
+function followSelection({ move = true } = {}) {
     const rev = state.selectRev ?? 0;
     const moved = lastSelectRev !== null && rev !== lastSelectRev;
     lastSelectRev = rev;
@@ -96,7 +179,7 @@ function followSelection() {
         skipCenter -= 1;
         return;
     }
-    if (!state.selection) return;
+    if (!move || !state.selection) return;
     if (!centerOnNode(state.selection.id)) {
         setStatus(`${state.selection.id} is hidden by the current filters.`);
     }
@@ -175,8 +258,10 @@ function renderState() {
 
 function renderStatusBar() {
     const { total, visible } = state.stats;
+    // Re-rendering a large graph takes a while, and the counts update first.
+    const rendering = state.rendering ? " · rendering…" : "";
     $("status-counts").textContent = state.source.loaded
-        ? `${visible.nodes}/${total.nodes} nodes · ${visible.edges}/${total.edges} edges`
+        ? `${visible.nodes}/${total.nodes} nodes · ${visible.edges}/${total.edges} edges${rendering}`
         : "";
     if (state.busy) {
         setStatus(state.busy);
@@ -565,7 +650,7 @@ function nodeElement(nodeId) {
 }
 
 /** Pans the view so the given node sits in the middle of the viewport. */
-function centerOnNode(nodeId) {
+function centerOnNode(nodeId, { animate = true } = {}) {
     const element = nodeElement(nodeId);
     if (!element) return false;
     const container = $("graph-scroll");
@@ -573,7 +658,7 @@ function centerOnNode(nodeId) {
     const box = container.getBoundingClientRect();
     view.x += box.left + box.width / 2 - (node.left + node.width / 2);
     view.y += box.top + box.height / 2 - (node.top + node.height / 2);
-    glide();
+    if (animate) glide();
     applyTransform();
     return true;
 }
