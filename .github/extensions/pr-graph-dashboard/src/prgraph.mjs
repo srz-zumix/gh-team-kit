@@ -129,3 +129,52 @@ export function runPrGraph(options = {}) {
         });
     });
 }
+
+let helpText;
+
+/**
+ * Returns `gh team-kit pr-graph --help`, cached for the life of the process.
+ * It is embedded in the prompt that asks the agent for arguments so the agent
+ * does not have to look the flags up itself.
+ *
+ * @param {{cwd?: string, timeoutMs?: number}} [options]
+ * @returns {Promise<string>}
+ */
+export function prGraphHelp(options = {}) {
+    if (helpText) return helpText;
+    helpText = new Promise((resolve, reject) => {
+        const child = spawn("gh", ["team-kit", "pr-graph", "--help"], {
+            cwd: options.cwd,
+            stdio: ["ignore", "pipe", "pipe"],
+            env: { ...process.env, GH_PROMPT_DISABLED: "1", NO_COLOR: "1", CLICOLOR: "0" },
+        });
+        let stdout = "";
+        let stderr = "";
+        const timer = setTimeout(() => {
+            child.kill("SIGKILL");
+            reject(new Error("gh team-kit pr-graph --help timed out"));
+        }, options.timeoutMs ?? 30_000);
+        child.stdout.setEncoding("utf-8");
+        child.stdout.on("data", (chunk) => (stdout += chunk));
+        child.stderr.setEncoding("utf-8");
+        child.stderr.on("data", (chunk) => (stderr += chunk));
+        child.on("error", (error) => {
+            clearTimeout(timer);
+            reject(error.code === "ENOENT" ? new Error("the `gh` CLI was not found on PATH") : error);
+        });
+        child.on("close", (code) => {
+            clearTimeout(timer);
+            // Cobra prints help to stdout, but tolerate builds that use stderr.
+            const text = (stdout || stderr).trim();
+            if (code !== 0 && !text) {
+                reject(new Error(`gh team-kit pr-graph --help failed with code ${code}`));
+                return;
+            }
+            resolve(text);
+        });
+    });
+    helpText.catch(() => {
+        helpText = undefined;
+    });
+    return helpText;
+}

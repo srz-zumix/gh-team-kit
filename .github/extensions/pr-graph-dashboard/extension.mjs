@@ -178,6 +178,23 @@ const canvas = createCanvas({
             },
         ),
         action(
+            "set_generate_args",
+            "Fill the dashboard's Generate dialog with `gh team-kit pr-graph` arguments for the user to review, without running anything. Use this when the user asks for arguments rather than for the graph itself.",
+            {
+                type: "object",
+                additionalProperties: false,
+                required: ["args"],
+                properties: {
+                    args: {
+                        type: "string",
+                        description:
+                            'Arguments for `gh team-kit pr-graph`, e.g. "--since 2026-01-01 --state merged --no-bots". Omit --format.',
+                    },
+                },
+            },
+            (dashboard, input) => ({ args: dashboard.setGenerateArgs(input.args) }),
+        ),
+        action(
             "get_state",
             "Return what the dashboard is currently showing: source, filters, layout, selection and counts.",
             { type: "object", additionalProperties: false, properties: {} },

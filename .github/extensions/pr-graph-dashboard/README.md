@@ -28,8 +28,9 @@ The agent opens it via `open_canvas` with `canvasId: "pr-graph"` and an optional
 
 ## Dashboard
 
-- **Open… / Generate… / Reload / Export…** — load a `.dot` file, run `gh team-kit pr-graph`,
-  re-read the current file, or write the SVG / filtered DOT to disk.
+- **Open… / Generate… / Reload / Export…** — load a `.dot` file, run `gh team-kit pr-graph` (with
+  completion for its flags, or with arguments written by the agent), re-read the current file, or
+  write the SVG / filtered DOT to disk.
 - **Filters** — node types, edge relations, minimum edge weight, name search, neighbourhood
   radius, orphan handling, Graphviz layout engine and direction, and the render limit.
 - **Nodes** — ranked node list; click to select and move the view to that node, double-click to focus
@@ -65,21 +66,38 @@ overlapping node pairs on that graph, `twopi` 2519), so those layouts are emitte
 `overlap="prism" sep="+16" esep="+4"`, which removes the overlaps and is no slower. `dot` places nodes
 in ranks itself and is left alone.
 
+### Generate
+
+The **Generate…** dialog builds the `gh team-kit pr-graph` command line for you in two ways.
+
+The argument field completes against the CLI's own shell completion (`gh team-kit __complete`), so the
+flags and values it offers always match the installed version. Suggestions appear as you type;
+`Ctrl`/`Cmd` + `Space` lists them on demand, `↑`/`↓` move through them, `Tab` or `Enter` accepts the
+highlighted one, and `Esc` dismisses the list without closing the dialog. Values are completed too —
+typing `--format ` offers `dot`, `json` and the rest.
+
+**Ask the agent for arguments** takes a plain-language description instead: "merged PRs from the last
+three months, no bots". The dialog closes and the request goes to the agent with `pr-graph --help`
+attached; when the agent answers via the `set_generate_args` action the dialog reopens with the
+proposed arguments filled in. Nothing runs until you press **Run**, so the proposal is always
+reviewable — ask the agent for `generate` instead if you want it to build the graph directly.
+
 ## Agent-callable actions
 
 Invoke with `invoke_canvas_action({ instanceId, actionName, input })`:
 
-| Action          | Input                                                                                   | Purpose                                    |
-| --------------- | --------------------------------------------------------------------------------------- | ------------------------------------------ |
-| `load_dot`      | `path` \| `dot`, `label`                                                                  | Load a DOT file or inline source.          |
-| `generate`      | `args`                                                                                    | Run `gh team-kit pr-graph` and display it. |
-| `get_state`     | —                                                                                         | Source, filters, layout, selection, counts.|
-| `get_graph`     | `limit`, `includeNodes`, `includeEdges`, `useFilters`                                     | Graph data and the most connected nodes.   |
-| `describe_node` | `node`, `useFilters`                                                                      | One node with its edges.                   |
-| `set_filters`   | `nodeTypes`, `relations`, `minWeight`, `search`, `focus`, `hops`, `keepOrphans`, `reset`   | Change what is displayed.                  |
-| `set_view`      | `engine`, `rankdir`, `timeoutMs`                                                          | Change layout engine / direction / limit.  |
-| `select_node`   | `node`                                                                                    | Select a node and move the view to it.     |
-| `export`        | `path`, `kind`, `filtered`                                                                | Write SVG or DOT to disk.                  |
+| Action              | Input                                                                                   | Purpose                                    |
+| ------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `load_dot`          | `path` \| `dot`, `label`                                                                  | Load a DOT file or inline source.          |
+| `generate`          | `args`                                                                                    | Run `gh team-kit pr-graph` and display it. |
+| `set_generate_args` | `args`                                                                                    | Propose arguments in the Generate dialog.  |
+| `get_state`         | —                                                                                         | Source, filters, layout, selection, counts.|
+| `get_graph`         | `limit`, `includeNodes`, `includeEdges`, `useFilters`                                     | Graph data and the most connected nodes.   |
+| `describe_node`     | `node`, `useFilters`                                                                      | One node with its edges.                   |
+| `set_filters`       | `nodeTypes`, `relations`, `minWeight`, `search`, `focus`, `hops`, `keepOrphans`, `reset`   | Change what is displayed.                  |
+| `set_view`          | `engine`, `rankdir`, `timeoutMs`                                                          | Change layout engine / direction / limit.  |
+| `select_node`       | `node`                                                                                    | Select a node and move the view to it.     |
+| `export`            | `path`, `kind`, `filtered`                                                                | Write SVG or DOT to disk.                  |
 
 ## Storage
 

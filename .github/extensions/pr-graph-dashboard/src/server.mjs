@@ -10,6 +10,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { NODE_TYPES, RELATIONS, topNodes } from "./dot.mjs";
 import { checkGraphviz } from "./graphviz.mjs";
+import { completeArgs } from "./complete.mjs";
 import { listDotCandidates, PROMPT_PRESETS } from "./dashboard.mjs";
 
 const UI_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "ui");
@@ -165,6 +166,14 @@ export async function startServer(dashboard) {
                 prompt = [preset.prompt, prompt].filter(Boolean).join("\n\n");
             }
             sendJson(res, 200, { ok: true, ...(await dashboard.ask(prompt)) });
+        },
+        "GET /api/complete": async (_req, res, url) => {
+            const line = url.searchParams.get("line") ?? "";
+            sendJson(res, 200, await completeArgs(line, { cwd: dashboard.workspacePath }));
+        },
+        "POST /api/generate/ask": async (req, res) => {
+            const body = await readBody(req);
+            sendJson(res, 200, { ok: true, ...(await dashboard.askForArgs(body.prompt)) });
         },
         "POST /api/export": async (req, res) => {
             const body = await readBody(req);

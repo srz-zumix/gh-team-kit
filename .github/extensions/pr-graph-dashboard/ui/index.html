@@ -183,7 +183,26 @@
                 </p>
                 <div class="field">
                     <label for="generate-args">Arguments</label>
-                    <textarea id="generate-args" rows="3" placeholder="--limit 100 --state merged --no-bots"></textarea>
+                    <div class="completing">
+                        <textarea id="generate-args" rows="3" placeholder="--limit 100 --state merged --no-bots"
+                            autocomplete="off" spellcheck="false"></textarea>
+                        <ul class="suggestions" id="generate-suggestions" role="listbox" hidden></ul>
+                    </div>
+                    <p class="hint muted" id="generate-complete-hint">
+                        Completion comes from the CLI itself. <kbd>Ctrl</kbd>+<kbd>Space</kbd> to list,
+                        <kbd>Tab</kbd> or <kbd>Enter</kbd> to accept, <kbd>Esc</kbd> to dismiss.
+                    </p>
+                </div>
+                <div class="field">
+                    <label for="generate-ask">Ask the agent for arguments</label>
+                    <div class="row">
+                        <input type="text" id="generate-ask"
+                            placeholder="merged PRs from the last 3 months, no bots, group by package" />
+                        <button type="button" id="generate-ask-send">Ask</button>
+                    </div>
+                    <p class="hint muted" id="generate-ask-hint">
+                        The agent replies by filling the field above; nothing runs until you press Run.
+                    </p>
                 </div>
                 <div class="field">
                     <label>Quick flags</label>

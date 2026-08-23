@@ -825,3 +825,80 @@ dialog menu {
 .graph.stale {
     opacity: 0.35;
 }
+
+/* Argument completion in the Generate dialog. */
+.completing {
+    position: relative;
+}
+
+.suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 3;
+    margin: 2px 0 0;
+    padding: 4px;
+    max-height: 220px;
+    overflow: auto;
+    list-style: none;
+    border: 1px solid var(--border-color-default, #d1d9e0);
+    border-radius: 8px;
+    background: var(--background-color-default, #ffffff);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+}
+
+.suggestions[hidden] {
+    display: none;
+}
+
+.suggestions li {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.suggestions li:hover {
+    background: color-mix(in srgb, var(--text-color-default, #1f2328) 8%, transparent);
+}
+
+.suggestions li.active {
+    background: color-mix(in srgb, var(--true-color-blue, #0969da) 18%, transparent);
+}
+
+.suggestions .value {
+    flex: none;
+    font-family: var(--font-mono, "SFMono-Regular", Consolas, monospace);
+    font-size: var(--text-code-inline, 12px);
+}
+
+.suggestions .description {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-color-muted, #59636e);
+    font-size: var(--text-body-small, 12px);
+}
+
+.field .row {
+    display: flex;
+    gap: 8px;
+}
+
+.field .row input {
+    flex: 1;
+    min-width: 0;
+}
+
+kbd {
+    padding: 0 4px;
+    border: 1px solid var(--border-color-default, #d1d9e0);
+    border-radius: 4px;
+    font-family: var(--font-mono, "SFMono-Regular", Consolas, monospace);
+    font-size: var(--text-code-inline, 12px);
+}

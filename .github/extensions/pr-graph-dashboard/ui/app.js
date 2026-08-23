@@ -40,6 +40,7 @@ let refreshing = null;
 let refreshQueued = false;
 let renderStart = 0;
 let renderActive = false;
+let generateArgsRev = null;
 let renderHintTimer = null;
 let renderTicker = null;
 const RENDER_HINT_DELAY = 200;
@@ -259,6 +260,7 @@ function renderState() {
     renderPresets();
     syncAskButtons();
     syncRendering();
+    syncGenerateArgs();
     applyHighlight();
 }
 
@@ -845,6 +847,184 @@ function restoreSidebarSize() {
     setSidebarSize(size);
 }
 
+// --- Generate dialog: argument completion and agent-proposed arguments ---
+
+// Candidates come from the CLI's own shell-completion machinery, so they never
+// drift from the installed version of `gh team-kit`.
+const completion = { open: false, items: [], index: -1, seq: 0, timer: null };
+const COMPLETE_DEBOUNCE_MS = 150;
+const COMPLETE_HINT =
+    "Completion comes from the CLI itself. Ctrl+Space to list, Tab or Enter to accept, Esc to dismiss.";
+const ASK_ARGS_HINT = "The agent replies by filling the field above; nothing runs until you press Run.";
+
+function openGenerateDialog(args) {
+    $("generate-args").value = args;
+    $("generate-ask").value = "";
+    $("generate-ask-hint").textContent = ASK_ARGS_HINT;
+    $("generate-complete-hint").textContent = COMPLETE_HINT;
+    closeSuggestions();
+    const dialog = $("dialog-generate");
+    if (!dialog.open) dialog.showModal();
+}
+
+/** The whitespace-delimited token the caret currently sits in. */
+function partialAtCaret(field) {
+    const caret = field.selectionStart ?? field.value.length;
+    return (field.value.slice(0, caret).match(/\S*$/) ?? [""])[0];
+}
+
+function closeSuggestions() {
+    clearTimeout(completion.timer);
+    completion.open = false;
+    completion.items = [];
+    completion.index = -1;
+    const list = $("generate-suggestions");
+    list.replaceChildren();
+    list.hidden = true;
+}
+
+function scheduleSuggestions() {
+    clearTimeout(completion.timer);
+    completion.timer = setTimeout(() => void fetchSuggestions(), COMPLETE_DEBOUNCE_MS);
+}
+
+async function fetchSuggestions() {
+    const field = $("generate-args");
+    const caret = field.selectionStart ?? field.value.length;
+    const line = field.value.slice(0, caret);
+    const seq = (completion.seq += 1);
+    try {
+        const result = await api(`/api/complete?line=${encodeURIComponent(line)}`);
+        if (seq !== completion.seq) return; // a newer keystroke superseded this one
+        completion.items = result.candidates ?? [];
+        completion.index = completion.items.length ? 0 : -1;
+        renderSuggestions();
+    } catch (error) {
+        if (seq !== completion.seq) return;
+        closeSuggestions();
+        $("generate-complete-hint").textContent = `Completion unavailable: ${error.message}`;
+    }
+}
+
+function renderSuggestions() {
+    const list = $("generate-suggestions");
+    list.replaceChildren();
+    for (const [index, item] of completion.items.entries()) {
+        const li = document.createElement("li");
+        li.setAttribute("role", "option");
+        li.classList.toggle("active", index === completion.index);
+        const value = document.createElement("span");
+        value.className = "value";
+        value.textContent = item.value;
+        li.append(value);
+        if (item.description) {
+            const description = document.createElement("span");
+            description.className = "description";
+            description.textContent = item.description;
+            description.title = item.description;
+            li.append(description);
+        }
+        // mousedown, not click: the textarea must not lose focus before we insert.
+        li.addEventListener("mousedown", (event) => {
+            event.preventDefault();
+            acceptSuggestion(index);
+        });
+        list.append(li);
+    }
+    completion.open = completion.items.length > 0;
+    list.hidden = !completion.open;
+    if (completion.open) scrollSuggestionIntoView();
+}
+
+function scrollSuggestionIntoView() {
+    const active = $("generate-suggestions").children[completion.index];
+    active?.scrollIntoView({ block: "nearest" });
+}
+
+function moveSuggestion(delta) {
+    if (!completion.items.length) return;
+    const count = completion.items.length;
+    completion.index = (completion.index + delta + count) % count;
+    for (const [index, li] of [...$("generate-suggestions").children].entries()) {
+        li.classList.toggle("active", index === completion.index);
+    }
+    scrollSuggestionIntoView();
+}
+
+function acceptSuggestion(index) {
+    const item = completion.items[index];
+    const field = $("generate-args");
+    if (!item) return;
+    const caret = field.selectionStart ?? field.value.length;
+    const start = caret - partialAtCaret(field).length;
+    const insert = `${item.value} `;
+    field.value = field.value.slice(0, start) + insert + field.value.slice(caret);
+    const next = start + insert.length;
+    field.setSelectionRange(next, next);
+    closeSuggestions();
+    field.focus();
+}
+
+function wireGenerateCompletion() {
+    const field = $("generate-args");
+    field.addEventListener("input", scheduleSuggestions);
+    field.addEventListener("blur", () => closeSuggestions());
+    field.addEventListener("keydown", (event) => {
+        if (event.key === " " && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault();
+            void fetchSuggestions();
+            return;
+        }
+        if (!completion.open) return;
+        if (event.key === "ArrowDown") {
+            event.preventDefault();
+            moveSuggestion(1);
+        } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            moveSuggestion(-1);
+        } else if (event.key === "Tab" || event.key === "Enter") {
+            event.preventDefault();
+            acceptSuggestion(completion.index);
+        } else if (event.key === "Escape") {
+            event.preventDefault();
+            closeSuggestions();
+        }
+    });
+}
+
+async function askForArgs() {
+    const prompt = $("generate-ask").value.trim();
+    if (!prompt) return;
+    const button = $("generate-ask-send");
+    button.disabled = true;
+    $("generate-ask-hint").textContent = "Asking the agent…";
+    try {
+        await post("/api/generate/ask", { prompt });
+        recordAsk(`args: ${prompt}`);
+        closeSuggestions();
+        $("dialog-generate").close();
+        setStatus("Asked the agent for arguments…");
+        showToast("Asked the agent", "The dialog reopens when arguments are proposed.");
+    } catch (error) {
+        $("generate-ask-hint").textContent = error.message;
+        showToast("Could not send", error.message, true);
+    } finally {
+        button.disabled = false;
+    }
+}
+
+/** Reopen the dialog whenever the agent proposes a new set of arguments. */
+function syncGenerateArgs() {
+    const rev = state?.generateArgsRev ?? 0;
+    if (rev === generateArgsRev) return;
+    const known = generateArgsRev !== null;
+    generateArgsRev = rev;
+    if (!known) return; // first snapshot after a reload: adopt the revision silently
+    openGenerateDialog(state.generateArgs ?? "");
+    $("generate-ask-hint").textContent = "The agent proposed these arguments. Review, then press Run.";
+    showToast("Arguments proposed", state.generateArgs || "(empty)");
+}
+
 function wireResizer() {
     const resizer = $("resizer");
     let drag = null;
@@ -1117,12 +1297,29 @@ function wireToolbar() {
     }
 
     $("btn-generate").addEventListener("click", () => {
-        $("generate-args").value = state?.generateArgs ?? "";
-        $("dialog-generate").showModal();
+        openGenerateDialog(state?.generateArgs ?? "");
+    });
+
+    wireGenerateCompletion();
+
+    $("generate-ask-send").addEventListener("click", () => void askForArgs());
+    $("generate-ask").addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        // The dialog's form would otherwise submit and close on Enter.
+        event.preventDefault();
+        void askForArgs();
+    });
+
+    $("dialog-generate").addEventListener("cancel", (event) => {
+        // Escape dismisses the suggestion list before it dismisses the dialog.
+        if (!completion.open) return;
+        event.preventDefault();
+        closeSuggestions();
     });
 
     $("generate-confirm").addEventListener("click", () => {
         const args = $("generate-args").value.trim();
+        closeSuggestions();
         $("dialog-generate").close();
         setStatus("Running gh team-kit pr-graph…");
         run(post("/api/generate", { args }).then((result) => setStatus(`Saved ${result.path}`)));
