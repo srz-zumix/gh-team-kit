@@ -254,10 +254,13 @@ export class Dashboard extends EventEmitter {
                     continue;
                 }
                 try {
-                    const svg = await renderSvg(emitDot(filtered, { rankdir: this.view.rankdir }), {
-                        engine: this.view.engine,
-                        timeoutMs: this.view.timeoutMs,
-                    });
+                    const svg = await renderSvg(
+                        emitDot(filtered, { rankdir: this.view.rankdir, engine: this.view.engine }),
+                        {
+                            engine: this.view.engine,
+                            timeoutMs: this.view.timeoutMs,
+                        },
+                    );
                     this.svg = svg;
                     this.renderError = "";
                 } catch (error) {
@@ -288,7 +291,9 @@ export class Dashboard extends EventEmitter {
     async exportDot(target, { filtered = true } = {}) {
         if (!this.dotSource) throw new Error("there is no graph to export");
         const file = this.resolvePath(target);
-        const source = filtered ? emitDot(this.filteredGraph(), { rankdir: this.view.rankdir }) : this.dotSource;
+        const source = filtered
+            ? emitDot(this.filteredGraph(), { rankdir: this.view.rankdir, engine: this.view.engine })
+            : this.dotSource;
         await writeFile(file, `${source}\n`, "utf-8");
         return file;
     }

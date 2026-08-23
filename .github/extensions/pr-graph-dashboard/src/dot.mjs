@@ -449,10 +449,14 @@ function cssToken(value) {
  */
 export function emitDot(graph, options = {}) {
     const rankdir = options.rankdir ?? "LR";
+    const engine = options.engine ?? "dot";
     const lines = [];
     lines.push("digraph prgraph {");
+    // The force-directed and radial engines pack nodes until they overlap, so
+    // ask Graphviz to pull them apart. `dot` ignores these attributes.
+    const spacing = engine === "dot" ? "" : ' overlap="prism" sep="+16" esep="+4"';
     lines.push(
-        `    graph [bgcolor="transparent" rankdir=${quote(rankdir)} fontname="Helvetica" nodesep=0.25 ranksep=0.5]`,
+        `    graph [bgcolor="transparent" rankdir=${quote(rankdir)} fontname="Helvetica" nodesep=0.25 ranksep=0.5${spacing}]`,
     );
     lines.push('    node [fontname="Helvetica" fontsize=11 margin="0.08,0.04"]');
     lines.push('    edge [fontname="Helvetica" fontsize=9]');

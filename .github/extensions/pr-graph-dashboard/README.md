@@ -60,6 +60,11 @@ enormously by engine — on a 152-node / 1591-edge graph `sfdp`, `neato`, `fdp` 
 about a second, `dot` takes ~36s, and `circo` needs ~210s — so raise the limit or pick a faster engine
 when a render times out.
 
+Every engine other than `dot` packs nodes tightly enough that they overlap (`neato` produced 1406
+overlapping node pairs on that graph, `twopi` 2519), so those layouts are emitted with
+`overlap="prism" sep="+16" esep="+4"`, which removes the overlaps and is no slower. `dot` places nodes
+in ranks itself and is left alone.
+
 ## Agent-callable actions
 
 Invoke with `invoke_canvas_action({ instanceId, actionName, input })`:
