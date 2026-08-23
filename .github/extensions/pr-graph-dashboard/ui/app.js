@@ -1034,13 +1034,14 @@ function isTextEntry(element) {
 }
 
 /**
- * Makes Ctrl+A select the whole field. macOS binds Ctrl+A to "move to the
- * start of the line", so without this only Cmd+A selects all.
+ * Makes Ctrl+A / Cmd+A select the whole field. macOS binds Ctrl+A to "move to
+ * the start of the line", and the host can swallow the native Cmd+A, so the
+ * selection is made here rather than left to the browser default.
  */
 function wireSelectAll() {
     document.addEventListener("keydown", (event) => {
         if (event.key !== "a" && event.key !== "A") return;
-        if (!event.ctrlKey || event.metaKey || event.altKey) return;
+        if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
         const field = event.target;
         if (!isTextEntry(field)) return;
         event.preventDefault();

@@ -74,9 +74,9 @@ The argument field completes against the CLI's own shell completion (`gh team-ki
 flags and values it offers always match the installed version. Suggestions appear as you type;
 `Ctrl`/`Cmd` + `Space` lists them on demand, `↑`/`↓` move through them, `Tab` or `Enter` accepts the
 highlighted one, and `Esc` dismisses the list without closing the dialog. Values are completed too —
-typing `--format ` offers `dot`, `json` and the rest. `Ctrl`+`A` selects the whole field — macOS binds
-that to "move to the start of the line", so the dashboard maps it to select-all in every text box
-(`Cmd`+`A` keeps working too).
+typing `--format ` offers `dot`, `json` and the rest. `Cmd`/`Ctrl`+`A` selects the whole field: the
+dashboard performs the selection itself, because macOS binds `Ctrl`+`A` to "move to the start of the
+line" and the host can swallow the native `Cmd`+`A`.
 
 **Ask the agent for arguments** takes a plain-language description instead: "merged PRs from the last
 three months, no bots". The dialog closes and the request goes to the agent with `pr-graph --help`
