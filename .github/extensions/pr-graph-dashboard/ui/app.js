@@ -1025,6 +1025,31 @@ function syncGenerateArgs() {
     showToast("Arguments proposed", state.generateArgs || "(empty)");
 }
 
+const TEXT_INPUT_TYPES = new Set(["text", "search", "url", "email", "tel", "number", "password"]);
+
+function isTextEntry(element) {
+    if (!element) return false;
+    if (element.tagName === "TEXTAREA") return true;
+    return element.tagName === "INPUT" && TEXT_INPUT_TYPES.has(element.type);
+}
+
+/**
+ * Makes Ctrl+A select the whole field. macOS binds Ctrl+A to "move to the
+ * start of the line", so without this only Cmd+A selects all.
+ */
+function wireSelectAll() {
+    document.addEventListener("keydown", (event) => {
+        if (event.key !== "a" && event.key !== "A") return;
+        if (!event.ctrlKey || event.metaKey || event.altKey) return;
+        const field = event.target;
+        if (!isTextEntry(field)) return;
+        event.preventDefault();
+        field.select();
+        // A full selection invalidates the token the suggestions were built for.
+        if (field.id === "generate-args") closeSuggestions();
+    });
+}
+
 function wireResizer() {
     const resizer = $("resizer");
     let drag = null;
@@ -1362,6 +1387,7 @@ wireGraphInteractions();
 wireSidebar();
 wireResizer();
 wireToolbar();
+wireSelectAll();
 loadAskLog();
 connectEvents();
 window.addEventListener("resize", debounce(fitToView, 150));
