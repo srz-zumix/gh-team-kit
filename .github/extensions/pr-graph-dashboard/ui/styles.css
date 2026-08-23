@@ -902,3 +902,29 @@ kbd {
     font-family: var(--font-mono, "SFMono-Regular", Consolas, monospace);
     font-size: var(--text-code-inline, 12px);
 }
+
+.field-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.field-actions {
+    display: flex;
+    gap: 8px;
+}
+
+button.link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text-color-muted, #59636e);
+    font-size: var(--text-body-small, 12px);
+    cursor: pointer;
+}
+
+button.link:hover {
+    color: var(--true-color-blue, #0969da);
+    text-decoration: underline;
+}

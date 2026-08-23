@@ -182,7 +182,14 @@
                     result as an artifact.
                 </p>
                 <div class="field">
-                    <label for="generate-args">Arguments</label>
+                    <div class="field-head">
+                        <label for="generate-args">Arguments</label>
+                        <span class="field-actions">
+                            <button type="button" class="link" id="generate-select-all"
+                                title="Select the whole field (the app intercepts Cmd+A before the canvas sees it)">Select all</button>
+                            <button type="button" class="link" id="generate-clear">Clear</button>
+                        </span>
+                    </div>
                     <div class="completing">
                         <textarea id="generate-args" rows="3" placeholder="--limit 100 --state merged --no-bots"
                             autocomplete="off" spellcheck="false"></textarea>

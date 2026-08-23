@@ -865,6 +865,14 @@ function openGenerateDialog(args) {
     closeSuggestions();
     const dialog = $("dialog-generate");
     if (!dialog.open) dialog.showModal();
+    // Preselect: the app intercepts Cmd+A, so typing over the old arguments is
+    // the quickest way to replace them.
+    selectWholeField($("generate-args"));
+}
+
+function selectWholeField(field) {
+    field.focus();
+    field.setSelectionRange(0, field.value.length);
 }
 
 /** The whitespace-delimited token the caret currently sits in. */
@@ -1033,22 +1041,79 @@ function isTextEntry(element) {
     return element.tagName === "INPUT" && TEXT_INPUT_TYPES.has(element.type);
 }
 
-/**
- * Makes Ctrl+A / Cmd+A select the whole field. macOS binds Ctrl+A to "move to
- * the start of the line", and the host can swallow the native Cmd+A, so the
- * selection is made here rather than left to the browser default.
- */
-function wireSelectAll() {
-    document.addEventListener("keydown", (event) => {
-        if (event.key !== "a" && event.key !== "A") return;
-        if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
-        const field = event.target;
-        if (!isTextEntry(field)) return;
-        event.preventDefault();
-        field.select();
-        // A full selection invalidates the token the suggestions were built for.
-        if (field.id === "generate-args") closeSuggestions();
-    });
+// The host delivers some keys to the canvas as text rather than as key events:
+// arrows arrive as the classic Mac control codes (U+001C-U+001F), and macOS
+// function keys as private-use characters. Both would land in the field as
+// unprintable garbage, so they are filtered out here.
+const STRAY_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\uF700-\uF8FF]/;
+const STRAY_CHARS_ALL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\uF700-\uF8FF]/g;
+const CARET_MOVES = {
+    "\u001c": { key: "ArrowLeft", delta: -1 },
+    "\u001d": { key: "ArrowRight", delta: 1 },
+    "\uF702": { key: "ArrowLeft", delta: -1 },
+    "\uF703": { key: "ArrowRight", delta: 1 },
+};
+let lastArrowKey = { key: "", at: 0 };
+
+function moveCaret(field, delta) {
+    try {
+        const start = field.selectionStart ?? 0;
+        const end = field.selectionEnd ?? start;
+        // A collapsed selection steps; a range collapses to the chosen side.
+        const next = start === end ? Math.min(Math.max(start + delta, 0), field.value.length) : delta < 0 ? start : end;
+        field.setSelectionRange(next, next);
+    } catch {
+        /* not every input type exposes a selection */
+    }
+}
+
+function setCaret(field, position) {
+    try {
+        field.setSelectionRange(position, position);
+    } catch {
+        /* not every input type exposes a selection */
+    }
+}
+
+/** Keeps stray control and function-key characters out of the text fields. */
+function wireInputSanitizer() {
+    window.addEventListener(
+        "keydown",
+        (event) => {
+            if (event.key?.startsWith("Arrow")) lastArrowKey = { key: event.key, at: performance.now() };
+        },
+        true,
+    );
+    document.addEventListener(
+        "beforeinput",
+        (event) => {
+            const field = event.target;
+            if (!isTextEntry(field) || typeof event.data !== "string" || !STRAY_CHARS.test(event.data)) return;
+            const cleaned = event.data.replace(STRAY_CHARS_ALL, "");
+            // Mixed content (a paste, say) is let through and scrubbed afterwards.
+            if (cleaned) return;
+            event.preventDefault();
+            const move = CARET_MOVES[event.data];
+            // Only stand in for the arrow key when the key event itself never
+            // arrived; otherwise the browser has already moved the caret.
+            const handled = move && lastArrowKey.key === move.key && performance.now() - lastArrowKey.at < 100;
+            if (move && !handled) moveCaret(field, move.delta);
+        },
+        true,
+    );
+    // Fallback for hosts that write the character without a cancellable event.
+    document.addEventListener(
+        "input",
+        (event) => {
+            const field = event.target;
+            if (!isTextEntry(field) || !STRAY_CHARS.test(field.value)) return;
+            const caret = field.selectionStart ?? field.value.length;
+            const before = field.value.slice(0, caret).replace(STRAY_CHARS_ALL, "").length;
+            field.value = field.value.replace(STRAY_CHARS_ALL, "");
+            setCaret(field, before);
+        },
+        true,
+    );
 }
 
 function wireResizer() {
@@ -1328,6 +1393,18 @@ function wireToolbar() {
 
     wireGenerateCompletion();
 
+    $("generate-select-all").addEventListener("click", () => {
+        closeSuggestions();
+        selectWholeField($("generate-args"));
+    });
+
+    $("generate-clear").addEventListener("click", () => {
+        const field = $("generate-args");
+        field.value = "";
+        closeSuggestions();
+        field.focus();
+    });
+
     $("generate-ask-send").addEventListener("click", () => void askForArgs());
     $("generate-ask").addEventListener("keydown", (event) => {
         if (event.key !== "Enter") return;
@@ -1388,7 +1465,7 @@ wireGraphInteractions();
 wireSidebar();
 wireResizer();
 wireToolbar();
-wireSelectAll();
+wireInputSanitizer();
 loadAskLog();
 connectEvents();
 window.addEventListener("resize", debounce(fitToView, 150));

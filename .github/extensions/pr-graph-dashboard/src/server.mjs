@@ -167,8 +167,7 @@ export async function startServer(dashboard) {
             }
             sendJson(res, 200, { ok: true, ...(await dashboard.ask(prompt)) });
         },
-        "GET /api/complete": async (_req, res, url) => {
-            const line = url.searchParams.get("line") ?? "";
+        "GET /api/complete": async (_req, res, url) => {            const line = url.searchParams.get("line") ?? "";
             sendJson(res, 200, await completeArgs(line, { cwd: dashboard.workspacePath }));
         },
         "POST /api/generate/ask": async (req, res) => {
