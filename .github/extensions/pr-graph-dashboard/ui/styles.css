@@ -1,7 +1,13 @@
 /* Dashboard styling. Colours and type come from the canvas theme contract the
    host mirrors onto the document, with fallbacks for standalone rendering. */
 
+/* The graph palette is also read back by src/theme.mjs, which bakes the
+   literal fallback colours into exported DOT and SVG files. Keep every entry
+   below a single colour (optionally wrapped in a host theme token). */
 :root {
+    --graph-text: var(--text-color-default, #1f2328);
+    --graph-muted-text: var(--text-color-muted, #59636e);
+
     --nt-user: var(--true-color-blue, #4c8eda);
     --nt-team: #a371f7;
     --nt-label: #d29922;
@@ -531,13 +537,16 @@ dialog menu {
 .graph .node ellipse,
 .graph .node polygon,
 .graph .node path {
-    stroke: var(--node-color, var(--text-color-muted, #59636e));
+    stroke: var(--node-color, var(--graph-muted-text));
     stroke-width: 1.2;
     fill: color-mix(in srgb, var(--node-color, #8b949e) 14%, transparent);
+    /* The exported colours arrive as `#rrggbbaa`, which Graphviz splits into a
+       `fill-opacity` attribute. Reset it so the tint above is not dimmed twice. */
+    fill-opacity: 1;
 }
 
 .graph .node text {
-    fill: var(--text-color-default, #1f2328);
+    fill: var(--graph-text);
 }
 
 .graph .nt-user {
@@ -573,7 +582,7 @@ dialog menu {
 }
 
 .graph .edge text {
-    fill: var(--text-color-muted, #59636e);
+    fill: var(--graph-muted-text);
 }
 
 .graph .rel-approved {

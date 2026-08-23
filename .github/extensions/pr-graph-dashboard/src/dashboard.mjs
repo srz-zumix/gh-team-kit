@@ -8,6 +8,7 @@ import { describeNode, emitDot, filterGraph, parseDot, summarize, topNodes } fro
 import { ENGINES, renderSvg } from "./graphviz.mjs";
 import { prGraphHelp, runPrGraph } from "./prgraph.mjs";
 import { saveGeneratedDot } from "./store.mjs";
+import { EXPORT_BACKGROUND, graphPalette } from "./theme.mjs";
 
 const DEFAULT_FILTERS = {
     nodeTypes: [],
@@ -38,6 +39,18 @@ function normalizeFilters(current, patch = {}) {
 
 /** Render limits offered by the dashboard, in menu order (milliseconds). */
 export const RENDER_LIMITS = [30_000, 60_000, 120_000, 300_000, 600_000];
+
+/**
+ * Prepares a rendered SVG for life outside the canvas. The graph is laid out on
+ * a transparent background so the app theme shows through; a file needs an
+ * opaque one of its own, or its dark labels vanish in a dark viewer.
+ */
+function standaloneSvg(svg) {
+    const open = svg.match(/<svg\b[^>]*>/);
+    if (!open) return svg;
+    const at = open.index + open[0].length;
+    return `${svg.slice(0, at)}\n<rect width="100%" height="100%" fill="${EXPORT_BACKGROUND}"/>${svg.slice(at)}`;
+}
 
 /** Normalizes an incoming layout patch against the defaults. */
 function normalizeView(current, patch = {}) {
@@ -262,7 +275,11 @@ export class Dashboard extends EventEmitter {
                 }
                 try {
                     const svg = await renderSvg(
-                        emitDot(filtered, { rankdir: this.view.rankdir, engine: this.view.engine }),
+                        emitDot(filtered, {
+                            rankdir: this.view.rankdir,
+                            engine: this.view.engine,
+                            palette: await graphPalette(),
+                        }),
                         {
                             engine: this.view.engine,
                             timeoutMs: this.view.timeoutMs,
@@ -290,7 +307,7 @@ export class Dashboard extends EventEmitter {
     async exportSvg(target) {
         if (!this.svg) throw new Error("there is no rendered graph to export");
         const file = this.resolvePath(target);
-        await writeFile(file, this.svg, "utf-8");
+        await writeFile(file, standaloneSvg(this.svg), "utf-8");
         return file;
     }
 
@@ -299,7 +316,11 @@ export class Dashboard extends EventEmitter {
         if (!this.dotSource) throw new Error("there is no graph to export");
         const file = this.resolvePath(target);
         const source = filtered
-            ? emitDot(this.filteredGraph(), { rankdir: this.view.rankdir, engine: this.view.engine })
+            ? emitDot(this.filteredGraph(), {
+                  rankdir: this.view.rankdir,
+                  engine: this.view.engine,
+                  palette: await graphPalette(),
+              })
             : this.dotSource;
         await writeFile(file, `${source}\n`, "utf-8");
         return file;

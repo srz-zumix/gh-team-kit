@@ -86,6 +86,20 @@ when nothing is loaded yet. **Export…** starts next to the current file with a
 destination shown under the name field is the browsed directory plus that name, and clicking an
 existing file fills its name in to overwrite it.
 
+### Exported colours
+
+On screen the graph is coloured by `ui/styles.css`, which follows the app theme. Files written to disk
+have no stylesheet, so `src/theme.mjs` reads the palette back out of the same `:root` block and bakes
+literal colours into the DOT source as Graphviz attributes. Exported SVG and DOT therefore carry the
+node-type and relation colours, and an exported SVG also gets an opaque white background — the canvas
+renders on a transparent one so the app theme shows through, but a file needs its own or its dark
+labels disappear in a dark viewer.
+
+Adding or changing a colour means editing the `--nt-*`, `--rel-*` and `--graph-*` variables in
+`ui/styles.css` only; every declaration there must end in a literal `#rrggbb` value, optionally wrapped
+in a host theme token such as `var(--true-color-blue, #4c8eda)`, because that fallback is what the
+exporter picks up.
+
 ### Generate
 
 The **Generate…** dialog builds the `gh team-kit pr-graph` command line for you in two ways.
@@ -135,13 +149,15 @@ showing, so a provider restart restores the same view.
 
 ## Layout
 
-| File               | Responsibility                                       |
-| ------------------ | ---------------------------------------------------- |
-| `extension.mjs`    | Canvas declaration, actions, open/close wiring.      |
-| `src/dot.mjs`      | DOT tokenizing, parsing, filtering, re-emission.     |
-| `src/graphviz.mjs` | Graphviz layout engines.                             |
-| `src/prgraph.mjs`  | `gh team-kit pr-graph` invocation.                   |
-| `src/dashboard.mjs`| Per-panel state, rendering pipeline, agent prompts.  |
-| `src/server.mjs`   | Loopback HTTP server and Server-Sent Events.         |
-| `src/store.mjs`    | Durable artifacts and instance pointers.             |
-| `ui/`              | Dashboard front-end.                                 |
+| File                | Responsibility                                      |
+| ------------------- | --------------------------------------------------- |
+| `extension.mjs`     | Canvas declaration, actions, open/close wiring.      |
+| `src/browse.mjs`    | Filesystem listing behind the Open/Export browsers.  |
+| `src/dot.mjs`       | DOT tokenizing, parsing, filtering, re-emission.     |
+| `src/graphviz.mjs`  | Graphviz layout engines.                             |
+| `src/prgraph.mjs`   | `gh team-kit pr-graph` invocation.                   |
+| `src/dashboard.mjs` | Per-panel state, rendering pipeline, agent prompts.  |
+| `src/server.mjs`    | Loopback HTTP server and Server-Sent Events.         |
+| `src/store.mjs`     | Durable artifacts and instance pointers.             |
+| `src/theme.mjs`     | Graph palette shared with the exported files.        |
+| `ui/`               | Dashboard front-end.                                 |

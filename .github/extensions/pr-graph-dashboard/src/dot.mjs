@@ -5,6 +5,8 @@
 // `<relation>` or `<relation> (<weight>)`. The parser is intentionally
 // tolerant so that hand written or foreign DOT files still render.
 
+import { NODE_FILL_ALPHA, edgeColor, nodeColor, withAlpha } from "./theme.mjs";
+
 /** Node type inferred from the Graphviz shape emitted by `pr-graph`. */
 const NODE_TYPE_BY_SHAPE = {
     ellipse: "user",
@@ -446,10 +448,15 @@ function cssToken(value) {
  * Re-emits a graph as DOT, adding per-node and per-edge `class` attributes so
  * the dashboard stylesheet can colour the rendered SVG by node type and
  * relation, and a transparent background so the app theme shows through.
+ *
+ * When a `palette` is supplied the same colours are also written as Graphviz
+ * attributes. The stylesheet still wins on screen, but exported DOT and SVG
+ * files keep their colours without it.
  */
 export function emitDot(graph, options = {}) {
     const rankdir = options.rankdir ?? "LR";
     const engine = options.engine ?? "dot";
+    const palette = options.palette ?? null;
     const lines = [];
     lines.push("digraph prgraph {");
     // The force-directed and radial engines pack nodes until they overlap, so
@@ -458,18 +465,30 @@ export function emitDot(graph, options = {}) {
     lines.push(
         `    graph [bgcolor="transparent" rankdir=${quote(rankdir)} fontname="Helvetica" nodesep=0.25 ranksep=0.5${spacing}]`,
     );
-    lines.push('    node [fontname="Helvetica" fontsize=11 margin="0.08,0.04"]');
-    lines.push('    edge [fontname="Helvetica" fontsize=9]');
+    const nodeDefaults = ['fontname="Helvetica"', "fontsize=11", 'margin="0.08,0.04"'];
+    const edgeDefaults = ['fontname="Helvetica"', "fontsize=9"];
+    if (palette) {
+        nodeDefaults.push('style="filled"', "penwidth=1.2", `fontcolor=${quote(palette.text)}`);
+        edgeDefaults.push(`fontcolor=${quote(palette.mutedText)}`);
+    }
+    lines.push(`    node [${nodeDefaults.join(" ")}]`);
+    lines.push(`    edge [${edgeDefaults.join(" ")}]`);
     for (const node of graph.nodes) {
         const shape = node.shape ?? SHAPE_BY_NODE_TYPE[node.type] ?? "box";
-        lines.push(
-            `    ${quote(node.id)} [label=${quote(node.name)} shape=${quote(shape)} class=${quote(`nt-${cssToken(node.type)}`)}]`,
-        );
+        const token = cssToken(node.type);
+        const attributes = [`label=${quote(node.name)}`, `shape=${quote(shape)}`, `class=${quote(`nt-${token}`)}`];
+        if (palette) {
+            const color = nodeColor(palette, token);
+            attributes.push(`color=${quote(color)}`, `fillcolor=${quote(withAlpha(color, NODE_FILL_ALPHA))}`);
+        }
+        lines.push(`    ${quote(node.id)} [${attributes.join(" ")}]`);
     }
     for (const edge of graph.edges) {
         const label = edge.label || edge.relation || "";
-        const classes = `rel rel-${cssToken(edge.relation || "unknown")}`;
-        lines.push(`    ${quote(edge.from)} -> ${quote(edge.to)} [label=${quote(label)} class=${quote(classes)}]`);
+        const token = cssToken(edge.relation || "unknown");
+        const attributes = [`label=${quote(label)}`, `class=${quote(`rel rel-${token}`)}`];
+        if (palette) attributes.push(`color=${quote(edgeColor(palette, token))}`);
+        lines.push(`    ${quote(edge.from)} -> ${quote(edge.to)} [${attributes.join(" ")}]`);
     }
     lines.push("}");
     return lines.join("\n");
