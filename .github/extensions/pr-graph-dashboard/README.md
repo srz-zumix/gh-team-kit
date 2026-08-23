@@ -31,7 +31,7 @@ The agent opens it via `open_canvas` with `canvasId: "pr-graph"` and an optional
 - **Open… / Generate… / Reload / Export…** — load a `.dot` file, run `gh team-kit pr-graph`,
   re-read the current file, or write the SVG / filtered DOT to disk.
 - **Filters** — node types, edge relations, minimum edge weight, name search, neighbourhood
-  radius, orphan handling, Graphviz layout engine and direction.
+  radius, orphan handling, Graphviz layout engine and direction, and the render limit.
 - **Nodes** — ranked node list; click to select and move the view to that node, double-click to focus
   the graph on it.
 - **Details** — the selected node's incoming and outgoing relationships.
@@ -53,6 +53,13 @@ elapsed-seconds counter appears over the top-left of the viewport, the stale lay
 and the status bar appends `· rendering…` to the counts. The badge only appears once a render has taken
 longer than 200 ms, so quick redraws do not flash it.
 
+**Render limit** caps how long Graphviz may spend on a single layout: `30s`, `1m` (default), `2m`, `5m`
+or `10m`. The badge counts up against it (`45s / 5m`), and a layout that runs out of time reports which
+engine gave up. Changing the limit does not re-render what is already on screen. Layout cost varies
+enormously by engine — on a 152-node / 1591-edge graph `sfdp`, `neato`, `fdp` and `twopi` finish in
+about a second, `dot` takes ~36s, and `circo` needs ~210s — so raise the limit or pick a faster engine
+when a render times out.
+
 ## Agent-callable actions
 
 Invoke with `invoke_canvas_action({ instanceId, actionName, input })`:
@@ -65,7 +72,7 @@ Invoke with `invoke_canvas_action({ instanceId, actionName, input })`:
 | `get_graph`     | `limit`, `includeNodes`, `includeEdges`, `useFilters`                                     | Graph data and the most connected nodes.   |
 | `describe_node` | `node`, `useFilters`                                                                      | One node with its edges.                   |
 | `set_filters`   | `nodeTypes`, `relations`, `minWeight`, `search`, `focus`, `hops`, `keepOrphans`, `reset`   | Change what is displayed.                  |
-| `set_view`      | `engine`, `rankdir`                                                                       | Change layout engine / direction.          |
+| `set_view`      | `engine`, `rankdir`, `timeoutMs`                                                          | Change layout engine / direction / limit.  |
 | `select_node`   | `node`                                                                                    | Select a node and move the view to it.     |
 | `export`        | `path`, `kind`, `filtered`                                                                | Write SVG or DOT to disk.                  |
 

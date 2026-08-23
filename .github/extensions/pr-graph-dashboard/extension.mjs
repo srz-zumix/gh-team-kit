@@ -9,7 +9,7 @@
 // and durable storage in src/store.mjs.
 
 import { CanvasError, createCanvas, joinSession } from "@github/copilot-sdk/extension";
-import { Dashboard } from "./src/dashboard.mjs";
+import { Dashboard, RENDER_LIMITS } from "./src/dashboard.mjs";
 import { NODE_TYPES, RELATIONS } from "./src/dot.mjs";
 import { ENGINES } from "./src/graphviz.mjs";
 import { startServer } from "./src/server.mjs";
@@ -256,13 +256,18 @@ const canvas = createCanvas({
         ),
         action(
             "set_view",
-            "Change the Graphviz layout engine or graph direction.",
+            "Change the Graphviz layout engine, graph direction, or how long one layout may take.",
             {
                 type: "object",
                 additionalProperties: false,
                 properties: {
                     engine: { type: "string", enum: ENGINES, description: "Graphviz layout engine" },
                     rankdir: { type: "string", enum: ["LR", "TB", "RL", "BT"], description: "Graph direction" },
+                    timeoutMs: {
+                        type: "number",
+                        enum: RENDER_LIMITS,
+                        description: "How long Graphviz may spend on one layout, in milliseconds",
+                    },
                 },
             },
             (dashboard, input) => ({ view: dashboard.setView(input) }),

@@ -293,7 +293,8 @@ function syncRendering() {
 
 function renderElapsed() {
     const seconds = Math.round((Date.now() - renderStart) / 1000);
-    $("rendering-elapsed").textContent = seconds >= 1 ? `${seconds}s` : "";
+    // The limit is shown too, so a long wait has a visible end.
+    $("rendering-elapsed").textContent = seconds >= 1 ? `${seconds}s / ${formatLimit(state.view.timeoutMs)}` : "";
 }
 
 function renderStatusBar() {
@@ -396,6 +397,20 @@ function renderInputs() {
         rankdir.replaceChildren(...state.rankdirs.map((name) => new Option(name, name)));
     }
     rankdir.value = state.view.rankdir;
+
+    const timeout = $("view-timeout");
+    if (timeout.options.length !== state.renderLimits.length) {
+        timeout.replaceChildren(
+            ...state.renderLimits.map((ms) => new Option(formatLimit(ms), String(ms))),
+        );
+    }
+    timeout.value = String(state.view.timeoutMs);
+}
+
+/** Formats a render limit in milliseconds as a compact label such as `2m`. */
+function formatLimit(ms) {
+    const seconds = Math.round(ms / 1000);
+    return seconds < 60 ? `${seconds}s` : `${Math.round(seconds / 60)}m`;
 }
 
 function renderFocus() {
@@ -994,6 +1009,9 @@ function wireSidebar() {
     $("focus-clear").addEventListener("click", () => run(post("/api/filters", { focus: "" })));
     $("view-engine").addEventListener("change", (event) => run(post("/api/view", { engine: event.target.value })));
     $("view-rankdir").addEventListener("change", (event) => run(post("/api/view", { rankdir: event.target.value })));
+    $("view-timeout").addEventListener("change", (event) =>
+        run(post("/api/view", { timeoutMs: Number(event.target.value) })),
+    );
 
     $("nodes-query").addEventListener("input", debounce(() => run(renderNodeList()), 200));
     $("node-list").addEventListener("click", (event) => {

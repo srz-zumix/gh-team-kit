@@ -18,7 +18,7 @@ const DEFAULT_FILTERS = {
     keepOrphans: false,
 };
 
-const DEFAULT_VIEW = { engine: "dot", rankdir: "LR" };
+const DEFAULT_VIEW = { engine: "dot", rankdir: "LR", timeoutMs: 60_000 };
 
 const RANKDIRS = ["LR", "TB", "RL", "BT"];
 
@@ -68,12 +68,21 @@ function normalizeFilters(current, patch = {}) {
     return next;
 }
 
+/** Render limits offered by the dashboard, in menu order (milliseconds). */
+export const RENDER_LIMITS = [30_000, 60_000, 120_000, 300_000, 600_000];
+
 /** Normalizes an incoming layout patch against the defaults. */
 function normalizeView(current, patch = {}) {
     const next = { ...current };
     if (patch.engine !== undefined && ENGINES.includes(patch.engine)) next.engine = patch.engine;
     if (patch.rankdir !== undefined && RANKDIRS.includes(String(patch.rankdir).toUpperCase())) {
         next.rankdir = String(patch.rankdir).toUpperCase();
+    }
+    if (patch.timeoutMs !== undefined) {
+        const ms = Math.round(Number(patch.timeoutMs));
+        if (Number.isFinite(ms)) {
+            next.timeoutMs = Math.min(RENDER_LIMITS.at(-1), Math.max(RENDER_LIMITS[0], ms));
+        }
     }
     return next;
 }
@@ -228,7 +237,10 @@ export class Dashboard extends EventEmitter {
                     this.sourcePath,
                     this.dotSource.length,
                     this.filters,
-                    this.view,
+                    // The render limit is deliberately left out: changing it must
+                    // not invalidate a layout that is already on screen.
+                    this.view.engine,
+                    this.view.rankdir,
                     filtered.nodes.length,
                     filtered.edges.length,
                 ]);
@@ -244,6 +256,7 @@ export class Dashboard extends EventEmitter {
                 try {
                     const svg = await renderSvg(emitDot(filtered, { rankdir: this.view.rankdir }), {
                         engine: this.view.engine,
+                        timeoutMs: this.view.timeoutMs,
                     });
                     this.svg = svg;
                     this.renderError = "";
@@ -310,6 +323,7 @@ export class Dashboard extends EventEmitter {
             view: this.view,
             engines: ENGINES,
             rankdirs: RANKDIRS,
+            renderLimits: RENDER_LIMITS,
             selection,
             selectRev: this.selectRev,
             stats,

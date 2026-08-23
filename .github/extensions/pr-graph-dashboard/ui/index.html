@@ -105,6 +105,14 @@
                                 <select id="view-rankdir"></select>
                             </div>
                         </div>
+                        <div class="field">
+                            <label for="view-timeout">Render limit</label>
+                            <select id="view-timeout"></select>
+                            <p class="hint muted">
+                                How long Graphviz may spend on one layout. Dense graphs are fast with
+                                <code>sfdp</code> or <code>neato</code> and very slow with <code>circo</code>.
+                            </p>
+                        </div>
                         <button type="button" id="filters-reset" class="wide">Reset filters</button>
                     </section>
 

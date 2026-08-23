@@ -50,7 +50,12 @@ export function renderSvg(source, options = {}) {
             if (settled) return;
             settled = true;
             child.kill("SIGKILL");
-            reject(new Error(`Graphviz timed out after ${timeoutMs}ms; try a smaller graph or stronger filters`));
+            reject(
+                new Error(
+                    `${engine} timed out after ${Math.round(timeoutMs / 1000)}s; try a faster layout engine ` +
+                        `(sfdp or neato), stronger filters, or a longer render limit`,
+                ),
+            );
         }, timeoutMs);
 
         child.stdout.setEncoding("utf-8");
