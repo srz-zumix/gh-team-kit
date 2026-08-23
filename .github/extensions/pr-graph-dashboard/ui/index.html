@@ -159,14 +159,11 @@
             <form method="dialog">
                 <h2>Open a DOT file</h2>
                 <div class="field">
-                    <label for="open-path">Path</label>
-                    <input type="text" id="open-path" placeholder="graph.dot or /abs/path/graph.dot" />
-                    <p class="hint muted">Relative paths resolve against the workspace.</p>
+                    <div class="browser" id="open-browser"></div>
                 </div>
-                <div class="field">
-                    <label>Found files</label>
-                    <ul class="file-list" id="open-file-list"></ul>
-                </div>
+                <p class="hint muted">
+                    Selected: <span class="picked" id="open-picked">nothing yet</span>
+                </p>
                 <menu>
                     <button type="submit" value="cancel">Cancel</button>
                     <button type="button" id="open-confirm" class="primary">Open</button>
@@ -225,18 +222,24 @@
         <dialog id="dialog-export">
             <form method="dialog">
                 <h2>Export</h2>
-                <div class="field split">
-                    <div>
-                        <label for="export-kind">Format</label>
-                        <select id="export-kind">
-                            <option value="svg">SVG (rendered)</option>
-                            <option value="dot">DOT (filtered)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="export-path">Path</label>
-                        <input type="text" id="export-path" placeholder="pr-graph.svg" />
-                    </div>
+                <div class="field">
+                    <label for="export-kind">Format</label>
+                    <select id="export-kind">
+                        <option value="svg">SVG (rendered)</option>
+                        <option value="dot">DOT (filtered)</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Destination</label>
+                    <div class="browser" id="export-browser"></div>
+                </div>
+                <div class="field">
+                    <label for="export-name">File name</label>
+                    <input type="text" id="export-name" placeholder="pr-graph.svg" autocomplete="off"
+                        spellcheck="false" />
+                    <p class="hint muted">
+                        Saves to <span class="picked" id="export-picked"></span>
+                    </p>
                 </div>
                 <menu>
                     <button type="submit" value="cancel">Cancel</button>

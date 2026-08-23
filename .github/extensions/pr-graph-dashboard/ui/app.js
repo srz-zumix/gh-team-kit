@@ -1308,6 +1308,341 @@ function wireSidebar() {
     });
 }
 
+/* ---------------------------------------------------------- file browser */
+
+// The host webview offers the canvas no usable native picker — `<input
+// type="file">` hides the absolute path and cannot choose a save destination —
+// so both dialogs navigate the filesystem themselves through /api/browse.
+
+const FOUND_DIR = "@found";
+
+const FOLDER_ICON =
+    '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M1.5 2.5h4.2l1.3 1.6h7.5c.3 0 .5.2.5.5v8.4c0 .3-.2.5-.5.5h-13c-.3 0-.5-.2-.5-.5V3c0-.3.2-.5.5-.5Z"/></svg>';
+const FILE_ICON =
+    '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M3.5 1h6l3 3v10.5c0 .3-.2.5-.5.5H3.5a.5.5 0 0 1-.5-.5v-13c0-.3.2-.5.5-.5Zm5.8 1.2v2.4h2.4L9.3 2.2Z"/></svg>';
+
+/**
+ * Renders a directory browser inside `root`.
+ *
+ * @param {HTMLElement} root
+ * @param {{extensions?: string[], showFound?: boolean, onSelect?: Function, onConfirm?: Function}} options
+ */
+function createFileBrowser(root, { extensions = [], showFound = false, onSelect, onConfirm } = {}) {
+    root.innerHTML = `
+        <div class="browser-bar">
+            <button type="button" class="browser-up" title="Parent directory" aria-label="Parent directory">↑</button>
+            <input type="text" class="browser-dir" spellcheck="false" autocomplete="off"
+                aria-label="Current directory" />
+        </div>
+        <div class="browser-places"></div>
+        <ul class="browser-list" tabindex="0"></ul>
+        <div class="browser-foot">
+            <label class="inline"><input type="checkbox" class="browser-all" /> Show every file</label>
+            <span class="browser-note muted"></span>
+        </div>`;
+
+    const upButton = root.querySelector(".browser-up");
+    const dirInput = root.querySelector(".browser-dir");
+    const placesRow = root.querySelector(".browser-places");
+    const list = root.querySelector(".browser-list");
+    const allToggle = root.querySelector(".browser-all");
+    const note = root.querySelector(".browser-note");
+
+    const own = {
+        dir: "",
+        sep: "/",
+        parent: null,
+        virtual: false,
+        entries: [],
+        selected: null,
+        extensions,
+        shownDir: "",
+        ticket: 0,
+    };
+
+    const setNote = (text, isError = false) => {
+        note.textContent = text;
+        note.classList.toggle("error", isError);
+    };
+
+    const visibleEntries = () =>
+        own.entries.filter((entry) => allToggle.checked || (entry.match && !entry.hidden));
+
+    const entryByPath = (target) => own.entries.find((entry) => entry.path === target) ?? null;
+
+    function renderList() {
+        list.replaceChildren();
+        const entries = visibleEntries();
+        if (entries.length === 0) {
+            const empty = document.createElement("li");
+            empty.className = "empty muted";
+            empty.textContent = own.entries.length ? "Nothing matches the filter." : "This folder is empty.";
+            list.append(empty);
+            return;
+        }
+        for (const entry of entries) {
+            const item = document.createElement("li");
+            item.dataset.path = entry.path;
+            item.className = entry.kind === "dir" ? "dir" : "file";
+            if (!entry.match) item.classList.add("dim");
+            if (entry.path === own.selected) item.classList.add("selected");
+
+            const icon = document.createElement("span");
+            icon.className = "icon";
+            icon.innerHTML = entry.kind === "dir" ? FOLDER_ICON : FILE_ICON;
+
+            const name = document.createElement("span");
+            name.className = "name";
+            name.textContent = entry.name;
+            name.title = entry.path;
+
+            item.append(icon, name);
+            if (entry.detail) {
+                const detail = document.createElement("span");
+                detail.className = "detail";
+                detail.textContent = entry.detail;
+                detail.title = entry.detail;
+                item.append(detail);
+            }
+            list.append(item);
+        }
+    }
+
+    function renderPlaces(places = []) {
+        placesRow.replaceChildren();
+        for (const place of places) {
+            if (place.path === FOUND_DIR && !showFound) continue;
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className = "chip";
+            chip.textContent = place.label;
+            chip.title = place.path;
+            if (place.path === own.dir) chip.classList.add("active");
+            chip.addEventListener("click", () => void go(place.path));
+            placesRow.append(chip);
+        }
+    }
+
+    function select(entry) {
+        own.selected = entry?.path ?? null;
+        for (const item of list.children) {
+            item.classList?.toggle("selected", item.dataset?.path === own.selected);
+        }
+        list.querySelector("li.selected")?.scrollIntoView({ block: "nearest" });
+        onSelect?.(entry ?? null);
+    }
+
+    async function go(target, { select: preselect } = {}) {
+        // Overlapping navigations resolve out of order, so only the newest wins.
+        const ticket = (own.ticket += 1);
+        setNote("Loading…");
+        try {
+            const query = new URLSearchParams({ dir: target ?? "" });
+            if (own.extensions.length) query.set("ext", own.extensions.join(","));
+            const data = await api(`/api/browse?${query}`);
+            if (ticket !== own.ticket) return;
+            own.dir = data.dir;
+            own.parent = data.parent;
+            own.sep = data.sep || "/";
+            own.virtual = Boolean(data.virtual);
+            own.entries = data.entries ?? [];
+            own.selected = null;
+            // A listing that lands while the location bar is being edited must
+            // not overwrite what the user typed.
+            const edited = document.activeElement === dirInput && dirInput.value !== own.shownDir;
+            own.shownDir = data.label ?? data.dir;
+            if (!edited) dirInput.value = own.shownDir;
+            dirInput.disabled = own.virtual;
+            upButton.disabled = !data.parent;
+            renderPlaces(data.places);
+            renderList();
+            const wanted = preselect ?? data.select;
+            const entry = wanted ? entryByPath(wanted) : null;
+            if (entry) select(entry);
+            else onSelect?.(null);
+            setNote(data.truncated ? "Showing the first entries only." : "");
+        } catch (error) {
+            if (ticket === own.ticket) setNote(error.message, true);
+        }
+    }
+
+    function clear() {
+        own.entries = [];
+        own.selected = null;
+        list.replaceChildren();
+        upButton.disabled = true;
+        setNote("Loading…");
+        onSelect?.(null);
+    }
+
+    function step(delta) {
+        const entries = visibleEntries();
+        if (entries.length === 0) return;
+        const current = entries.findIndex((entry) => entry.path === own.selected);
+        const next = current < 0 ? (delta > 0 ? 0 : entries.length - 1) : current + delta;
+        select(entries[Math.min(entries.length - 1, Math.max(0, next))]);
+    }
+
+    upButton.addEventListener("click", () => {
+        if (own.parent) void go(own.parent);
+    });
+
+    dirInput.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        void go(dirInput.value.trim());
+    });
+
+    allToggle.addEventListener("change", renderList);
+
+    list.addEventListener("click", (event) => {
+        const item = event.target.closest("li[data-path]");
+        if (!item) return;
+        const entry = entryByPath(item.dataset.path);
+        if (!entry) return;
+        list.focus();
+        if (entry.kind === "dir") void go(entry.path);
+        else select(entry);
+    });
+
+    list.addEventListener("dblclick", (event) => {
+        const item = event.target.closest("li[data-path]");
+        const entry = item ? entryByPath(item.dataset.path) : null;
+        if (entry?.kind === "file") onConfirm?.(entry);
+    });
+
+    list.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowDown") step(1);
+        else if (event.key === "ArrowUp") step(-1);
+        else if (event.key === "Backspace" && own.parent) void go(own.parent);
+        else if (event.key === "Enter") {
+            const entry = own.selected ? entryByPath(own.selected) : null;
+            if (!entry) return;
+            if (entry.kind === "dir") void go(entry.path);
+            else onConfirm?.(entry);
+        } else return;
+        event.preventDefault();
+    });
+
+    return {
+        go,
+        open(dir, options = {}) {
+            if (options.extensions) own.extensions = options.extensions;
+            clear();
+            return go(dir, options);
+        },
+        dir: () => own.dir,
+        sep: () => own.sep,
+        selected: () => (own.selected ? entryByPath(own.selected) : null),
+        focus: () => list.focus(),
+        setExtensions(next) {
+            own.extensions = next;
+            return go(own.dir);
+        },
+    };
+}
+
+/** Joins a browser directory with a typed file name. */
+function joinPath(dir, name, sep = "/") {
+    const value = name.trim();
+    if (!value) return "";
+    if (value.startsWith("/") || value.startsWith("~")) return value;
+    if (!dir) return value;
+    return dir.endsWith(sep) ? `${dir}${value}` : `${dir}${sep}${value}`;
+}
+
+let openBrowser = null;
+let exportBrowser = null;
+
+function wireOpenDialog() {
+    const dialog = $("dialog-open");
+    const picked = $("open-picked");
+
+    openBrowser = createFileBrowser($("open-browser"), {
+        extensions: ["dot", "gv"],
+        showFound: true,
+        onSelect: (entry) => {
+            picked.textContent = entry ? entry.path : "nothing yet";
+            picked.classList.toggle("muted", !entry);
+        },
+        onConfirm: (entry) => {
+            dialog.close();
+            run(post("/api/load", { path: entry.path }));
+        },
+    });
+
+    $("btn-open").addEventListener("click", () => {
+        dialog.showModal();
+        const source = state?.source.path;
+        void openBrowser.open(source || FOUND_DIR, { select: source ?? undefined }).then(() => openBrowser.focus());
+    });
+
+    $("open-confirm").addEventListener("click", () => {
+        const entry = openBrowser.selected();
+        if (!entry) {
+            setStatus("Pick a file first.", true);
+            return;
+        }
+        dialog.close();
+        run(post("/api/load", { path: entry.path }));
+    });
+}
+
+function wireExportDialog() {
+    const dialog = $("dialog-export");
+    const nameField = $("export-name");
+    const picked = $("export-picked");
+
+    const syncPicked = () => {
+        const target = joinPath(exportBrowser.dir(), nameField.value, exportBrowser.sep());
+        picked.textContent = target || "…";
+    };
+
+    const save = () => {
+        const target = joinPath(exportBrowser.dir(), nameField.value, exportBrowser.sep());
+        if (!target) {
+            setStatus("Enter a file name.", true);
+            nameField.focus();
+            return;
+        }
+        dialog.close();
+        run(post("/api/export", { kind: $("export-kind").value, path: target }).then((result) => setStatus(`Saved ${result.path}`)));
+    };
+
+    exportBrowser = createFileBrowser($("export-browser"), {
+        extensions: ["svg"],
+        onSelect: (entry) => {
+            // Picking an existing file means "overwrite this one".
+            if (entry) nameField.value = entry.name;
+            syncPicked();
+        },
+        onConfirm: save,
+    });
+
+    nameField.addEventListener("input", syncPicked);
+    nameField.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        save();
+    });
+
+    $("btn-export").addEventListener("click", () => {
+        const kind = $("export-kind").value;
+        nameField.value = defaultExportName(kind);
+        dialog.showModal();
+        void exportBrowser
+            .open(defaultExportDir(), { extensions: exportExtensions(kind) })
+            .then(syncPicked);
+    });
+
+    $("export-kind").addEventListener("change", (event) => {
+        nameField.value = defaultExportName(event.target.value);
+        void exportBrowser.setExtensions(exportExtensions(event.target.value)).then(syncPicked);
+    });
+
+    $("export-confirm").addEventListener("click", save);
+}
+
 function wireToolbar() {
     $("zoom-in").addEventListener("click", () => zoomBy(1.25));
     $("zoom-out").addEventListener("click", () => zoomBy(1 / 1.25));
@@ -1318,60 +1653,6 @@ function wireToolbar() {
         if (!centerOnNode(selection.id)) setStatus(`${selection.id} is hidden by the current filters.`, true);
     });
     $("btn-reload").addEventListener("click", () => run(post("/api/reload").then(() => setStatus("Reloaded."))));
-
-    $("btn-open").addEventListener("click", async () => {
-        const dialog = $("dialog-open");
-        $("open-path").value = state?.source.path ?? "";
-        const list = $("open-file-list");
-        list.replaceChildren();
-        dialog.showModal();
-        try {
-            const { files } = await api("/api/files");
-            if (files.length === 0) {
-                const item = document.createElement("li");
-                item.className = "muted";
-                item.textContent = "No .dot files found in the workspace or artifacts.";
-                list.append(item);
-            }
-            for (const file of files) {
-                const item = document.createElement("li");
-                const name = document.createElement("span");
-                name.className = "name";
-                name.textContent = file.path;
-                name.title = file.path;
-                const origin = document.createElement("span");
-                origin.className = "origin";
-                origin.textContent = file.origin;
-                item.append(name, origin);
-                item.addEventListener("click", () => {
-                    $("open-path").value = file.path;
-                });
-                item.addEventListener("dblclick", () => {
-                    dialog.close();
-                    run(post("/api/load", { path: file.path }));
-                });
-                list.append(item);
-            }
-        } catch (error) {
-            setStatus(error.message, true);
-        }
-    });
-
-    $("open-confirm").addEventListener("click", () => {
-        const path = $("open-path").value.trim();
-        if (!path) {
-            setStatus("Enter a path.", true);
-            return;
-        }
-        $("dialog-open").close();
-        run(post("/api/load", { path }));
-    });
-
-    $("open-path").addEventListener("keydown", (event) => {
-        if (event.key !== "Enter") return;
-        event.preventDefault();
-        $("open-confirm").click();
-    });
 
     const chips = $("generate-chips");
     for (const flag of QUICK_FLAGS) {
@@ -1427,31 +1708,26 @@ function wireToolbar() {
         setStatus("Running gh team-kit pr-graph…");
         run(post("/api/generate", { args }).then((result) => setStatus(`Saved ${result.path}`)));
     });
-
-    $("btn-export").addEventListener("click", () => {
-        const kind = $("export-kind").value;
-        $("export-path").value = defaultExportPath(kind);
-        $("dialog-export").showModal();
-    });
-
-    $("export-kind").addEventListener("change", (event) => {
-        $("export-path").value = defaultExportPath(event.target.value);
-    });
-
-    $("export-confirm").addEventListener("click", () => {
-        const path = $("export-path").value.trim();
-        if (!path) {
-            setStatus("Enter a path.", true);
-            return;
-        }
-        $("dialog-export").close();
-        run(post("/api/export", { kind: $("export-kind").value, path }).then((result) => setStatus(`Saved ${result.path}`)));
-    });
 }
 
-function defaultExportPath(kind) {
+/** File extensions the export browser highlights for a format. */
+function exportExtensions(kind) {
+    return kind === "dot" ? ["dot", "gv"] : ["svg"];
+}
+
+/** Directory the export dialog starts in: next to the source file. */
+function defaultExportDir() {
     const source = state?.source.path;
-    const base = source ? source.replace(/\.(dot|gv)$/i, "") : "pr-graph";
+    if (!source) return "";
+    const cut = Math.max(source.lastIndexOf("/"), source.lastIndexOf("\\"));
+    return cut > 0 ? source.slice(0, cut) : "";
+}
+
+function defaultExportName(kind) {
+    const source = state?.source.path ?? "";
+    const cut = Math.max(source.lastIndexOf("/"), source.lastIndexOf("\\"));
+    const file = cut >= 0 ? source.slice(cut + 1) : source;
+    const base = file ? file.replace(/\.(dot|gv)$/i, "") : "pr-graph";
     return kind === "dot" ? `${base}.filtered.dot` : `${base}.svg`;
 }
 
@@ -1465,6 +1741,8 @@ wireGraphInteractions();
 wireSidebar();
 wireResizer();
 wireToolbar();
+wireOpenDialog();
+wireExportDialog();
 wireInputSanitizer();
 loadAskLog();
 connectEvents();

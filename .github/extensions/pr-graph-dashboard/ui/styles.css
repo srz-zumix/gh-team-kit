@@ -395,15 +395,13 @@ button.chip {
     cursor: pointer;
 }
 
-.node-list,
-.file-list {
+.node-list {
     list-style: none;
     margin: 0;
     padding: 0;
 }
 
-.node-list li,
-.file-list li {
+.node-list li {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -412,8 +410,7 @@ button.chip {
     cursor: pointer;
 }
 
-.node-list li:hover,
-.file-list li:hover {
+.node-list li:hover {
     background: color-mix(in srgb, var(--text-color-default, #1f2328) 8%, transparent);
 }
 
@@ -421,8 +418,7 @@ button.chip {
     background: color-mix(in srgb, var(--true-color-blue, #0969da) 18%, transparent);
 }
 
-.node-list .name,
-.file-list .name {
+.node-list .name {
     flex: 1;
     min-width: 0;
     overflow: hidden;
@@ -523,19 +519,6 @@ dialog menu {
     gap: 8px;
     margin: 12px 0 0;
     padding: 0;
-}
-
-.file-list {
-    max-height: 200px;
-    overflow: auto;
-    border: 1px solid var(--border-color-default, #d1d9e0);
-    border-radius: 6px;
-    padding: 4px;
-}
-
-.file-list .origin {
-    font-size: var(--text-body-small, 12px);
-    color: var(--text-color-muted, #59636e);
 }
 
 /* Rendered Graphviz SVG. Presentation attributes lose to these rules, so the
@@ -927,4 +910,143 @@ button.link {
 button.link:hover {
     color: var(--true-color-blue, #0969da);
     text-decoration: underline;
+}
+
+/* File browser used by the Open and Export dialogs. */
+
+.browser {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.browser-bar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.browser-up {
+    flex-shrink: 0;
+    padding: 4px 9px;
+    line-height: 1;
+}
+
+.browser-dir {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-mono, "SFMono-Regular", Consolas, monospace);
+    font-size: var(--text-code-inline, 12px);
+}
+
+.browser-dir:disabled {
+    color: var(--text-color-muted, #59636e);
+    font-family: var(--font-sans, sans-serif);
+}
+
+.browser-places {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.browser-places .chip.active {
+    border-color: var(--true-color-blue, #0969da);
+    color: var(--true-color-blue, #0969da);
+}
+
+.browser-list {
+    list-style: none;
+    margin: 0;
+    padding: 4px;
+    height: 240px;
+    overflow: auto;
+    border: 1px solid var(--border-color-default, #d1d9e0);
+    border-radius: 6px;
+}
+
+.browser-list li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.browser-list li.empty {
+    cursor: default;
+}
+
+.browser-list li.dim .name {
+    color: var(--text-color-muted, #59636e);
+}
+
+.browser-list li:hover:not(.empty) {
+    background: color-mix(in srgb, var(--text-color-default, #1f2328) 8%, transparent);
+}
+
+.browser-list li.selected {
+    background: color-mix(in srgb, var(--true-color-blue, #0969da) 18%, transparent);
+}
+
+.browser-list .icon {
+    display: flex;
+    flex-shrink: 0;
+    color: var(--text-color-muted, #59636e);
+}
+
+.browser-list li.dir .icon {
+    color: var(--true-color-blue, #0969da);
+}
+
+.browser-list .name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.browser-list .detail {
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    direction: rtl;
+    font-size: var(--text-body-small, 12px);
+    color: var(--text-color-muted, #59636e);
+}
+
+.browser-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: var(--text-body-small, 12px);
+}
+
+.browser-foot label.inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-color-muted, #59636e);
+}
+
+.browser-note {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.browser-note.error {
+    color: var(--true-color-red, #d1242f);
+}
+
+.picked {
+    font-family: var(--font-mono, "SFMono-Regular", Consolas, monospace);
+    font-size: var(--text-code-inline, 12px);
+    word-break: break-all;
 }

@@ -28,9 +28,9 @@ The agent opens it via `open_canvas` with `canvasId: "pr-graph"` and an optional
 
 ## Dashboard
 
-- **Open… / Generate… / Reload / Export…** — load a `.dot` file, run `gh team-kit pr-graph` (with
-  completion for its flags, or with arguments written by the agent), re-read the current file, or
-  write the SVG / filtered DOT to disk.
+- **Open… / Generate… / Reload / Export…** — pick a `.dot` file from a file browser, run
+  `gh team-kit pr-graph` (with completion for its flags, or with arguments written by the agent),
+  re-read the current file, or write the SVG / filtered DOT to a browsed destination.
 - **Filters** — node types, edge relations, minimum edge weight, name search, neighbourhood
   radius, orphan handling, Graphviz layout engine and direction, and the render limit.
 - **Nodes** — ranked node list; click to select and move the view to that node, double-click to focus
@@ -65,6 +65,26 @@ Every engine other than `dot` packs nodes tightly enough that they overlap (`nea
 overlapping node pairs on that graph, `twopi` 2519), so those layouts are emitted with
 `overlap="prism" sep="+16" esep="+4"`, which removes the overlaps and is no slower. `dot` places nodes
 in ranks itself and is left alone.
+
+### Choosing files
+
+**Open…** and **Export…** both browse the filesystem instead of asking for a typed path: the host
+webview gives the canvas no usable native picker, since `<input type="file">` hides the absolute path
+and cannot choose a save destination at all.
+
+The browser lists directories first and then files, dims and hides names that do not match the
+dialog's format, and shows shortcut chips for **Found** (every `.dot`/`.gv` file under the workspace
+plus previously generated artifacts), **Workspace**, **Generated**, the directory of the file that is
+open, and **Home**. Click a directory to enter it, `↑` or `Backspace` to leave it, `↑`/`↓` to move
+through the list, `Enter` to enter a directory or accept a file, and double-click to open or save in
+one step. **Show every file** reveals the non-matching and dot-prefixed entries. The path above the
+list stays editable so a path can be pasted and jumped to with `Enter`; a listing that arrives while
+it is being edited no longer overwrites what was typed.
+
+**Open…** starts in the directory of the current file — with that file preselected — or in **Found**
+when nothing is loaded yet. **Export…** starts next to the current file with a proposed name; the
+destination shown under the name field is the browsed directory plus that name, and clicking an
+existing file fills its name in to overwrite it.
 
 ### Generate
 

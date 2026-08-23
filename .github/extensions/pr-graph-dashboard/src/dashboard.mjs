@@ -1,12 +1,13 @@
 // Per-instance dashboard state: DOT source, filters, layout and rendered SVG.
 
 import { EventEmitter } from "node:events";
-import { readFile, readdir, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { resolveUnder } from "./browse.mjs";
 import { describeNode, emitDot, filterGraph, parseDot, summarize, topNodes } from "./dot.mjs";
 import { ENGINES, renderSvg } from "./graphviz.mjs";
 import { prGraphHelp, runPrGraph } from "./prgraph.mjs";
-import { generatedDir, saveGeneratedDot } from "./store.mjs";
+import { saveGeneratedDot } from "./store.mjs";
 
 const DEFAULT_FILTERS = {
     nodeTypes: [],
@@ -21,39 +22,6 @@ const DEFAULT_FILTERS = {
 const DEFAULT_VIEW = { engine: "dot", rankdir: "LR", timeoutMs: 60_000 };
 
 const RANKDIRS = ["LR", "TB", "RL", "BT"];
-
-const SKIP_DIRS = new Set(["node_modules", ".git", "vendor", "dist", "build", ".venv", "target"]);
-
-/**
- * Finds candidate DOT files: everything under the workspace (bounded depth)
- * plus previously generated artifacts.
- */
-export async function listDotCandidates(workspacePath) {
-    const results = [];
-    const walk = async (dir, depth, origin) => {
-        let entries;
-        try {
-            entries = await readdir(dir, { withFileTypes: true });
-        } catch {
-            return;
-        }
-        for (const entry of entries) {
-            if (results.length >= 200) return;
-            const full = path.join(dir, entry.name);
-            if (entry.isDirectory()) {
-                if (depth <= 0 || entry.name.startsWith(".") || SKIP_DIRS.has(entry.name)) continue;
-                await walk(full, depth - 1, origin);
-                continue;
-            }
-            if (!entry.isFile()) continue;
-            if (!/\.(dot|gv)$/i.test(entry.name)) continue;
-            results.push({ path: full, name: entry.name, origin });
-        }
-    };
-    if (workspacePath) await walk(workspacePath, 4, "workspace");
-    await walk(generatedDir(), 1, "generated");
-    return results.sort((a, b) => a.origin.localeCompare(b.origin) || a.path.localeCompare(b.path));
-}
 
 /** Normalizes an incoming filter patch against the defaults. */
 function normalizeFilters(current, patch = {}) {
@@ -124,8 +92,7 @@ export class Dashboard extends EventEmitter {
     resolvePath(target) {
         const value = String(target ?? "").trim();
         if (!value) throw new Error("a file path is required");
-        const expanded = value.startsWith("~/") ? path.join(process.env.HOME ?? "", value.slice(2)) : value;
-        return path.isAbsolute(expanded) ? path.normalize(expanded) : path.resolve(this.workspacePath, expanded);
+        return resolveUnder(value, this.workspacePath);
     }
 
     /** Emits a state-changed event so connected SSE clients refresh. */

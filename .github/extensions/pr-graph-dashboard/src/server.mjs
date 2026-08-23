@@ -11,7 +11,8 @@ import { fileURLToPath } from "node:url";
 import { NODE_TYPES, RELATIONS, topNodes } from "./dot.mjs";
 import { checkGraphviz } from "./graphviz.mjs";
 import { completeArgs } from "./complete.mjs";
-import { listDotCandidates, PROMPT_PRESETS } from "./dashboard.mjs";
+import { browse } from "./browse.mjs";
+import { PROMPT_PRESETS } from "./dashboard.mjs";
 
 const UI_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "ui");
 
@@ -96,8 +97,21 @@ export async function startServer(dashboard) {
             res.writeHead(200, { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "no-store" });
             res.end(dashboard.svg);
         },
-        "GET /api/files": async (_req, res) => {
-            sendJson(res, 200, { files: await listDotCandidates(dashboard.workspacePath) });
+        "GET /api/browse": async (_req, res, url) => {
+            const extensions = (url.searchParams.get("ext") ?? "")
+                .split(",")
+                .map((value) => value.trim().toLowerCase())
+                .filter(Boolean);
+            sendJson(
+                res,
+                200,
+                await browse({
+                    dir: url.searchParams.get("dir"),
+                    workspacePath: dashboard.workspacePath,
+                    sourcePath: dashboard.sourcePath,
+                    extensions,
+                }),
+            );
         },
         "GET /api/nodes": async (req, res, url) => {
             const limit = Math.min(500, Math.max(1, Number(url.searchParams.get("limit")) || 50));
@@ -167,7 +181,8 @@ export async function startServer(dashboard) {
             }
             sendJson(res, 200, { ok: true, ...(await dashboard.ask(prompt)) });
         },
-        "GET /api/complete": async (_req, res, url) => {            const line = url.searchParams.get("line") ?? "";
+        "GET /api/complete": async (_req, res, url) => {
+            const line = url.searchParams.get("line") ?? "";
             sendJson(res, 200, await completeArgs(line, { cwd: dashboard.workspacePath }));
         },
         "POST /api/generate/ask": async (req, res) => {
