@@ -38,6 +38,11 @@ let savedView = null;
 let pendingView = null;
 let refreshing = null;
 let refreshQueued = false;
+let renderStart = 0;
+let renderActive = false;
+let renderHintTimer = null;
+let renderTicker = null;
+const RENDER_HINT_DELAY = 200;
 
 const view = { scale: 1, x: 0, y: 0, size: { width: 0, height: 0 } };
 const MIN_SCALE = 0.01;
@@ -253,7 +258,42 @@ function renderState() {
     renderDetails();
     renderPresets();
     syncAskButtons();
+    syncRendering();
     applyHighlight();
+}
+
+/**
+ * Shows how long Graphviz has been laying the graph out again. The picture on
+ * screen is the previous layout until it finishes, so it is dimmed meanwhile.
+ */
+function syncRendering() {
+    const active = Boolean(state.rendering);
+    if (active === renderActive) return;
+    renderActive = active;
+    if (!active) {
+        clearTimeout(renderHintTimer);
+        clearInterval(renderTicker);
+        renderHintTimer = null;
+        renderTicker = null;
+        renderStart = 0;
+        $("rendering").hidden = true;
+        $("rendering-elapsed").textContent = "";
+        $("graph").classList.remove("stale");
+        return;
+    }
+    renderStart = Date.now();
+    // Short renders should not flash the badge.
+    renderHintTimer = setTimeout(() => {
+        $("rendering").hidden = false;
+        $("graph").classList.add("stale");
+        renderElapsed();
+        renderTicker = setInterval(renderElapsed, 1000);
+    }, RENDER_HINT_DELAY);
+}
+
+function renderElapsed() {
+    const seconds = Math.round((Date.now() - renderStart) / 1000);
+    $("rendering-elapsed").textContent = seconds >= 1 ? `${seconds}s` : "";
 }
 
 function renderStatusBar() {

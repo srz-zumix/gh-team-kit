@@ -26,6 +26,11 @@
             <div class="body">
                 <main class="viewport">
                     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+                    <div class="rendering" id="rendering" role="status" aria-live="polite" hidden>
+                        <span class="spinner" aria-hidden="true"></span>
+                        <span>Rendering…</span>
+                        <span class="elapsed" id="rendering-elapsed"></span>
+                    </div>
                     <div class="graph-scroll" id="graph-scroll">
                         <div class="graph" id="graph"></div>
                     </div>

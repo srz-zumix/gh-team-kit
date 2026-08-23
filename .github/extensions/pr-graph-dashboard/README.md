@@ -48,8 +48,10 @@ with `Ctrl`/`Cmd` + scroll (or a trackpad
 pinch) or by dragging up and down. Drag the divider between the graph and the side panel to resize
 them, double-click it to reset, or focus it and use the arrow keys. The chosen size is remembered.
 
-Large graphs take a while to lay out, so the status bar appends `· rendering…` to the counts while
-Graphviz is still working and the previous layout is still on screen.
+Large graphs take a while to lay out. While Graphviz is still working, a **Rendering…** badge with an
+elapsed-seconds counter appears over the top-left of the viewport, the stale layout on screen is dimmed,
+and the status bar appends `· rendering…` to the counts. The badge only appears once a render has taken
+longer than 200 ms, so quick redraws do not flash it.
 
 ## Agent-callable actions
 
