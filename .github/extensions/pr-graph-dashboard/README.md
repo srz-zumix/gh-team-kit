@@ -156,6 +156,11 @@ handed to the panel carries an unguessable per-instance token in its fragment (`
 port from reading files or triggering writes/generation. Only static UI assets load without the
 token.
 
+Paths supplied by the agent — the `open` input and the `load_dot` / `export` actions — are
+confined to the workspace (or the generated-artifacts directory); symlinks are resolved so an
+in-workspace name cannot point at a file outside it. Absolute paths elsewhere remain reachable
+through the dashboard's own Open…/Export browser, which is user-driven.
+
 ## Layout
 
 | File                | Responsibility                                      |

@@ -1,13 +1,13 @@
 // Per-instance dashboard state: DOT source, filters, layout and rendered SVG.
 
 import { EventEmitter } from "node:events";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile, realpath, lstat } from "node:fs/promises";
 import path from "node:path";
 import { resolveUnder } from "./browse.mjs";
 import { describeNode, emitDot, filterGraph, parseDot, summarize, topNodes } from "./dot.mjs";
 import { ENGINES, renderSvg } from "./graphviz.mjs";
 import { prGraphHelp, runPrGraph } from "./prgraph.mjs";
-import { saveGeneratedDot } from "./store.mjs";
+import { saveGeneratedDot, generatedDir } from "./store.mjs";
 import { EXPORT_BACKGROUND, graphPalette } from "./theme.mjs";
 
 const DEFAULT_FILTERS = {
@@ -109,6 +109,55 @@ export class Dashboard extends EventEmitter {
         return resolveUnder(value, this.workspacePath);
     }
 
+    /** Real paths of the roots an agent-supplied path may resolve inside. */
+    async allowedRoots() {
+        const roots = [];
+        for (const dir of [this.workspacePath, generatedDir()]) {
+            try {
+                roots.push(await realpath(dir));
+            } catch {
+                // The generated-artifacts directory may not exist yet.
+            }
+        }
+        return roots;
+    }
+
+    /**
+     * Guards an agent-supplied path so it cannot escape the workspace (or the
+     * controlled generated-artifacts directory). Resolves symlinks so a
+     * malicious checkout cannot point an in-workspace name at a secret, and for
+     * writes refuses to follow an existing symlink out of the allowed roots.
+     */
+    async assertInsideAllowedRoots(resolved, { write = false } = {}) {
+        const roots = await this.allowedRoots();
+        let real;
+        if (write) {
+            const existing = await lstat(resolved).catch(() => null);
+            if (existing?.isSymbolicLink()) throw new Error("refusing to write through a symlink");
+            let parent;
+            try {
+                parent = await realpath(path.dirname(resolved));
+            } catch {
+                throw new Error("the destination directory does not exist");
+            }
+            real = path.join(parent, path.basename(resolved));
+        } else {
+            real = await realpath(resolved).catch((error) => {
+                if (error && error.code === "ENOENT") return null;
+                throw error;
+            });
+            // A missing file leaks nothing; let the caller's read fail naturally.
+            if (real === null) return;
+        }
+        const inside = roots.some((root) => {
+            const rel = path.relative(root, real);
+            return rel === "" || (rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel));
+        });
+        if (!inside) {
+            throw new Error("path must be inside the workspace; use the dashboard's Open… browser to reach files elsewhere");
+        }
+    }
+
     /** Emits a state-changed event so connected SSE clients refresh. */
     touch() {
         this.stateRev += 1;
@@ -134,8 +183,9 @@ export class Dashboard extends EventEmitter {
     }
 
     /** Loads DOT from a file on disk. */
-    async loadFile(target) {
+    async loadFile(target, { workspaceOnly = false } = {}) {
         const file = this.resolvePath(target);
+        if (workspaceOnly) await this.assertInsideAllowedRoots(file, { write: false });
         const contents = await readFile(file, "utf-8");
         this.setDot(contents, { sourcePath: file });
         return file;
@@ -305,17 +355,19 @@ export class Dashboard extends EventEmitter {
     }
 
     /** Writes the current SVG to disk. */
-    async exportSvg(target) {
+    async exportSvg(target, { workspaceOnly = false } = {}) {
         if (!this.svg) throw new Error("there is no rendered graph to export");
         const file = this.resolvePath(target);
+        if (workspaceOnly) await this.assertInsideAllowedRoots(file, { write: true });
         await writeFile(file, standaloneSvg(this.svg), "utf-8");
         return file;
     }
 
     /** Writes the current (filtered) DOT source to disk. */
-    async exportDot(target, { filtered = true } = {}) {
+    async exportDot(target, { filtered = true, workspaceOnly = false } = {}) {
         if (!this.dotSource) throw new Error("there is no graph to export");
         const file = this.resolvePath(target);
+        if (workspaceOnly) await this.assertInsideAllowedRoots(file, { write: true });
         const source = filtered
             ? emitDot(this.filteredGraph(), {
                   rankdir: this.view.rankdir,
