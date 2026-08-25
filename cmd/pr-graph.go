@@ -9,7 +9,7 @@ import (
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/spf13/cobra"
-	"github.com/srz-zumix/gh-team-kit/prgraph"
+	"github.com/srz-zumix/gh-team-kit/pkg/prgraph"
 	"github.com/srz-zumix/go-gh-extension/pkg/cmdflags"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
