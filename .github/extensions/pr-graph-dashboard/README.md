@@ -147,6 +147,15 @@ produced by **Generate** are written to
 can be reopened later; `artifacts/instances.json` only records which file each open panel was
 showing, so a provider restart restores the same view.
 
+## Security
+
+Each panel runs its own loopback HTTP server bound to `127.0.0.1` on a random port. The URL
+handed to the panel carries an unguessable per-instance token in its fragment (`#t=...`); every
+`/api/*` and Server-Sent Events request must present that token, and requests with a foreign
+`Host` header are rejected. This prevents another local process or web page that merely scans the
+port from reading files or triggering writes/generation. Only static UI assets load without the
+token.
+
 ## Layout
 
 | File                | Responsibility                                      |

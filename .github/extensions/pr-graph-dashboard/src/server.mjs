@@ -6,6 +6,7 @@
 
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { NODE_TYPES, RELATIONS, topNodes } from "./dot.mjs";
@@ -54,6 +55,7 @@ async function serveStatic(res, name) {
         res.writeHead(200, {
             "Content-Type": MIME[path.extname(file)] ?? "application/octet-stream",
             "Cache-Control": "no-store",
+            "Referrer-Policy": "no-referrer",
         });
         res.end(contents);
     } catch {
@@ -68,6 +70,10 @@ async function serveStatic(res, name) {
  * @returns {Promise<{server: import("node:http").Server, url: string}>}
  */
 export async function startServer(dashboard) {
+    // Unguessable per-instance token. Every API/SSE request must carry it, so a
+    // local process or web page that merely scans the loopback port cannot read
+    // files or trigger writes/generation against this panel.
+    const token = randomUUID();
     const clients = new Set();
     const broadcast = () => {
         const payload = `data: ${JSON.stringify({ stateRev: dashboard.stateRev, renderRev: dashboard.renderRev })}\n\n`;
@@ -199,8 +205,25 @@ export async function startServer(dashboard) {
         },
     };
 
+    const isLoopbackHost = (host) => {
+        if (!host) return false;
+        const name = host.replace(/:\d+$/, "");
+        return name === "127.0.0.1" || name === "localhost" || name === "[::1]";
+    };
+
     const server = createServer((req, res) => {
         const url = new URL(req.url ?? "/", "http://127.0.0.1");
+        // Reject foreign Host headers (blunts DNS-rebinding) and require the
+        // per-instance token on every API/SSE route. Static UI assets are
+        // harmless and load before the token is known, so they stay open.
+        if (!isLoopbackHost(req.headers.host)) {
+            res.writeHead(403).end("forbidden");
+            return;
+        }
+        if (url.pathname.startsWith("/api/") && url.searchParams.get("t") !== token) {
+            res.writeHead(403).end("forbidden");
+            return;
+        }
         const key = `${req.method} ${url.pathname}`;
         const handler = routes[key];
         if (handler) {
@@ -232,5 +255,5 @@ export async function startServer(dashboard) {
         await new Promise((resolve) => server.close(() => resolve()));
     };
 
-    return { server, url: `http://127.0.0.1:${port}/`, close };
+    return { server, url: `http://127.0.0.1:${port}/#t=${token}`, close };
 }

@@ -78,6 +78,7 @@ export class Dashboard extends EventEmitter {
         this.sendToAgent = sendToAgent ?? (async () => {});
         this.log = log ?? (() => {});
 
+        this.closed = false;
         this.sourcePath = null;
         this.sourceLabel = "";
         this.sourceCommand = "";

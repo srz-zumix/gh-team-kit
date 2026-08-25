@@ -50,8 +50,18 @@ const MIN_SCALE = 0.01;
 const MAX_SCALE = 8;
 const GLIDE_MS = 320;
 
+// Per-instance token, handed to the panel in the page fragment (`#t=...`) so it
+// is never sent to the server as a query on the top-level load nor leaked via
+// Referer. Every API/SSE request must carry it as a `t` query parameter.
+const API_TOKEN = new URLSearchParams(location.hash.slice(1)).get("t") ?? "";
+
+function withToken(path) {
+    if (!API_TOKEN) return path;
+    return `${path}${path.includes("?") ? "&" : "?"}t=${encodeURIComponent(API_TOKEN)}`;
+}
+
 async function api(path, options = {}) {
-    const response = await fetch(path, {
+    const response = await fetch(withToken(path), {
         ...options,
         headers: options.body ? { "Content-Type": "application/json" } : undefined,
     });
@@ -214,7 +224,7 @@ async function loadSvg() {
         $("empty").hidden = Boolean(state.source.loaded);
         return;
     }
-    const response = await fetch("/api/svg");
+    const response = await fetch(withToken("/api/svg"));
     if (!response.ok) return;
     const svgText = (await response.text()).replace(/^[\s\S]*?(?=<svg\b)/, "");
     const hadContent = renderedRev >= 0 && graph.firstChild;
@@ -1732,7 +1742,7 @@ function defaultExportName(kind) {
 }
 
 function connectEvents() {
-    const source = new EventSource("/api/events");
+    const source = new EventSource(withToken("/api/events"));
     source.addEventListener("message", () => void run(refresh()));
     source.addEventListener("error", () => setStatus("Lost connection to the extension; retrying…", true));
 }

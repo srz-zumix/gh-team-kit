@@ -55,7 +55,7 @@ function action(name, description, inputSchema, handler) {
 
 /** Stores the pointer that lets a restarted provider restore the same graph. */
 async function persist(dashboard) {
-    if (!dashboard.sourcePath) return;
+    if (dashboard.closed || !dashboard.sourcePath) return;
     await saveInstancePointer(dashboard.instanceId, {
         path: dashboard.sourcePath,
         command: dashboard.sourceCommand,
@@ -70,17 +70,26 @@ async function persist(dashboard) {
  * Persists on every state change, coalescing bursts. Without this a provider
  * restart drops the filters, layout and selection the user set up, because
  * only explicit load/generate calls wrote the pointer.
+ *
+ * Returns a dispose function that detaches the listener and cancels any pending
+ * write, so a closing panel cannot resurrect its instances.json pointer after
+ * onClose has removed it.
  */
 function autoPersist(dashboard, log) {
     let timer = null;
-    dashboard.on("changed", () => {
+    const onChanged = () => {
         clearTimeout(timer);
         timer = setTimeout(() => {
             void persist(dashboard).catch((error) => {
                 log(`failed to persist dashboard state: ${error instanceof Error ? error.message : String(error)}`, "warning");
             });
         }, 400);
-    });
+    };
+    dashboard.on("changed", onChanged);
+    return () => {
+        clearTimeout(timer);
+        dashboard.off("changed", onChanged);
+    };
 }
 
 /** Restores the filters, layout and selection saved for the same graph. */
@@ -357,7 +366,7 @@ const canvas = createCanvas({
                     log(`failed to load graph: ${dashboard.error}`, "warning");
                 }
             }
-            autoPersist(dashboard, log);
+            entry.disposePersist = autoPersist(dashboard, log);
         } else if (input.path || input.dot || input.args !== undefined) {
             await applySource(entry.dashboard, input);
         }
@@ -377,6 +386,10 @@ const canvas = createCanvas({
         const entry = instances.get(ctx.instanceId);
         if (!entry) return;
         instances.delete(ctx.instanceId);
+        // Mark closed and cancel the auto-persist listener/timer first, so no
+        // pending write can re-add the pointer after we remove it below.
+        entry.dashboard.closed = true;
+        entry.disposePersist?.();
         await entry.server.close();
         await removeInstancePointer(ctx.instanceId);
     },

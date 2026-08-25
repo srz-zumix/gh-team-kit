@@ -91,7 +91,10 @@ function tokenize(source) {
             continue;
         }
         if (ch === "<") {
-            // HTML-like label: capture the balanced <...> block verbatim.
+            // HTML-like label (`<...>`): consume the balanced angle-bracket
+            // block and keep only its inner content. This tool's own DOT never
+            // emits HTML labels; one loaded from an external file is normalized
+            // to a plain string and re-emitted quoted, not preserved as HTML.
             let depth = 0;
             let j = i;
             let text = "";

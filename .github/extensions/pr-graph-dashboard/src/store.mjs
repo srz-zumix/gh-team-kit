@@ -28,6 +28,18 @@ function instancesFile() {
     return path.join(artifactsDir(), "instances.json");
 }
 
+// Serializes all instances.json read-modify-write cycles so concurrent panels
+// (or a persist racing a close) cannot clobber each other's entries.
+let mutationQueue = Promise.resolve();
+function enqueueMutation(task) {
+    const run = mutationQueue.then(task, task);
+    mutationQueue = run.then(
+        () => {},
+        () => {},
+    );
+    return run;
+}
+
 async function readJson(file, fallback) {
     try {
         return JSON.parse(await readFile(file, "utf-8"));
@@ -44,20 +56,24 @@ export async function loadInstancePointer(instanceId) {
 
 /** Persists the pointer describing what an instance is currently showing. */
 export async function saveInstancePointer(instanceId, pointer) {
-    await mkdir(artifactsDir(), { recursive: true });
-    const file = instancesFile();
-    const all = await readJson(file, {});
-    all[instanceId] = pointer;
-    await writeFile(file, `${JSON.stringify(all, null, 2)}\n`, "utf-8");
+    await enqueueMutation(async () => {
+        await mkdir(artifactsDir(), { recursive: true });
+        const file = instancesFile();
+        const all = await readJson(file, {});
+        all[instanceId] = pointer;
+        await writeFile(file, `${JSON.stringify(all, null, 2)}\n`, "utf-8");
+    });
 }
 
 /** Drops the persisted pointer for a closed instance. */
 export async function removeInstancePointer(instanceId) {
-    const file = instancesFile();
-    const all = await readJson(file, null);
-    if (!all || !(instanceId in all)) return;
-    delete all[instanceId];
-    await writeFile(file, `${JSON.stringify(all, null, 2)}\n`, "utf-8");
+    await enqueueMutation(async () => {
+        const file = instancesFile();
+        const all = await readJson(file, null);
+        if (!all || !(instanceId in all)) return;
+        delete all[instanceId];
+        await writeFile(file, `${JSON.stringify(all, null, 2)}\n`, "utf-8");
+    });
 }
 
 /** Builds a filesystem-safe slug from arbitrary text. */
