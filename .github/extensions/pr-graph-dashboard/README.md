@@ -161,6 +161,12 @@ confined to the workspace (or the generated-artifacts directory); symlinks are r
 in-workspace name cannot point at a file outside it. Absolute paths elsewhere remain reachable
 through the dashboard's own Open…/Export browser, which is user-driven.
 
+Rendered SVG is parsed and reduced to an allow-list of Graphviz drawing elements before it enters
+the DOM: scripts, styles, external-resource and animation elements, and every event-handler,
+link and inline-style attribute are dropped, so a crafted graph cannot run script in the webview.
+The UI is additionally served under a strict `Content-Security-Policy` (`default-src 'none'` with
+same-origin scripts, styles and connections) as a second line of defence.
+
 ## Layout
 
 | File                | Responsibility                                      |

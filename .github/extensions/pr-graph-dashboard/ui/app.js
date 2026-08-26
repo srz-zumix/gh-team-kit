@@ -215,6 +215,61 @@ function selectNode(nodeId, { center = true } = {}) {
     );
 }
 
+// Elements Graphviz's SVG backend emits, plus the few structural relatives it
+// may use. Anything outside this set (script, style, foreignObject, animate/set,
+// use, image, …) is dropped so hostile or unexpected markup cannot execute or
+// fetch resources inside the webview.
+const SVG_ALLOWED_TAGS = new Set([
+    "svg",
+    "g",
+    "defs",
+    "title",
+    "desc",
+    "path",
+    "polygon",
+    "polyline",
+    "line",
+    "rect",
+    "circle",
+    "ellipse",
+    "text",
+    "tspan",
+    "a",
+    "marker",
+    "clippath",
+    "lineargradient",
+    "radialgradient",
+    "stop",
+]);
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/**
+ * Parses server-provided SVG and returns a sanitized, import-ready node, or
+ * `null` if it is not a well-formed SVG. Keeps only allow-listed elements and
+ * strips every event-handler (`on*`), link (`href`/`*:href`) and inline `style`
+ * attribute, so nothing in the payload can run script or load external content.
+ */
+function sanitizeSvg(svgText) {
+    const doc = new DOMParser().parseFromString(svgText, "image/svg+xml");
+    const root = doc.documentElement;
+    if (!root || doc.querySelector("parsererror") || root.localName.toLowerCase() !== "svg" || root.namespaceURI !== SVG_NS) {
+        return null;
+    }
+    for (const el of [root, ...root.querySelectorAll("*")]) {
+        if (!SVG_ALLOWED_TAGS.has(el.localName.toLowerCase())) {
+            el.remove();
+            continue;
+        }
+        for (const attr of [...el.attributes]) {
+            const name = attr.name.toLowerCase();
+            if (name.startsWith("on") || name === "style" || name === "href" || name.endsWith(":href")) {
+                el.removeAttribute(attr.name);
+            }
+        }
+    }
+    return document.importNode(root, true);
+}
+
 async function loadSvg() {
     const rev = state.renderRev;
     const graph = $("graph");
@@ -227,13 +282,18 @@ async function loadSvg() {
     const response = await fetch(withToken("/api/svg"));
     if (!response.ok) return;
     const svgText = (await response.text()).replace(/^[\s\S]*?(?=<svg\b)/, "");
+    const svg = sanitizeSvg(svgText);
+    if (!svg) {
+        // Keep the previous picture rather than blanking it on a bad payload.
+        setStatus("Could not parse the rendered graph.", true);
+        return;
+    }
     const hadContent = renderedRev >= 0 && graph.firstChild;
-    graph.innerHTML = svgText;
+    graph.replaceChildren(svg);
     renderedRev = rev;
     $("empty").hidden = true;
 
-    const svg = graph.querySelector("svg");
-    if (svg) {
+    {
         const viewBox = (svg.getAttribute("viewBox") || "").split(/\s+/).map(Number);
         view.size = {
             width: viewBox.length === 4 ? viewBox[2] : svg.clientWidth,
