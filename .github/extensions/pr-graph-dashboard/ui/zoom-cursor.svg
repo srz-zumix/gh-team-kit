@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Cursor shown while dragging the graph: a magnifier holding a vertical double
+  arrow, because dragging up and down zooms in and out. The shape is drawn
+  twice so the white halo underneath keeps it legible on any background.
+  Paths are inlined rather than reused through <use>, which is unreliable when
+  an SVG is rendered as a cursor image.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">
+    <g fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="10.5" cy="10.5" r="7" />
+        <path d="M15.5 15.5 L22.5 22.5" />
+        <path d="M10.5 6.2 V14.8" />
+        <path d="M8 8.7 L10.5 6.2 L13 8.7" />
+        <path d="M8 12.3 L10.5 14.8 L13 12.3" />
+    </g>
+    <g fill="none" stroke="#1f2328" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="10.5" cy="10.5" r="7" />
+        <path d="M15.5 15.5 L22.5 22.5" />
+        <path d="M10.5 6.2 V14.8" />
+        <path d="M8 8.7 L10.5 6.2 L13 8.7" />
+        <path d="M8 12.3 L10.5 14.8 L13 12.3" />
+    </g>
+</svg>
