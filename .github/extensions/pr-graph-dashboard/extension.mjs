@@ -55,7 +55,7 @@ function action(name, description, inputSchema, handler) {
 
 /** Stores the pointer that lets a restarted provider restore the same graph. */
 async function persist(dashboard) {
-    if (!dashboard.sourcePath) return;
+    if (dashboard.closed || !dashboard.sourcePath) return;
     await saveInstancePointer(dashboard.instanceId, {
         path: dashboard.sourcePath,
         command: dashboard.sourceCommand,
@@ -70,17 +70,26 @@ async function persist(dashboard) {
  * Persists on every state change, coalescing bursts. Without this a provider
  * restart drops the filters, layout and selection the user set up, because
  * only explicit load/generate calls wrote the pointer.
+ *
+ * Returns a dispose function that detaches the listener and cancels any pending
+ * write, so a closing panel cannot resurrect its instances.json pointer after
+ * onClose has removed it.
  */
 function autoPersist(dashboard, log) {
     let timer = null;
-    dashboard.on("changed", () => {
+    const onChanged = () => {
         clearTimeout(timer);
         timer = setTimeout(() => {
             void persist(dashboard).catch((error) => {
                 log(`failed to persist dashboard state: ${error instanceof Error ? error.message : String(error)}`, "warning");
             });
         }, 400);
-    });
+    };
+    dashboard.on("changed", onChanged);
+    return () => {
+        clearTimeout(timer);
+        dashboard.off("changed", onChanged);
+    };
 }
 
 /** Restores the filters, layout and selection saved for the same graph. */
@@ -103,17 +112,30 @@ function restoreViewState(dashboard, pointer) {
 }
 
 /** Applies an open input (or a persisted pointer) to a dashboard. */
-async function applySource(dashboard, input) {
+async function applySource(dashboard, input, { workspaceOnly = false } = {}) {
     if (input.dot) {
         dashboard.setDot(String(input.dot), { sourceLabel: input.label ? String(input.label) : "inline DOT" });
         return;
     }
     if (input.path) {
-        await dashboard.loadFile(input.path);
+        await dashboard.loadFile(input.path, { workspaceOnly });
         return;
     }
     if (input.args !== undefined) {
         await dashboard.generate(input.args);
+    }
+}
+
+/** Applies a source, recording any failure on the dashboard instead of throwing. */
+async function applyOrRecord(dashboard, requested, options) {
+    try {
+        await applySource(dashboard, requested, options);
+        return true;
+    } catch (error) {
+        dashboard.error = error instanceof Error ? error.message : String(error);
+        dashboard.touch();
+        log(`failed to load graph: ${dashboard.error}`, "warning");
+        return false;
     }
 }
 
@@ -126,7 +148,7 @@ const canvas = createCanvas({
         type: "object",
         additionalProperties: false,
         properties: {
-            path: { type: "string", description: "Path to a DOT file; relative paths resolve against the workspace" },
+            path: { type: "string", description: "Path to a DOT file; must resolve inside the workspace (use the dashboard's Open… browser for files elsewhere)" },
             dot: { type: "string", description: "Inline DOT source to render instead of a file" },
             label: { type: "string", description: "Display label used when `dot` is supplied" },
             args: {
@@ -145,7 +167,7 @@ const canvas = createCanvas({
                 properties: {
                     path: {
                         type: "string",
-                        description: "Path to a DOT file; relative paths resolve against the workspace",
+                        description: "Path to a DOT file; must resolve inside the workspace (use the dashboard's Open… browser for files elsewhere)",
                     },
                     dot: { type: "string", description: "Inline DOT source to render instead of a file" },
                     label: { type: "string", description: "Display label used when `dot` is supplied" },
@@ -153,7 +175,7 @@ const canvas = createCanvas({
             },
             async (dashboard, input) => {
                 if (!input.path && !input.dot) throw new Error("either `path` or `dot` is required");
-                await applySource(dashboard, input);
+                await applySource(dashboard, input, { workspaceOnly: true });
                 await persist(dashboard);
                 return { source: dashboard.snapshot().source, stats: dashboard.stats() };
             },
@@ -307,7 +329,7 @@ const canvas = createCanvas({
                 additionalProperties: false,
                 required: ["path"],
                 properties: {
-                    path: { type: "string", description: "Destination path; relative paths resolve against the workspace" },
+                    path: { type: "string", description: "Destination path; must resolve inside the workspace (use the dashboard's Export… browser for other locations)" },
                     kind: { type: "string", enum: ["svg", "dot"], description: "Output format (default svg)" },
                     filtered: { type: "boolean", description: "For DOT, export the filtered graph (default true)" },
                 },
@@ -315,8 +337,8 @@ const canvas = createCanvas({
             async (dashboard, input) => {
                 const file =
                     input.kind === "dot"
-                        ? await dashboard.exportDot(input.path, { filtered: input.filtered !== false })
-                        : await dashboard.exportSvg(input.path);
+                        ? await dashboard.exportDot(input.path, { filtered: input.filtered !== false, workspaceOnly: true })
+                        : await dashboard.exportSvg(input.path, { workspaceOnly: true });
                 return { path: file };
             },
         ),
@@ -346,20 +368,19 @@ const canvas = createCanvas({
             // Rehydrate from the persisted pointer when the caller did not name
             // a source, so a provider restart restores the same graph.
             const pointer = await loadInstancePointer(ctx.instanceId);
-            const requested = input.path || input.dot || input.args !== undefined ? input : { path: pointer?.path };
+            const fromInput = Boolean(input.path || input.dot || input.args !== undefined);
+            const requested = fromInput ? input : { path: pointer?.path };
             if (requested.path || requested.dot || requested.args !== undefined) {
-                try {
-                    await applySource(dashboard, requested);
+                // Caller-supplied paths are agent-controlled, so confine them to
+                // the workspace; the trusted pointer path may point at an
+                // absolute artifact and is restored as-is.
+                if (await applyOrRecord(dashboard, requested, { workspaceOnly: fromInput })) {
                     restoreViewState(dashboard, pointer);
-                } catch (error) {
-                    dashboard.error = error instanceof Error ? error.message : String(error);
-                    dashboard.touch();
-                    log(`failed to load graph: ${dashboard.error}`, "warning");
                 }
             }
-            autoPersist(dashboard, log);
+            entry.disposePersist = autoPersist(dashboard, log);
         } else if (input.path || input.dot || input.args !== undefined) {
-            await applySource(entry.dashboard, input);
+            await applyOrRecord(entry.dashboard, input, { workspaceOnly: true });
         }
 
         await persist(entry.dashboard);
@@ -377,6 +398,10 @@ const canvas = createCanvas({
         const entry = instances.get(ctx.instanceId);
         if (!entry) return;
         instances.delete(ctx.instanceId);
+        // Mark closed and cancel the auto-persist listener/timer first, so no
+        // pending write can resurrect the pointer we are about to remove.
+        entry.dashboard.closed = true;
+        entry.disposePersist?.();
         await entry.server.close();
         await removeInstancePointer(ctx.instanceId);
     },

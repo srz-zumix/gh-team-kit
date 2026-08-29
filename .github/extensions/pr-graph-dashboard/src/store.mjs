@@ -28,6 +28,20 @@ function instancesFile() {
     return path.join(artifactsDir(), "instances.json");
 }
 
+// Serializes every read-modify-write against the shared JSON files
+// (instances.json and generate-history.json). Panels run concurrently and all
+// share this module, so without a queue two overlapping saves could each read,
+// mutate and write back, silently dropping the other's change.
+let mutationQueue = Promise.resolve();
+function enqueueMutation(task) {
+    const run = mutationQueue.then(task, task);
+    mutationQueue = run.then(
+        () => {},
+        () => {},
+    );
+    return run;
+}
+
 async function readJson(file, fallback) {
     try {
         return JSON.parse(await readFile(file, "utf-8"));
@@ -44,20 +58,24 @@ export async function loadInstancePointer(instanceId) {
 
 /** Persists the pointer describing what an instance is currently showing. */
 export async function saveInstancePointer(instanceId, pointer) {
-    await mkdir(artifactsDir(), { recursive: true });
-    const file = instancesFile();
-    const all = await readJson(file, {});
-    all[instanceId] = pointer;
-    await writeFile(file, `${JSON.stringify(all, null, 2)}\n`, "utf-8");
+    await enqueueMutation(async () => {
+        await mkdir(artifactsDir(), { recursive: true });
+        const file = instancesFile();
+        const all = await readJson(file, {});
+        all[instanceId] = pointer;
+        await writeFile(file, `${JSON.stringify(all, null, 2)}\n`, "utf-8");
+    });
 }
 
 /** Drops the persisted pointer for a closed instance. */
 export async function removeInstancePointer(instanceId) {
-    const file = instancesFile();
-    const all = await readJson(file, null);
-    if (!all || !(instanceId in all)) return;
-    delete all[instanceId];
-    await writeFile(file, `${JSON.stringify(all, null, 2)}\n`, "utf-8");
+    await enqueueMutation(async () => {
+        const file = instancesFile();
+        const all = await readJson(file, null);
+        if (!all || !(instanceId in all)) return;
+        delete all[instanceId];
+        await writeFile(file, `${JSON.stringify(all, null, 2)}\n`, "utf-8");
+    });
 }
 
 /** Builds a filesystem-safe slug from arbitrary text. */
@@ -114,17 +132,21 @@ export async function loadGenerateHistory() {
 export async function recordGenerateHistory(args) {
     const value = String(args ?? "").trim();
     if (!value) return await loadGenerateHistory();
-    const previous = await loadGenerateHistory();
-    const items = [{ args: value, at: new Date().toISOString() }, ...previous.filter((item) => item.args !== value)];
-    const kept = items.slice(0, HISTORY_LIMIT);
-    await mkdir(artifactsDir(), { recursive: true });
-    await writeFile(historyFile(), `${JSON.stringify(kept, null, 2)}\n`, "utf-8");
-    return kept;
+    return await enqueueMutation(async () => {
+        const previous = await loadGenerateHistory();
+        const items = [{ args: value, at: new Date().toISOString() }, ...previous.filter((item) => item.args !== value)];
+        const kept = items.slice(0, HISTORY_LIMIT);
+        await mkdir(artifactsDir(), { recursive: true });
+        await writeFile(historyFile(), `${JSON.stringify(kept, null, 2)}\n`, "utf-8");
+        return kept;
+    });
 }
 
 /** Empties the history. */
 export async function clearGenerateHistory() {
-    await mkdir(artifactsDir(), { recursive: true });
-    await writeFile(historyFile(), "[]\n", "utf-8");
+    await enqueueMutation(async () => {
+        await mkdir(artifactsDir(), { recursive: true });
+        await writeFile(historyFile(), "[]\n", "utf-8");
+    });
     return [];
 }

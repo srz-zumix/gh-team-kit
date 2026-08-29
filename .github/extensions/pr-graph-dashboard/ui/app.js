@@ -91,8 +91,18 @@ const MIN_SCALE = 0.01;
 const MAX_SCALE = 8;
 const GLIDE_MS = 320;
 
+// Per-instance token, handed to the panel in the page fragment (`#t=...`) so it
+// is never sent to the server as a query on the top-level load nor leaked via
+// Referer. Every API/SSE request must carry it as a `t` query parameter.
+const API_TOKEN = new URLSearchParams(location.hash.slice(1)).get("t") ?? "";
+
+function withToken(path) {
+    if (!API_TOKEN) return path;
+    return `${path}${path.includes("?") ? "&" : "?"}t=${encodeURIComponent(API_TOKEN)}`;
+}
+
 async function api(path, options = {}) {
-    const response = await fetch(path, {
+    const response = await fetch(withToken(path), {
         ...options,
         headers: options.body ? { "Content-Type": "application/json" } : undefined,
     });
@@ -246,25 +256,85 @@ function selectNode(nodeId, { center = true } = {}) {
     );
 }
 
+// Elements Graphviz's SVG backend emits, plus the few structural relatives it
+// may use. Anything outside this set (script, style, foreignObject, animate/set,
+// use, image, …) is dropped so hostile or unexpected markup cannot execute or
+// fetch resources inside the webview.
+const SVG_ALLOWED_TAGS = new Set([
+    "svg",
+    "g",
+    "defs",
+    "title",
+    "desc",
+    "path",
+    "polygon",
+    "polyline",
+    "line",
+    "rect",
+    "circle",
+    "ellipse",
+    "text",
+    "tspan",
+    "a",
+    "marker",
+    "clippath",
+    "lineargradient",
+    "radialgradient",
+    "stop",
+]);
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/**
+ * Parses server-provided SVG and returns a sanitized, import-ready node, or
+ * `null` if it is not a well-formed SVG. Keeps only allow-listed elements and
+ * strips every event-handler (`on*`), link (`href`/`*:href`) and inline `style`
+ * attribute, so nothing in the payload can run script or load external content.
+ */
+function sanitizeSvg(svgText) {
+    const doc = new DOMParser().parseFromString(svgText, "image/svg+xml");
+    const root = doc.documentElement;
+    if (!root || doc.querySelector("parsererror") || root.localName.toLowerCase() !== "svg" || root.namespaceURI !== SVG_NS) {
+        return null;
+    }
+    for (const el of [root, ...root.querySelectorAll("*")]) {
+        if (!SVG_ALLOWED_TAGS.has(el.localName.toLowerCase())) {
+            el.remove();
+            continue;
+        }
+        for (const attr of [...el.attributes]) {
+            const name = attr.name.toLowerCase();
+            if (name.startsWith("on") || name === "style" || name === "href" || name.endsWith(":href")) {
+                el.removeAttribute(attr.name);
+            }
+        }
+    }
+    return document.importNode(root, true);
+}
+
 async function loadSvg() {
     const rev = state.renderRev;
     const graph = $("graph");
     if (!state.hasSvg) {
-        graph.innerHTML = "";
+        graph.replaceChildren();
         renderedRev = rev;
         $("empty").hidden = Boolean(state.source.loaded) || Boolean(state.renderSkipped);
         return;
     }
-    const response = await fetch("/api/svg");
+    const response = await fetch(withToken("/api/svg"));
     if (!response.ok) return;
     const svgText = (await response.text()).replace(/^[\s\S]*?(?=<svg\b)/, "");
+    const svg = sanitizeSvg(svgText);
+    if (!svg) {
+        // Keep the previous picture rather than blanking it on a bad payload.
+        setStatus("Could not parse the rendered graph.", true);
+        return;
+    }
     const hadContent = renderedRev >= 0 && graph.firstChild;
-    graph.innerHTML = svgText;
+    graph.replaceChildren(svg);
     renderedRev = rev;
     $("empty").hidden = true;
 
-    const svg = graph.querySelector("svg");
-    if (svg) {
+    {
         const viewBox = (svg.getAttribute("viewBox") || "").split(/\s+/).map(Number);
         view.size = {
             width: viewBox.length === 4 ? viewBox[2] : svg.clientWidth,
@@ -1880,7 +1950,7 @@ function defaultExportName(kind) {
 }
 
 function connectEvents() {
-    const source = new EventSource("/api/events");
+    const source = new EventSource(withToken("/api/events"));
     source.addEventListener("message", () => void run(refresh()));
     source.addEventListener("error", () => setStatus("Lost connection to the extension; retrying…", true));
 }
