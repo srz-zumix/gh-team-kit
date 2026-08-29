@@ -44,6 +44,7 @@ func NewPrGraphCmd() *cobra.Command {
 	var includeFiles []string
 	var depth int
 	var groupBy []string
+	var excludeGenerated bool
 	var keepOrphans bool
 	var exportFormat string
 
@@ -86,6 +87,7 @@ Specify one or more repositories as arguments, or use --owner to analyze all rep
 				ExcludeDraft:        excludeDraft,
 				Depth:               depth,
 				GroupBy:             groupBy,
+				ExcludeGenerated:    excludeGenerated,
 				KeepOrphans:         keepOrphans,
 			}
 			if since != "" {
@@ -200,6 +202,7 @@ Specify one or more repositories as arguments, or use --owner to analyze all rep
 	f.StringSliceVar(&excludeUsers, "exclude-user", nil, "Deprecated: equivalent to setting both --exclude-author and --hide-user for these users")
 	_ = f.MarkDeprecated("exclude-user", "use --exclude-author and/or --hide-user instead")
 	f.StringSliceVar(&excludeFiles, "exclude-file", nil, "Exclude files from the graph using .gitignore-style patterns (repeat or comma-separate)")
+	f.BoolVar(&excludeGenerated, "exclude-generated", false, "Exclude files marked linguist-generated in the repository's .gitattributes")
 	_ = cmdflags.AddFormatFlags(cmd, &opts.Exporter, &exportFormat, "mermaid", []string{"dot", "markdown", "mermaid"})
 
 	return cmd

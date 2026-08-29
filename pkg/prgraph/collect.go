@@ -46,6 +46,9 @@ type Options struct {
 	// (e.g. "LocalPackages/*"), evaluated in order. Patterns take precedence
 	// over Depth.
 	GroupBy []string
+	// ExcludeGenerated skips files marked with the linguist-generated attribute
+	// in the repository's .gitattributes.
+	ExcludeGenerated bool
 	// KeepOrphans retains nodes left with no edges after edge filtering.
 	KeepOrphans bool
 }
@@ -75,6 +78,9 @@ type collector struct {
 	hideUsers      []string
 	// submodules holds the .gitmodules paths of the repository being collected.
 	submodules map[string]bool
+	// generatedFiles matches the linguist-generated patterns of the repository
+	// being collected.
+	generatedFiles *ignore.GitIgnore
 }
 
 // Collect analyzes pull request activity in the given repositories and builds
@@ -130,6 +136,10 @@ func (c *collector) collectRepository(ctx context.Context, repo repository.Repos
 
 	ruleset := fetchCodeowners(ctx, c.client, repo)
 	c.submodules = fetchSubmodulePaths(ctx, c.client, repo)
+	c.generatedFiles = nil
+	if c.opts.ExcludeGenerated {
+		c.generatedFiles = fetchGeneratedMatcher(ctx, c.client, repo)
+	}
 
 	count := 0
 	for _, pr := range prs {
@@ -281,7 +291,7 @@ func (c *collector) collectPullRequest(ctx context.Context, repo repository.Repo
 	}
 	for _, file := range files {
 		filename := file.GetFilename()
-		if filename == "" || c.isExcludedFile(filename) || !c.isIncludedFile(filename) {
+		if filename == "" || c.isExcludedFile(filename) || !c.isIncludedFile(filename) || c.isGeneratedFile(filename) {
 			continue
 		}
 		groupedPath, folded := c.groupedPath(filename)
@@ -392,6 +402,12 @@ func matchesAnyBranchPattern(branch string, patterns []string) bool {
 		}
 	}
 	return false
+}
+
+// isGeneratedFile reports whether filename is marked linguist-generated in the
+// repository's .gitattributes. It is always false unless --exclude-generated is set.
+func (c *collector) isGeneratedFile(filename string) bool {
+	return c.generatedFiles != nil && c.generatedFiles.MatchesPath(filename)
 }
 
 // isExcludedFile reports whether filename matches a .gitignore-style
