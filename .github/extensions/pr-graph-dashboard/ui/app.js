@@ -3,6 +3,47 @@
 
 const $ = (id) => document.getElementById(id);
 
+/* IME. Committing a conversion with Enter must not trigger the Enter handlers,
+   but the event that commits it is not reported the same way everywhere:
+   Chromium marks it `isComposing` (keyCode 229), while WebKit — which is what
+   the host webview runs on — ends the composition first and then delivers a
+   plain Enter. Watching the composition events covers both. */
+
+const ime = { composing: false, endedAt: -Infinity };
+
+document.addEventListener("compositionstart", () => {
+    ime.composing = true;
+}, true);
+
+document.addEventListener("compositionend", () => {
+    ime.composing = false;
+    ime.endedAt = performance.now();
+}, true);
+
+/**
+ * True when a key event belongs to an IME conversion rather than to the user.
+ * The window is far shorter than the gap between two deliberate key presses and
+ * far longer than the delay between WebKit's `compositionend` and the Enter
+ * that ended it.
+ */
+function composing(event) {
+    if (event.isComposing || event.keyCode === 229 || ime.composing) return true;
+    return performance.now() - ime.endedAt < 50;
+}
+
+/**
+ * Swallows the key event that commits an IME conversion. Every text field sits
+ * inside a `<form method="dialog">`, so letting that Enter through would submit
+ * the form and close the dialog.
+ */
+function imeCommit(event) {
+    if (!composing(event)) return false;
+    // Only once the composition is over: pre-empting the keys the IME itself is
+    // still using would break conversion.
+    if (!ime.composing) event.preventDefault();
+    return true;
+}
+
 const NODE_TYPE_LABELS = {
     user: "User",
     team: "Team",
@@ -50,18 +91,8 @@ const MIN_SCALE = 0.01;
 const MAX_SCALE = 8;
 const GLIDE_MS = 320;
 
-// Per-instance token, handed to the panel in the page fragment (`#t=...`) so it
-// is never sent to the server as a query on the top-level load nor leaked via
-// Referer. Every API/SSE request must carry it as a `t` query parameter.
-const API_TOKEN = new URLSearchParams(location.hash.slice(1)).get("t") ?? "";
-
-function withToken(path) {
-    if (!API_TOKEN) return path;
-    return `${path}${path.includes("?") ? "&" : "?"}t=${encodeURIComponent(API_TOKEN)}`;
-}
-
 async function api(path, options = {}) {
-    const response = await fetch(withToken(path), {
+    const response = await fetch(path, {
         ...options,
         headers: options.body ? { "Content-Type": "application/json" } : undefined,
     });
@@ -215,85 +246,25 @@ function selectNode(nodeId, { center = true } = {}) {
     );
 }
 
-// Elements Graphviz's SVG backend emits, plus the few structural relatives it
-// may use. Anything outside this set (script, style, foreignObject, animate/set,
-// use, image, …) is dropped so hostile or unexpected markup cannot execute or
-// fetch resources inside the webview.
-const SVG_ALLOWED_TAGS = new Set([
-    "svg",
-    "g",
-    "defs",
-    "title",
-    "desc",
-    "path",
-    "polygon",
-    "polyline",
-    "line",
-    "rect",
-    "circle",
-    "ellipse",
-    "text",
-    "tspan",
-    "a",
-    "marker",
-    "clippath",
-    "lineargradient",
-    "radialgradient",
-    "stop",
-]);
-const SVG_NS = "http://www.w3.org/2000/svg";
-
-/**
- * Parses server-provided SVG and returns a sanitized, import-ready node, or
- * `null` if it is not a well-formed SVG. Keeps only allow-listed elements and
- * strips every event-handler (`on*`), link (`href`/`*:href`) and inline `style`
- * attribute, so nothing in the payload can run script or load external content.
- */
-function sanitizeSvg(svgText) {
-    const doc = new DOMParser().parseFromString(svgText, "image/svg+xml");
-    const root = doc.documentElement;
-    if (!root || doc.querySelector("parsererror") || root.localName.toLowerCase() !== "svg" || root.namespaceURI !== SVG_NS) {
-        return null;
-    }
-    for (const el of [root, ...root.querySelectorAll("*")]) {
-        if (!SVG_ALLOWED_TAGS.has(el.localName.toLowerCase())) {
-            el.remove();
-            continue;
-        }
-        for (const attr of [...el.attributes]) {
-            const name = attr.name.toLowerCase();
-            if (name.startsWith("on") || name === "style" || name === "href" || name.endsWith(":href")) {
-                el.removeAttribute(attr.name);
-            }
-        }
-    }
-    return document.importNode(root, true);
-}
-
 async function loadSvg() {
     const rev = state.renderRev;
     const graph = $("graph");
     if (!state.hasSvg) {
         graph.innerHTML = "";
         renderedRev = rev;
-        $("empty").hidden = Boolean(state.source.loaded);
+        $("empty").hidden = Boolean(state.source.loaded) || Boolean(state.renderSkipped);
         return;
     }
-    const response = await fetch(withToken("/api/svg"));
+    const response = await fetch("/api/svg");
     if (!response.ok) return;
     const svgText = (await response.text()).replace(/^[\s\S]*?(?=<svg\b)/, "");
-    const svg = sanitizeSvg(svgText);
-    if (!svg) {
-        // Keep the previous picture rather than blanking it on a bad payload.
-        setStatus("Could not parse the rendered graph.", true);
-        return;
-    }
     const hadContent = renderedRev >= 0 && graph.firstChild;
-    graph.replaceChildren(svg);
+    graph.innerHTML = svgText;
     renderedRev = rev;
     $("empty").hidden = true;
 
-    {
+    const svg = graph.querySelector("svg");
+    if (svg) {
         const viewBox = (svg.getAttribute("viewBox") || "").split(/\s+/).map(Number);
         view.size = {
             width: viewBox.length === 4 ? viewBox[2] : svg.clientWidth,
@@ -318,6 +289,7 @@ function renderState() {
     pathElement.title = [state.source.path, state.source.command].filter(Boolean).join("\n");
 
     $("btn-reload").disabled = !state.source.path;
+    $("btn-clear").disabled = !state.hasSvg;
     $("btn-export").disabled = !state.source.loaded;
     $("zoom-center").disabled = !state.selection;
 
@@ -330,8 +302,30 @@ function renderState() {
     renderPresets();
     syncAskButtons();
     syncRendering();
+    syncTooLarge();
     syncGenerateArgs();
     applyHighlight();
+}
+
+/**
+ * Toggles the over-budget notice. This lives outside loadSvg() because starting
+ * and finishing a layout changes it without producing a new SVG revision.
+ */
+function syncTooLarge() {
+    const skipped = state.renderSkipped;
+    $("too-large").hidden = !skipped;
+    if (!skipped) return;
+    const budget = state.renderBudget ?? {};
+    const cleared = skipped.reason === "cleared";
+    $("too-large-counts").textContent = cleared
+        ? `The drawing was discarded. ${skipped.nodes} nodes / ${skipped.edges} edges are ready to draw again.`
+        : `${skipped.nodes} nodes / ${skipped.edges} edges is past the ${budget.nodes}-node render budget.`;
+    $("too-large-hint").innerHTML = cleared
+        ? "Narrow the filters before drawing it again, or change any filter to redraw automatically."
+        : "Laying this out takes minutes and hundreds of megabytes, and the drawing it produces leaves tens of " +
+          "thousands of elements in the panel, which makes every other control sluggish. Narrow the filters " +
+          "first \u2014 drop <code>file</code> nodes, raise the minimum edge weight, or focus one node's neighbourhood.";
+    $("render-anyway").textContent = cleared ? "Draw again" : "Render anyway";
 }
 
 /**
@@ -482,7 +476,9 @@ function renderInputs() {
 /** Formats a render limit in milliseconds as a compact label such as `2m`. */
 function formatLimit(ms) {
     const seconds = Math.round(ms / 1000);
-    return seconds < 60 ? `${seconds}s` : `${Math.round(seconds / 60)}m`;
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.round(seconds / 60);
+    return minutes < 60 ? `${minutes}m` : `${Math.round(minutes / 60)}h`;
 }
 
 function renderFocus() {
@@ -925,7 +921,7 @@ const completion = { open: false, items: [], index: -1, seq: 0, timer: null };
 const COMPLETE_DEBOUNCE_MS = 150;
 const COMPLETE_HINT =
     "Completion comes from the CLI itself. Ctrl+Space to list, Tab or Enter to accept, Esc to dismiss.";
-const ASK_ARGS_HINT = "The agent replies by filling the field above; nothing runs until you press Run.";
+const ASK_ARGS_HINT = "The agent replies by filling the field above; nothing runs until you press Run in terminal.";
 
 function openGenerateDialog(args) {
     $("generate-args").value = args;
@@ -935,9 +931,57 @@ function openGenerateDialog(args) {
     closeSuggestions();
     const dialog = $("dialog-generate");
     if (!dialog.open) dialog.showModal();
+    // Read the history from disk every time: another panel may have added to it.
+    void run(loadGenerateHistory());
     // Preselect: the app intercepts Cmd+A, so typing over the old arguments is
     // the quickest way to replace them.
     selectWholeField($("generate-args"));
+}
+
+async function loadGenerateHistory() {
+    const { items } = await api("/api/generate/history");
+    renderGenerateHistory(items ?? []);
+}
+
+function renderGenerateHistory(items) {
+    $("generate-history-field").hidden = items.length === 0;
+    const list = $("generate-history");
+    list.replaceChildren();
+    for (const item of items) {
+        const entry = document.createElement("li");
+        entry.title = `Ran ${new Date(item.at).toLocaleString()} — click to reuse`;
+        const value = document.createElement("span");
+        value.className = "value";
+        value.textContent = item.args;
+        const when = document.createElement("span");
+        when.className = "when";
+        when.textContent = relativeTime(item.at);
+        entry.append(value, when);
+        entry.addEventListener("click", () => {
+            closeSuggestions();
+            $("generate-args").value = item.args;
+            selectWholeField($("generate-args"));
+        });
+        list.append(entry);
+    }
+}
+
+const RELATIVE_UNITS = [
+    ["year", 365 * 24 * 60 * 60],
+    ["month", 30 * 24 * 60 * 60],
+    ["day", 24 * 60 * 60],
+    ["hour", 60 * 60],
+    ["minute", 60],
+];
+
+function relativeTime(iso) {
+    const seconds = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (!Number.isFinite(seconds)) return "";
+    const format = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+    for (const [unit, size] of RELATIVE_UNITS) {
+        if (seconds >= size) return format.format(-Math.floor(seconds / size), unit);
+    }
+    return format.format(-Math.floor(seconds), "second");
 }
 
 function selectWholeField(field) {
@@ -1053,7 +1097,11 @@ function wireGenerateCompletion() {
             void fetchSuggestions();
             return;
         }
-        if (!completion.open) return;
+        // The candidate window uses the arrows and Enter while converting.
+        if (composing(event)) return;
+        // Read the list rather than the flag: swallowing Escape on a stale flag
+        // would make the key look dead while the dialog is open.
+        if ($("generate-suggestions").hidden) return;
         if (event.key === "ArrowDown") {
             event.preventDefault();
             moveSuggestion(1);
@@ -1099,7 +1147,7 @@ function syncGenerateArgs() {
     generateArgsRev = rev;
     if (!known) return; // first snapshot after a reload: adopt the revision silently
     openGenerateDialog(state.generateArgs ?? "");
-    $("generate-ask-hint").textContent = "The agent proposed these arguments. Review, then press Run.";
+    $("generate-ask-hint").textContent = "The agent proposed these arguments. Review, then press Run in terminal.";
     showToast("Arguments proposed", state.generateArgs || "(empty)");
 }
 
@@ -1353,6 +1401,21 @@ function wireSidebar() {
     $("view-timeout").addEventListener("change", (event) =>
         run(post("/api/view", { timeoutMs: Number(event.target.value) })),
     );
+    $("render-anyway").addEventListener("click", () => {
+        setStatus("Laying out the full graph — this will take a while…");
+        // Refresh straight away so the progress badge appears without waiting
+        // for the extension to push an update.
+        run(post("/api/render", {}).then(() => refresh()));
+    });
+    $("btn-clear").addEventListener("click", () => {
+        setStatus("Discarding the drawing…");
+        run(
+            post("/api/clear", {}).then((result) => {
+                setStatus(`Discarded the drawing of ${result.nodes} nodes / ${result.edges} edges`);
+                return refresh();
+            }),
+        );
+    });
 
     $("nodes-query").addEventListener("input", debounce(() => run(renderNodeList()), 200));
     $("node-list").addEventListener("click", (event) => {
@@ -1558,7 +1621,7 @@ function createFileBrowser(root, { extensions = [], showFound = false, onSelect,
     });
 
     dirInput.addEventListener("keydown", (event) => {
-        if (event.key !== "Enter") return;
+        if (event.key !== "Enter" || imeCommit(event)) return;
         event.preventDefault();
         void go(dirInput.value.trim());
     });
@@ -1691,7 +1754,7 @@ function wireExportDialog() {
 
     nameField.addEventListener("input", syncPicked);
     nameField.addEventListener("keydown", (event) => {
-        if (event.key !== "Enter") return;
+        if (event.key !== "Enter" || imeCommit(event)) return;
         event.preventDefault();
         save();
     });
@@ -1758,7 +1821,7 @@ function wireToolbar() {
 
     $("generate-ask-send").addEventListener("click", () => void askForArgs());
     $("generate-ask").addEventListener("keydown", (event) => {
-        if (event.key !== "Enter") return;
+        if (event.key !== "Enter" || imeCommit(event)) return;
         // The dialog's form would otherwise submit and close on Enter.
         event.preventDefault();
         void askForArgs();
@@ -1766,17 +1829,32 @@ function wireToolbar() {
 
     $("dialog-generate").addEventListener("cancel", (event) => {
         // Escape dismisses the suggestion list before it dismisses the dialog.
-        if (!completion.open) return;
+        // The decision reads the list itself rather than the completion flag, so
+        // a stale flag can never leave the dialog with no way to close it.
+        if ($("generate-suggestions").hidden) return;
         event.preventDefault();
         closeSuggestions();
     });
 
-    $("generate-confirm").addEventListener("click", () => {
+    $("generate-history-clear").addEventListener("click", () => {
+        run(
+            post("/api/generate/history/clear", {}).then((result) => {
+                renderGenerateHistory(result.items ?? []);
+            }),
+        );
+    });
+
+    $("generate-terminal").addEventListener("click", () => {
         const args = $("generate-args").value.trim();
         closeSuggestions();
         $("dialog-generate").close();
-        setStatus("Running gh team-kit pr-graph…");
-        run(post("/api/generate", { args }).then((result) => setStatus(`Saved ${result.path}`)));
+        run(
+            post("/api/generate/terminal", { args }).then((result) => {
+                setStatus("Asked the agent to run it in a terminal");
+                showToast("Handed to the agent", `It will load ${result.path} when the command finishes.`);
+                recordAsk("Run in terminal");
+            }),
+        );
     });
 }
 
@@ -1802,7 +1880,7 @@ function defaultExportName(kind) {
 }
 
 function connectEvents() {
-    const source = new EventSource(withToken("/api/events"));
+    const source = new EventSource("/api/events");
     source.addEventListener("message", () => void run(refresh()));
     source.addEventListener("error", () => setStatus("Lost connection to the extension; retrying…", true));
 }

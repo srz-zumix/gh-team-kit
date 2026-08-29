@@ -69,14 +69,41 @@ function stripFormat(args) {
 }
 
 /**
+ * Builds the full argument vector for `gh`, always ending in `--format dot`.
+ *
+ * @param {string|string[]} [args] User supplied arguments
+ * @returns {string[]}
+ */
+export function prGraphArgv(args) {
+    const raw = Array.isArray(args) ? args : splitArgs(args ?? "");
+    return ["team-kit", "pr-graph", ...stripFormat(raw), "--format", "dot"];
+}
+
+/** Quotes a token for a POSIX shell, leaving safe tokens untouched. */
+export function shellQuote(token) {
+    return /^[A-Za-z0-9_@%+=:,./-]+$/.test(token) ? token : `'${String(token).replace(/'/g, `'\\''`)}'`;
+}
+
+/**
+ * Renders the command a human would type to produce the same DOT file, for the
+ * "Run in terminal" path where the agent, not this process, runs `gh`.
+ *
+ * @param {{args?: string|string[], outFile?: string}} [options]
+ * @returns {string}
+ */
+export function prGraphShellCommand(options = {}) {
+    const command = ["gh", ...prGraphArgv(options.args)].map(shellQuote).join(" ");
+    return options.outFile ? `${command} > ${shellQuote(options.outFile)}` : command;
+}
+
+/**
  * Runs `gh team-kit pr-graph <args> --format dot`.
  *
  * @param {{args?: string|string[], cwd?: string, timeoutMs?: number}} options
  * @returns {Promise<{dot: string, command: string, stderr: string}>}
  */
 export function runPrGraph(options = {}) {
-    const raw = Array.isArray(options.args) ? options.args : splitArgs(options.args ?? "");
-    const args = ["team-kit", "pr-graph", ...stripFormat(raw), "--format", "dot"];
+    const args = prGraphArgv(options.args);
     const timeoutMs = options.timeoutMs ?? 600_000;
     return new Promise((resolve, reject) => {
         const child = spawn("gh", args, {

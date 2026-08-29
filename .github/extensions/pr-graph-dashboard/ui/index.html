@@ -18,6 +18,8 @@
                     <button type="button" id="btn-open">Open…</button>
                     <button type="button" id="btn-generate">Generate…</button>
                     <button type="button" id="btn-reload" title="Reload the current file">Reload</button>
+                    <button type="button" id="btn-clear"
+                        title="Discard the drawing to make the panel responsive again">Clear graph</button>
                     <button type="button" id="btn-export">Export…</button>
                     <button type="button" id="btn-sidebar" class="icon" title="Toggle panel">☰</button>
                 </div>
@@ -39,6 +41,13 @@
                         <p class="muted">
                             Open an existing <code>.dot</code> file, or generate one with
                             <code>gh team-kit pr-graph</code>.
+                        </p>
+                    </div>
+                    <div class="empty" id="too-large" hidden>
+                        <p id="too-large-counts"></p>
+                        <p class="muted" id="too-large-hint"></p>
+                        <p>
+                            <button type="button" id="render-anyway">Render anyway</button>
                         </p>
                     </div>
                     <div class="zoom">
@@ -175,8 +184,8 @@
             <form method="dialog">
                 <h2>Generate a graph</h2>
                 <p class="hint muted">
-                    Runs <code>gh team-kit pr-graph &lt;arguments&gt; --format dot</code> in the workspace and stores the
-                    result as an artifact.
+                    Hands <code>gh team-kit pr-graph &lt;arguments&gt; --format dot</code> to the agent, which runs it in a
+                    Terminal canvas so you can watch it, then loads the result here.
                 </p>
                 <div class="field">
                     <div class="field-head">
@@ -197,6 +206,15 @@
                         <kbd>Tab</kbd> or <kbd>Enter</kbd> to accept, <kbd>Esc</kbd> to dismiss.
                     </p>
                 </div>
+                <div class="field" id="generate-history-field" hidden>
+                    <div class="field-head">
+                        <label for="generate-history">Recent</label>
+                        <span class="field-actions">
+                            <button type="button" class="link" id="generate-history-clear">Clear history</button>
+                        </span>
+                    </div>
+                    <ul class="history" id="generate-history"></ul>
+                </div>
                 <div class="field">
                     <label for="generate-ask">Ask the agent for arguments</label>
                     <div class="row">
@@ -205,7 +223,7 @@
                         <button type="button" id="generate-ask-send">Ask</button>
                     </div>
                     <p class="hint muted" id="generate-ask-hint">
-                        The agent replies by filling the field above; nothing runs until you press Run.
+                        The agent replies by filling the field above; nothing runs until you press Run in terminal.
                     </p>
                 </div>
                 <div class="field">
@@ -214,7 +232,8 @@
                 </div>
                 <menu>
                     <button type="submit" value="cancel">Cancel</button>
-                    <button type="button" id="generate-confirm" class="primary">Run</button>
+                    <button type="button" id="generate-terminal" class="primary"
+                        title="Ask the agent to run the command in a Terminal canvas, then load the result here">Run in terminal</button>
                 </menu>
             </form>
         </dialog>

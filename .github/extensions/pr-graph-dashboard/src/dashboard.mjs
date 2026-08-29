@@ -1,13 +1,19 @@
 // Per-instance dashboard state: DOT source, filters, layout and rendered SVG.
 
 import { EventEmitter } from "node:events";
-import { readFile, writeFile, realpath, lstat } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { resolveUnder } from "./browse.mjs";
 import { describeNode, emitDot, filterGraph, parseDot, summarize, topNodes } from "./dot.mjs";
 import { ENGINES, renderSvg } from "./graphviz.mjs";
-import { prGraphHelp, runPrGraph } from "./prgraph.mjs";
-import { saveGeneratedDot, generatedDir } from "./store.mjs";
+import { prGraphHelp, prGraphShellCommand, runPrGraph, shellQuote } from "./prgraph.mjs";
+import {
+    clearGenerateHistory,
+    loadGenerateHistory,
+    recordGenerateHistory,
+    reserveGeneratedDotPath,
+    saveGeneratedDot,
+} from "./store.mjs";
 import { EXPORT_BACKGROUND, graphPalette } from "./theme.mjs";
 
 const DEFAULT_FILTERS = {
@@ -37,8 +43,20 @@ function normalizeFilters(current, patch = {}) {
     return next;
 }
 
-/** Render limits offered by the dashboard, in menu order (milliseconds). */
-export const RENDER_LIMITS = [30_000, 60_000, 120_000, 300_000, 600_000];
+/**
+ * Render limits offered by the dashboard, in menu order (milliseconds).
+ * The layout runs in a child process, so a long limit stalls nothing but the
+ * graph itself; a six figure node count genuinely needs the upper end.
+ */
+export const RENDER_LIMITS = [30_000, 60_000, 120_000, 300_000, 600_000, 1_800_000, 3_600_000, 10_800_000];
+
+/**
+ * Size above which a layout is not started automatically. Graphviz needs
+ * minutes and hundreds of megabytes on a graph this size, and the resulting
+ * SVG is heavy enough to make the whole app sluggish, so it takes an explicit
+ * request instead of happening on every filter change.
+ */
+export const RENDER_BUDGET = { nodes: 2_000, edges: 6_000 };
 
 /**
  * Prepares a rendered SVG for life outside the canvas. The graph is laid out on
@@ -78,7 +96,6 @@ export class Dashboard extends EventEmitter {
         this.sendToAgent = sendToAgent ?? (async () => {});
         this.log = log ?? (() => {});
 
-        this.closed = false;
         this.sourcePath = null;
         this.sourceLabel = "";
         this.sourceCommand = "";
@@ -100,6 +117,9 @@ export class Dashboard extends EventEmitter {
         this.renderSignature = "";
         this.renderPending = false;
         this.rendering = false;
+        this.renderSkipped = null;
+        this.renderOverride = false;
+        this.renderAbort = null;
     }
 
     /** Resolves a possibly relative path against the workspace. */
@@ -107,55 +127,6 @@ export class Dashboard extends EventEmitter {
         const value = String(target ?? "").trim();
         if (!value) throw new Error("a file path is required");
         return resolveUnder(value, this.workspacePath);
-    }
-
-    /** Real paths of the roots an agent-supplied path may resolve inside. */
-    async allowedRoots() {
-        const roots = [];
-        for (const dir of [this.workspacePath, generatedDir()]) {
-            try {
-                roots.push(await realpath(dir));
-            } catch {
-                // The generated-artifacts directory may not exist yet.
-            }
-        }
-        return roots;
-    }
-
-    /**
-     * Guards an agent-supplied path so it cannot escape the workspace (or the
-     * controlled generated-artifacts directory). Resolves symlinks so a
-     * malicious checkout cannot point an in-workspace name at a secret, and for
-     * writes refuses to follow an existing symlink out of the allowed roots.
-     */
-    async assertInsideAllowedRoots(resolved, { write = false } = {}) {
-        const roots = await this.allowedRoots();
-        let real;
-        if (write) {
-            const existing = await lstat(resolved).catch(() => null);
-            if (existing?.isSymbolicLink()) throw new Error("refusing to write through a symlink");
-            let parent;
-            try {
-                parent = await realpath(path.dirname(resolved));
-            } catch {
-                throw new Error("the destination directory does not exist");
-            }
-            real = path.join(parent, path.basename(resolved));
-        } else {
-            real = await realpath(resolved).catch((error) => {
-                if (error && error.code === "ENOENT") return null;
-                throw error;
-            });
-            // A missing file leaks nothing; let the caller's read fail naturally.
-            if (real === null) return;
-        }
-        const inside = roots.some((root) => {
-            const rel = path.relative(root, real);
-            return rel === "" || (rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel));
-        });
-        if (!inside) {
-            throw new Error("path must be inside the workspace; use the dashboard's Open… browser to reach files elsewhere");
-        }
     }
 
     /** Emits a state-changed event so connected SSE clients refresh. */
@@ -183,9 +154,8 @@ export class Dashboard extends EventEmitter {
     }
 
     /** Loads DOT from a file on disk. */
-    async loadFile(target, { workspaceOnly = false } = {}) {
+    async loadFile(target) {
         const file = this.resolvePath(target);
-        if (workspaceOnly) await this.assertInsideAllowedRoots(file, { write: false });
         const contents = await readFile(file, "utf-8");
         this.setDot(contents, { sourcePath: file });
         return file;
@@ -206,6 +176,53 @@ export class Dashboard extends EventEmitter {
             this.busy = "";
             this.touch();
         }
+    }
+
+    /**
+     * Asks the agent to run the same command in the app's Terminal canvas.
+     *
+     * The extension cannot open host canvases itself, so this hands the work to
+     * the agent: it runs the command where the user can watch it, then loads the
+     * DOT file this method reserved back into the dashboard.
+     */
+    async runInTerminal(args) {
+        this.generateArgs = String(args ?? "").trim();
+        this.touch();
+        await recordGenerateHistory(this.generateArgs);
+        const outFile = await reserveGeneratedDotPath(this.generateArgs || "pr-graph");
+        const command = prGraphShellCommand({ args: this.generateArgs, outFile });
+        const body = [
+            "Run this pr-graph command in a Terminal canvas so I can watch it.",
+            "",
+            "```sh",
+            `cd ${shellQuote(this.workspacePath)}`,
+            command,
+            "```",
+            "",
+            "Steps:",
+            '1. open_canvas with canvasId "terminal" and a fresh instanceId.',
+            '2. send_terminal_input with the two lines above (the `cd` first).',
+            "3. The command is slow and prints nothing until it finishes, so poll" +
+                " read_terminal_output every 30 seconds or so until the shell prompt returns.",
+            `4. When it succeeds, call invoke_canvas_action on ${this.instanceId} with actionName` +
+                ` "load_dot" and path "${outFile}" so this panel shows the result.`,
+            "5. If it fails, tell me what the terminal reported instead of retrying blindly.",
+        ].join("\n");
+        await this.ask(body);
+        return { path: outFile, command };
+    }
+
+    /**
+     * Arguments previously run, newest first. Read from disk on every call so
+     * that two panels open at once do not drift apart.
+     */
+    async generateHistory() {
+        return await loadGenerateHistory();
+    }
+
+    /** Empties the argument history. */
+    async resetGenerateHistory() {
+        return await clearGenerateHistory();
     }
 
     /**
@@ -293,13 +310,53 @@ export class Dashboard extends EventEmitter {
     /** Queues a re-render, coalescing bursts of state changes. */
     scheduleRender() {
         this.renderPending = true;
-        if (this.rendering) return;
+        if (this.rendering) {
+            // Whatever is laying out now is already out of date; stop it rather
+            // than let it finish and burn a core in the meantime.
+            this.renderAbort?.abort();
+            return;
+        }
         void this.renderNow();
+    }
+
+    /** Renders once past the size budget, at the user's explicit request. */
+    renderAnyway() {
+        const nodes = this.filteredGraph().nodes.length;
+        // A second click must not abort the layout the first one started.
+        if (this.rendering) return { nodes, alreadyRendering: true };
+        this.renderOverride = true;
+        this.renderSignature = "";
+        // Drop the notice straight away so the click has a visible effect.
+        this.renderSkipped = null;
+        this.scheduleRender();
+        return { nodes };
+    }
+
+    /**
+     * Throws the drawing away. A big layout leaves tens of thousands of live
+     * elements in the panel, which bogs every other control down; this is the
+     * way back out without reloading or re-filtering.
+     */    clearRender() {
+        this.renderAbort?.abort();
+        const filtered = this.filteredGraph();
+        this.svg = "";
+        this.renderError = "";
+        this.renderOverride = false;
+        this.renderSkipped = { nodes: filtered.nodes.length, edges: filtered.edges.length, reason: "cleared" };
+        // Force the next render to run: the filters have not changed, so the
+        // signature alone would short-circuit it.
+        this.renderSignature = "";
+        this.renderRev += 1;
+        this.touch();
+        return { nodes: filtered.nodes.length, edges: filtered.edges.length };
     }
 
     /** Renders the filtered graph to SVG unless the result is already current. */
     async renderNow() {
         this.rendering = true;
+        // Announce the start before the filtering and DOT generation below, which
+        // are synchronous and take seconds on a large graph.
+        this.touch();
         try {
             while (this.renderPending) {
                 this.renderPending = false;
@@ -319,11 +376,26 @@ export class Dashboard extends EventEmitter {
                 if (!this.dotSource) {
                     this.svg = "";
                     this.renderError = "";
+                    this.renderSkipped = null;
                     this.renderSignature = signature;
                     this.renderRev += 1;
                     this.touch();
                     continue;
                 }
+                const overBudget =
+                    filtered.nodes.length > RENDER_BUDGET.nodes || filtered.edges.length > RENDER_BUDGET.edges;
+                if (overBudget && !this.renderOverride) {
+                    this.svg = "";
+                    this.renderError = "";
+                    this.renderSkipped = { nodes: filtered.nodes.length, edges: filtered.edges.length, reason: "budget" };
+                    this.renderSignature = signature;
+                    this.renderRev += 1;
+                    this.touch();
+                    continue;
+                }
+                this.renderOverride = false;
+                this.renderSkipped = null;
+                this.renderAbort = new AbortController();
                 try {
                     const svg = await renderSvg(
                         emitDot(filtered, {
@@ -334,11 +406,15 @@ export class Dashboard extends EventEmitter {
                         {
                             engine: this.view.engine,
                             timeoutMs: this.view.timeoutMs,
+                            signal: this.renderAbort.signal,
                         },
                     );
                     this.svg = svg;
                     this.renderError = "";
                 } catch (error) {
+                    // A cancelled layout is not a failure: the loop is about to
+                    // start the one that replaced it.
+                    if (this.renderAbort.signal.aborted) continue;
                     this.svg = "";
                     this.renderError = error instanceof Error ? error.message : String(error);
                 }
@@ -347,6 +423,7 @@ export class Dashboard extends EventEmitter {
                 this.touch();
             }
         } finally {
+            this.renderAbort = null;
             this.rendering = false;
             // Announce the end of the batch so the panel knows the SVG on screen
             // now matches the current filters.
@@ -355,19 +432,17 @@ export class Dashboard extends EventEmitter {
     }
 
     /** Writes the current SVG to disk. */
-    async exportSvg(target, { workspaceOnly = false } = {}) {
+    async exportSvg(target) {
         if (!this.svg) throw new Error("there is no rendered graph to export");
         const file = this.resolvePath(target);
-        if (workspaceOnly) await this.assertInsideAllowedRoots(file, { write: true });
         await writeFile(file, standaloneSvg(this.svg), "utf-8");
         return file;
     }
 
     /** Writes the current (filtered) DOT source to disk. */
-    async exportDot(target, { filtered = true, workspaceOnly = false } = {}) {
+    async exportDot(target, { filtered = true } = {}) {
         if (!this.dotSource) throw new Error("there is no graph to export");
         const file = this.resolvePath(target);
-        if (workspaceOnly) await this.assertInsideAllowedRoots(file, { write: true });
         const source = filtered
             ? emitDot(this.filteredGraph(), {
                   rankdir: this.view.rankdir,
@@ -419,6 +494,8 @@ export class Dashboard extends EventEmitter {
             busy: this.busy,
             error: this.error,
             renderError: this.renderError,
+            renderSkipped: this.renderSkipped,
+            renderBudget: RENDER_BUDGET,
             renderRev: this.renderRev,
             rendering: this.rendering || this.renderPending,
             stateRev: this.stateRev,

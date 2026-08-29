@@ -258,6 +258,11 @@ textarea {
     display: none;
 }
 
+/* The overlay is click-through so it never blocks panning, but its controls still need clicks. */
+.empty button {
+    pointer-events: auto;
+}
+
 .zoom {
     position: absolute;
     right: 10px;
@@ -877,11 +882,49 @@ dialog menu {
     font-size: var(--text-body-small, 12px);
 }
 
+.history {
+    margin: 0;
+    padding: 4px;
+    max-height: 132px;
+    overflow: auto;
+    list-style: none;
+    border: 1px solid var(--border-color-default, #d1d9e0);
+    border-radius: 8px;
+}
+
+.history li {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.history li:hover {
+    background: color-mix(in srgb, var(--text-color-default, #1f2328) 8%, transparent);
+}
+
+.history .value {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-mono, "SFMono-Regular", Consolas, monospace);
+    font-size: var(--text-code-inline, 12px);
+}
+
+.history .when {
+    flex: none;
+    color: var(--text-color-muted, #59636e);
+    font-size: var(--text-body-small, 12px);
+}
+
 .field .row {
     display: flex;
     gap: 8px;
 }
-
 .field .row input {
     flex: 1;
     min-width: 0;

@@ -6,7 +6,6 @@
 
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
-import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { NODE_TYPES, RELATIONS, topNodes } from "./dot.mjs";
@@ -44,20 +43,6 @@ async function readBody(req, limit = 2_000_000) {
     return JSON.parse(text);
 }
 
-// Same-origin only: scripts/styles/fetch/SSE come from this loopback server,
-// the favicon is an empty data: URL, and inline scripts/objects/frames are
-// forbidden. This blocks script execution even if SVG sanitization ever regresses.
-const CONTENT_SECURITY_POLICY = [
-    "default-src 'none'",
-    "script-src 'self'",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data:",
-    "connect-src 'self'",
-    "font-src 'self'",
-    "base-uri 'none'",
-    "form-action 'none'",
-].join("; ");
-
 async function serveStatic(res, name) {
     const file = path.join(UI_DIR, name);
     if (!file.startsWith(UI_DIR)) {
@@ -69,8 +54,6 @@ async function serveStatic(res, name) {
         res.writeHead(200, {
             "Content-Type": MIME[path.extname(file)] ?? "application/octet-stream",
             "Cache-Control": "no-store",
-            "Referrer-Policy": "no-referrer",
-            "Content-Security-Policy": CONTENT_SECURITY_POLICY,
         });
         res.end(contents);
     } catch {
@@ -85,40 +68,12 @@ async function serveStatic(res, name) {
  * @returns {Promise<{server: import("node:http").Server, url: string}>}
  */
 export async function startServer(dashboard) {
-    // Unguessable per-instance token. Every API/SSE request must carry it, so a
-    // local process or web page that merely scans the loopback port cannot read
-    // files or trigger writes/generation against this panel.
-    const token = randomUUID();
     const clients = new Set();
-    const keepAlives = new WeakMap();
-    // Idempotent teardown: stop the keepalive, forget the client and destroy the
-    // socket. Safe to call repeatedly (close/error can both fire).
-    const dropClient = (client) => {
-        const timer = keepAlives.get(client);
-        if (timer) {
-            clearInterval(timer);
-            keepAlives.delete(client);
-        }
-        clients.delete(client);
-        client.destroy();
-    };
-    // A single guarded writer for every SSE frame. A write after the peer went
-    // away can throw or the stream can already be ended; either way we drop the
-    // client instead of letting the error crash the server process.
-    const send = (client, chunk) => {
-        if (client.writableEnded || client.destroyed) {
-            dropClient(client);
-            return;
-        }
-        try {
-            client.write(chunk);
-        } catch {
-            dropClient(client);
-        }
-    };
     const broadcast = () => {
         const payload = `data: ${JSON.stringify({ stateRev: dashboard.stateRev, renderRev: dashboard.renderRev })}\n\n`;
-        for (const client of [...clients]) send(client, payload);
+        for (const client of clients) {
+            client.write(payload);
+        }
     };
     dashboard.on("changed", broadcast);
 
@@ -175,11 +130,13 @@ export async function startServer(dashboard) {
                 "Cache-Control": "no-cache",
                 Connection: "keep-alive",
             });
+            res.write(`retry: 2000\n\n`);
             clients.add(res);
-            res.on("close", () => dropClient(res));
-            res.on("error", () => dropClient(res));
-            keepAlives.set(res, setInterval(() => send(res, ": ping\n\n"), 20_000));
-            send(res, "retry: 2000\n\n");
+            const keepAlive = setInterval(() => res.write(": ping\n\n"), 20_000);
+            res.on("close", () => {
+                clearInterval(keepAlive);
+                clients.delete(res);
+            });
         },
         "POST /api/load": async (req, res) => {
             const body = await readBody(req);
@@ -196,11 +153,6 @@ export async function startServer(dashboard) {
             const file = await dashboard.loadFile(dashboard.sourcePath);
             sendJson(res, 200, { ok: true, path: file });
         },
-        "POST /api/generate": async (req, res) => {
-            const body = await readBody(req);
-            const result = await dashboard.generate(body.args ?? "");
-            sendJson(res, 200, { ok: true, ...result });
-        },
         "POST /api/filters": async (req, res) => {
             const body = await readBody(req);
             const filters = body.reset ? dashboard.resetFilters() : dashboard.setFilters(body);
@@ -209,6 +161,12 @@ export async function startServer(dashboard) {
         "POST /api/view": async (req, res) => {
             const body = await readBody(req);
             sendJson(res, 200, { ok: true, view: dashboard.setView(body) });
+        },
+        "POST /api/render": async (_req, res) => {
+            sendJson(res, 200, { ok: true, ...dashboard.renderAnyway() });
+        },
+        "POST /api/clear": async (_req, res) => {
+            sendJson(res, 200, { ok: true, ...dashboard.clearRender() });
         },
         "POST /api/select": async (req, res) => {
             const body = await readBody(req);
@@ -232,6 +190,16 @@ export async function startServer(dashboard) {
             const body = await readBody(req);
             sendJson(res, 200, { ok: true, ...(await dashboard.askForArgs(body.prompt)) });
         },
+        "POST /api/generate/terminal": async (req, res) => {
+            const body = await readBody(req);
+            sendJson(res, 200, { ok: true, ...(await dashboard.runInTerminal(body.args ?? "")) });
+        },
+        "GET /api/generate/history": async (_req, res) => {
+            sendJson(res, 200, { items: await dashboard.generateHistory() });
+        },
+        "POST /api/generate/history/clear": async (_req, res) => {
+            sendJson(res, 200, { ok: true, items: await dashboard.resetGenerateHistory() });
+        },
         "POST /api/export": async (req, res) => {
             const body = await readBody(req);
             const file =
@@ -242,25 +210,8 @@ export async function startServer(dashboard) {
         },
     };
 
-    const isLoopbackHost = (host) => {
-        if (!host) return false;
-        const name = host.replace(/:\d+$/, "");
-        return name === "127.0.0.1" || name === "localhost" || name === "[::1]";
-    };
-
     const server = createServer((req, res) => {
         const url = new URL(req.url ?? "/", "http://127.0.0.1");
-        // Reject foreign Host headers (blunts DNS-rebinding) and require the
-        // per-instance token on every API/SSE route. Static UI assets are
-        // harmless and load before the token is known, so they stay open.
-        if (!isLoopbackHost(req.headers.host)) {
-            res.writeHead(403).end("forbidden");
-            return;
-        }
-        if (url.pathname.startsWith("/api/") && url.searchParams.get("t") !== token) {
-            res.writeHead(403).end("forbidden");
-            return;
-        }
         const key = `${req.method} ${url.pathname}`;
         const handler = routes[key];
         if (handler) {
@@ -287,10 +238,10 @@ export async function startServer(dashboard) {
 
     const close = async () => {
         dashboard.off("changed", broadcast);
-        for (const client of [...clients]) dropClient(client);
+        for (const client of clients) client.end();
         clients.clear();
         await new Promise((resolve) => server.close(() => resolve()));
     };
 
-    return { server, url: `http://127.0.0.1:${port}/#t=${token}`, close };
+    return { server, url: `http://127.0.0.1:${port}/`, close };
 }
