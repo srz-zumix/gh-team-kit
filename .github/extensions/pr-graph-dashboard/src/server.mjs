@@ -196,11 +196,6 @@ export async function startServer(dashboard) {
             const file = await dashboard.loadFile(dashboard.sourcePath);
             sendJson(res, 200, { ok: true, path: file });
         },
-        "POST /api/generate": async (req, res) => {
-            const body = await readBody(req);
-            const result = await dashboard.generate(body.args ?? "");
-            sendJson(res, 200, { ok: true, ...result });
-        },
         "POST /api/filters": async (req, res) => {
             const body = await readBody(req);
             const filters = body.reset ? dashboard.resetFilters() : dashboard.setFilters(body);
@@ -209,6 +204,12 @@ export async function startServer(dashboard) {
         "POST /api/view": async (req, res) => {
             const body = await readBody(req);
             sendJson(res, 200, { ok: true, view: dashboard.setView(body) });
+        },
+        "POST /api/render": async (_req, res) => {
+            sendJson(res, 200, { ok: true, ...dashboard.renderAnyway() });
+        },
+        "POST /api/clear": async (_req, res) => {
+            sendJson(res, 200, { ok: true, ...dashboard.clearRender() });
         },
         "POST /api/select": async (req, res) => {
             const body = await readBody(req);
@@ -231,6 +232,16 @@ export async function startServer(dashboard) {
         "POST /api/generate/ask": async (req, res) => {
             const body = await readBody(req);
             sendJson(res, 200, { ok: true, ...(await dashboard.askForArgs(body.prompt)) });
+        },
+        "POST /api/generate/terminal": async (req, res) => {
+            const body = await readBody(req);
+            sendJson(res, 200, { ok: true, ...(await dashboard.runInTerminal(body.args ?? "")) });
+        },
+        "GET /api/generate/history": async (_req, res) => {
+            sendJson(res, 200, { items: await dashboard.generateHistory() });
+        },
+        "POST /api/generate/history/clear": async (_req, res) => {
+            sendJson(res, 200, { ok: true, items: await dashboard.resetGenerateHistory() });
         },
         "POST /api/export": async (req, res) => {
             const body = await readBody(req);

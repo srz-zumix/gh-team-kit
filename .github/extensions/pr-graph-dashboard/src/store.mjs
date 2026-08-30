@@ -28,8 +28,10 @@ function instancesFile() {
     return path.join(artifactsDir(), "instances.json");
 }
 
-// Serializes all instances.json read-modify-write cycles so concurrent panels
-// (or a persist racing a close) cannot clobber each other's entries.
+// Serializes every read-modify-write against the shared JSON files
+// (instances.json and generate-history.json). Panels run concurrently and all
+// share this module, so without a queue two overlapping saves could each read,
+// mutate and write back, silently dropping the other's change.
 let mutationQueue = Promise.resolve();
 function enqueueMutation(task) {
     const run = mutationQueue.then(task, task);
@@ -86,14 +88,65 @@ function slug(text) {
 }
 
 /**
+ * Returns the path a generated graph would be written to, without creating it.
+ * Used by the "Run in terminal" flow, which has to name the destination before
+ * any output exists.
+ */
+export async function reserveGeneratedDotPath(label) {
+    const dir = generatedDir();
+    await mkdir(dir, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    return path.join(dir, `${slug(label)}-${stamp}.dot`);
+}
+
+/**
  * Writes generated DOT output to the artifacts directory and returns its path.
  * The path becomes the durable identity of the generated graph.
  */
 export async function saveGeneratedDot(dot, label) {
-    const dir = generatedDir();
-    await mkdir(dir, { recursive: true });
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const file = path.join(dir, `${slug(label)}-${stamp}.dot`);
+    const file = await reserveGeneratedDotPath(label);
     await writeFile(file, dot, "utf-8");
     return file;
+}
+
+const HISTORY_LIMIT = 25;
+
+function historyFile() {
+    return path.join(artifactsDir(), "generate-history.json");
+}
+
+/**
+ * Arguments previously handed to `gh team-kit pr-graph`, newest first.
+ *
+ * The list is shared by every panel and every session, so it is read from disk
+ * on each call rather than cached: two dashboards open side by side would
+ * otherwise show different histories.
+ */
+export async function loadGenerateHistory() {
+    const items = await readJson(historyFile(), []);
+    if (!Array.isArray(items)) return [];
+    return items.filter((item) => item && typeof item.args === "string").slice(0, HISTORY_LIMIT);
+}
+
+/** Records one set of arguments, moving a repeat to the front instead of duplicating it. */
+export async function recordGenerateHistory(args) {
+    const value = String(args ?? "").trim();
+    if (!value) return await loadGenerateHistory();
+    return await enqueueMutation(async () => {
+        const previous = await loadGenerateHistory();
+        const items = [{ args: value, at: new Date().toISOString() }, ...previous.filter((item) => item.args !== value)];
+        const kept = items.slice(0, HISTORY_LIMIT);
+        await mkdir(artifactsDir(), { recursive: true });
+        await writeFile(historyFile(), `${JSON.stringify(kept, null, 2)}\n`, "utf-8");
+        return kept;
+    });
+}
+
+/** Empties the history. */
+export async function clearGenerateHistory() {
+    await enqueueMutation(async () => {
+        await mkdir(artifactsDir(), { recursive: true });
+        await writeFile(historyFile(), "[]\n", "utf-8");
+    });
+    return [];
 }

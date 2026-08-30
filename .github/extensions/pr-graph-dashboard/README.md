@@ -28,9 +28,10 @@ The agent opens it via `open_canvas` with `canvasId: "pr-graph"` and an optional
 
 ## Dashboard
 
-- **Open… / Generate… / Reload / Export…** — pick a `.dot` file from a file browser, run
-  `gh team-kit pr-graph` (with completion for its flags, or with arguments written by the agent),
-  re-read the current file, or write the SVG / filtered DOT to a browsed destination.
+- **Open… / Generate… / Reload / Clear graph / Export…** — pick a `.dot` file from a file browser, run
+  `gh team-kit pr-graph` in a terminal (with completion for its flags, or with arguments written by
+  the agent), re-read the current file, throw the current drawing away, or write the SVG / filtered
+  DOT to a browsed destination.
 - **Filters** — node types, edge relations, minimum edge weight, name search, neighbourhood
   radius, orphan handling, Graphviz layout engine and direction, and the render limit.
 - **Nodes** — ranked node list; click to select and move the view to that node, double-click to focus
@@ -54,12 +55,27 @@ elapsed-seconds counter appears over the top-left of the viewport, the stale lay
 and the status bar appends `· rendering…` to the counts. The badge only appears once a render has taken
 longer than 200 ms, so quick redraws do not flash it.
 
-**Render limit** caps how long Graphviz may spend on a single layout: `30s`, `1m` (default), `2m`, `5m`
-or `10m`. The badge counts up against it (`45s / 5m`), and a layout that runs out of time reports which
-engine gave up. Changing the limit does not re-render what is already on screen. Layout cost varies
-enormously by engine — on a 152-node / 1591-edge graph `sfdp`, `neato`, `fdp` and `twopi` finish in
-about a second, `dot` takes ~36s, and `circo` needs ~210s — so raise the limit or pick a faster engine
-when a render times out.
+Two things keep a huge graph from bogging the machine down. Anything past **2000 nodes or 6000 edges**
+is not laid out automatically: the viewport shows the counts and a **Render anyway** button instead, so
+narrowing the filters costs nothing and only a deliberate click starts a layout that needs minutes and
+hundreds of megabytes. And when a filter, engine or direction change supersedes a layout that is still
+running, its Graphviz process is killed rather than left to finish a result nobody will see. The same
+happens when the extension itself stops or reloads, so a layout in flight cannot survive as an orphan
+process burning a core in the background.
+
+The layout is only half the cost: the drawing it produces puts one element per node and per edge into
+the panel, so a graph of tens of thousands of edges leaves every other control crawling even after
+Graphviz is done. **Clear graph** in the toolbar throws that drawing away — the file stays loaded and
+the filters stay as they were, so the way back is one click on **Draw again**, or any filter change,
+which redraws automatically.
+
+**Render limit** caps how long Graphviz may spend on a single layout: `30s`, `1m` (default), `2m`, `5m`,
+`10m`, `30m`, `1h` or `3h`. The badge counts up against it (`45s / 5m`), and a layout that runs out of
+time reports which engine gave up. Changing the limit does not re-render what is already on screen.
+Layout cost varies enormously by engine — on a 152-node / 1591-edge graph `sfdp`, `neato`, `fdp` and
+`twopi` finish in about a second, `dot` takes ~36s, and `circo` needs ~210s — so raise the limit or
+pick a faster engine when a render times out. The layout runs in a child process, so the panel stays
+responsive on the long settings; a graph with tens of thousands of nodes is what the upper end is for.
 
 Every engine other than `dot` packs nodes tightly enough that they overlap (`neato` produced 1406
 overlapping node pairs on that graph, `twopi` 2519), so those layouts are emitted with
@@ -119,8 +135,41 @@ inserted, so they no longer show up as `□` in the field.
 **Ask the agent for arguments** takes a plain-language description instead: "merged PRs from the last
 three months, no bots". The dialog closes and the request goes to the agent with `pr-graph --help`
 attached; when the agent answers via the `set_generate_args` action the dialog reopens with the
-proposed arguments filled in. Nothing runs until you press **Run**, so the proposal is always
-reviewable — ask the agent for `generate` instead if you want it to build the graph directly.
+proposed arguments filled in. Nothing runs until you press **Run in terminal**, so the proposal is
+always reviewable — ask the agent for `generate` instead if you want it to build the graph directly.
+
+**Recent** lists the argument sets that were actually run, newest first, up to 25 of them. Click one to
+put it back in the field. Re-running the same arguments moves the entry to the front instead of adding
+a duplicate, and **Clear history** empties the list. The history lives with the other artifacts rather
+than in a panel, so it survives reloads and is shared by every dashboard and every session; only
+**Run in terminal** adds to it, so arguments you merely typed or that the agent merely proposed are not
+recorded.
+
+**Run in terminal** is the only button that starts a run. The extension has no way to open a host
+canvas itself, so it reserves the destination file, sends the agent the exact command line and asks it
+to run that in a Terminal canvas and call `load_dot` with the reserved path afterwards. The command is
+visible and interruptible there, and the graph lands in the panel when it finishes. The reply arrives
+in the chat, not in the dashboard.
+
+There is deliberately no in-process Run button. `gh team-kit pr-graph` prints nothing until it
+finishes, so an in-process run could only show a spinner, and it was capped by the extension's ten
+minute timeout — which a wide date range with `--limit 0` exceeds. The `generate` action still runs
+in-process for agents that ask for it explicitly.
+
+### Text input and the IME
+
+Every text field lives inside a `<form method="dialog">`, so an unhandled `Enter` submits the form and
+closes the dialog. That made the `Enter` which commits a Japanese (or any other IME) conversion send
+the request and dismiss the dialog mid-sentence.
+
+The key that commits a conversion is not reported the same way everywhere: Chromium marks it
+`isComposing` with `keyCode` 229, while WebKit — which is what the host webview runs on — ends the
+composition first and then delivers a plain `Enter`. The dashboard therefore tracks
+`compositionstart` / `compositionend` itself and ignores any `Enter` that arrives while a composition
+is running or within 50 ms of one ending; that window is far shorter than the gap between two
+deliberate key presses. The completion list steps aside entirely during a composition so the IME keeps
+its own arrow keys and `Enter`. This applies to the argument field, the ask-the-agent field, the
+browser location bar and the export file name.
 
 ## Agent-callable actions
 
@@ -145,27 +194,8 @@ The durable identity of a dashboard is the absolute path of the DOT file it rend
 produced by **Generate** are written to
 `$COPILOT_HOME/extensions/pr-graph-dashboard/artifacts/generated/` so they survive reloads and
 can be reopened later; `artifacts/instances.json` only records which file each open panel was
-showing, so a provider restart restores the same view.
-
-## Security
-
-Each panel runs its own loopback HTTP server bound to `127.0.0.1` on a random port. The URL
-handed to the panel carries an unguessable per-instance token in its fragment (`#t=...`); every
-`/api/*` and Server-Sent Events request must present that token, and requests with a foreign
-`Host` header are rejected. This prevents another local process or web page that merely scans the
-port from reading files or triggering writes/generation. Only static UI assets load without the
-token.
-
-Paths supplied by the agent — the `open` input and the `load_dot` / `export` actions — are
-confined to the workspace (or the generated-artifacts directory); symlinks are resolved so an
-in-workspace name cannot point at a file outside it. Absolute paths elsewhere remain reachable
-through the dashboard's own Open…/Export browser, which is user-driven.
-
-Rendered SVG is parsed and reduced to an allow-list of Graphviz drawing elements before it enters
-the DOM: scripts, styles, external-resource and animation elements, and every event-handler,
-link and inline-style attribute are dropped, so a crafted graph cannot run script in the webview.
-The UI is additionally served under a strict `Content-Security-Policy` (`default-src 'none'` with
-same-origin scripts, styles and connections) as a second line of defence.
+showing, so a provider restart restores the same view. `artifacts/generate-history.json` holds the
+argument history, which is read from disk on every use so that panels open side by side agree.
 
 ## Layout
 

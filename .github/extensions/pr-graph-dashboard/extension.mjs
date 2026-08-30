@@ -11,7 +11,7 @@
 import { CanvasError, createCanvas, joinSession } from "@github/copilot-sdk/extension";
 import { Dashboard, RENDER_LIMITS } from "./src/dashboard.mjs";
 import { NODE_TYPES, RELATIONS } from "./src/dot.mjs";
-import { ENGINES } from "./src/graphviz.mjs";
+import { ENGINES, killLayouts } from "./src/graphviz.mjs";
 import { startServer } from "./src/server.mjs";
 import { loadInstancePointer, removeInstancePointer, saveInstancePointer } from "./src/store.mjs";
 
@@ -148,10 +148,7 @@ const canvas = createCanvas({
         type: "object",
         additionalProperties: false,
         properties: {
-            path: {
-                type: "string",
-                description: "Path to a DOT file; must resolve inside the workspace (use the dashboard's Open… browser for files elsewhere)",
-            },
+            path: { type: "string", description: "Path to a DOT file; must resolve inside the workspace (use the dashboard's Open… browser for files elsewhere)" },
             dot: { type: "string", description: "Inline DOT source to render instead of a file" },
             label: { type: "string", description: "Display label used when `dot` is supplied" },
             args: {
@@ -402,7 +399,7 @@ const canvas = createCanvas({
         if (!entry) return;
         instances.delete(ctx.instanceId);
         // Mark closed and cancel the auto-persist listener/timer first, so no
-        // pending write can re-add the pointer after we remove it below.
+        // pending write can resurrect the pointer we are about to remove.
         entry.dashboard.closed = true;
         entry.disposePersist?.();
         await entry.server.close();
@@ -411,3 +408,13 @@ const canvas = createCanvas({
 });
 
 session = await joinSession({ canvases: [canvas] });
+
+// A reload replaces this process, but a Graphviz child it spawned would survive
+// and keep a core busy on a layout nobody can collect any more.
+for (const signal of ["SIGTERM", "SIGINT", "SIGHUP"]) {
+    process.on(signal, () => {
+        killLayouts();
+        process.exit(0);
+    });
+}
+process.on("exit", killLayouts);
