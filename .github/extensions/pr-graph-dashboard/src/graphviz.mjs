@@ -76,7 +76,6 @@ export function renderSvg(source, options = {}) {
             running.delete(child);
             reject(new Error("layout cancelled"));
         };
-        signal?.addEventListener("abort", onAbort, { once: true });
         const finish = (fn) => (value) => {
             running.delete(child);
             signal?.removeEventListener("abort", onAbort);
@@ -95,6 +94,9 @@ export function renderSvg(source, options = {}) {
                 ),
             );
         }, timeoutMs);
+        // Registered only after `timer` exists so the abort handler never
+        // observes it in the temporal dead zone.
+        signal?.addEventListener("abort", onAbort, { once: true });
 
         child.stdout.setEncoding("utf-8");
         child.stdout.on("data", (chunk) => {
