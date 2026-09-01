@@ -34,15 +34,21 @@ Each mannequin is matched to a mapping entry first by src login, then by email.
 Mannequins already claimed are skipped unless --force is specified.
 Entries whose dst login is empty are skipped.
 Bot accounts (mannequin login ending with '[bot]') are skipped because they cannot be reclaimed.
+With --src, mannequins that are not members of the source organization are skipped without error when the target user cannot be found.
 With --no-suspended, --src is required; mannequins whose login is a suspended member of the source organization are skipped.
 Processing continues on per-mannequin errors; all collected errors are reported at the end.
 
 Example:
   gh team-kit mannequin migrate --owner myorg --usermap user-map.yaml
   gh team-kit mannequin migrate --owner myorg --usermap user-map.yaml --skip-invitation --dryrun
+  gh team-kit mannequin migrate --owner myorg --usermap user-map.yaml --src ghes.example.com/srcorg
   gh team-kit mannequin migrate --owner myorg --usermap user-map.yaml --no-suspended --src ghes.example.com/srcorg`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if noSuspended && srcOwner == "" {
+				return fmt.Errorf("--no-suspended requires --src")
+			}
+
 			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
@@ -58,8 +64,9 @@ Example:
 			}
 
 			var client *gh.GitHubClient
+			var srcLogins map[string]struct{}
 			var suspendedSrcLogins map[string]struct{}
-			if noSuspended {
+			if srcOwner != "" {
 				srcRepository, err := parser.Repository(parser.RepositoryOwnerWithHost(srcOwner))
 				if err != nil {
 					return fmt.Errorf("error parsing src: %w", err)
@@ -75,14 +82,22 @@ Example:
 				if err != nil {
 					return fmt.Errorf("failed to list members on source organization '%s': %w", parser.GetRepositoryFullNameWithHost(srcRepository), err)
 				}
-				srcMembers, err = gh.UpdateUsers(ctx, srcClient, srcMembers)
-				if err != nil {
-					return fmt.Errorf("failed to fetch member details on source organization '%s': %w", parser.GetRepositoryFullNameWithHost(srcRepository), err)
-				}
-				suspendedSrcLogins = make(map[string]struct{})
-				for _, u := range gh.CollectSuspendedUsers(srcMembers) {
+				srcLogins = make(map[string]struct{})
+				for _, u := range srcMembers {
 					if u.Login != nil {
-						suspendedSrcLogins[strings.ToLower(*u.Login)] = struct{}{}
+						srcLogins[strings.ToLower(*u.Login)] = struct{}{}
+					}
+				}
+				if noSuspended {
+					srcMembers, err = gh.UpdateUsers(ctx, srcClient, srcMembers)
+					if err != nil {
+						return fmt.Errorf("failed to fetch member details on source organization '%s': %w", parser.GetRepositoryFullNameWithHost(srcRepository), err)
+					}
+					suspendedSrcLogins = make(map[string]struct{})
+					for _, u := range gh.CollectSuspendedUsers(srcMembers) {
+						if u.Login != nil {
+							suspendedSrcLogins[strings.ToLower(*u.Login)] = struct{}{}
+						}
 					}
 				}
 			} else {
@@ -170,6 +185,14 @@ Example:
 				// Get target user node ID
 				targetUser, err := gh.FindUser(ctx, client, targetLogin)
 				if err != nil {
+					// A mannequin that is not a member of the source organization is out of scope
+					// for this migration, so a missing target user is not treated as an error.
+					if srcLogins != nil {
+						if _, ok := srcLogins[strings.ToLower(mannequinLogin)]; !ok {
+							logger.Debug("Target user not found and mannequin is not a member of the source organization, skipping", "mannequin", mannequinLogin, "target-user", targetLogin, "error", err)
+							continue
+						}
+					}
 					logger.Error("Failed to find target user, skipping", "mannequin", mannequinLogin, "target-user", targetLogin, "error", err)
 					errs = append(errs, fmt.Errorf("failed to find user '%s' for mannequin '%s': %w", targetLogin, mannequinLogin, err))
 					continue
@@ -207,13 +230,12 @@ Example:
 
 	f := cmd.Flags()
 	f.StringVar(&owner, "owner", "", "Target organization ([HOST/]OWNER; uses current repository's organization if omitted)")
-	f.StringVar(&srcOwner, "src", "", "Source organization ([HOST/]OWNER) whose members are checked for suspension; required when --no-suspended is specified")
+	f.StringVar(&srcOwner, "src", "", "Source organization ([HOST/]OWNER) whose members are used to scope mannequins; required when --no-suspended is specified")
 	f.StringVar(&mapFile, "usermap", "", "User mapping file (as produced by 'user map') for login resolution")
 	f.BoolVar(&skipInvitation, "skip-invitation", false, "Skip the invitation step and directly reclaim mannequins (requires the feature to be enabled by GitHub Support)")
 	f.BoolVar(&force, "force", false, "Process even mannequins that are already claimed")
 	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: show what would be done without making changes")
 	f.BoolVar(&noSuspended, "no-suspended", false, "Skip mannequins whose login is a suspended member of --src")
-	cmd.MarkFlagsRequiredTogether("no-suspended", "src")
 	if err := cmd.MarkFlagRequired("usermap"); err != nil {
 		panic(err)
 	}
