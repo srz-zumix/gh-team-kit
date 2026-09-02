@@ -32,7 +32,8 @@ The agent opens it via `open_canvas` with `canvasId: "pr-graph"` and an optional
   `gh team-kit pr-graph` in a terminal (with completion for its flags, or with arguments written by
   the agent), re-read the current file, throw the current drawing away, or write the SVG / filtered
   DOT to a browsed destination.
-- **Filters** — node types, edge relations, minimum edge weight, name search, neighbourhood
+- **Filters** — node types, edge relations, minimum edge weight (fractional weights are accepted, as
+  produced by `--weight-by lines` or `--half-life`), name search, neighbourhood
   radius, orphan handling, Graphviz layout engine and direction, and the render limit.
 - **Nodes** — ranked node list; click to select and move the view to that node, double-click to focus
   the graph on it.

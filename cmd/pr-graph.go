@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 	"time"
@@ -38,7 +39,7 @@ func NewPrGraphCmd() *cobra.Command {
 	var excludeHeadBranches []string
 	var edgeTypes []string
 	var excludeEdgeTypes []string
-	var minWeight int
+	var minWeight float64
 	var noBots bool
 	var excludeDraft bool
 	var includeFiles []string
@@ -46,6 +47,13 @@ func NewPrGraphCmd() *cobra.Command {
 	var groupBy []string
 	var excludeGenerated bool
 	var keepOrphans bool
+	var weightBy string
+	var halfLife float64
+	var coChange bool
+	var coChangeMaxFiles int
+	var allowUsers []string
+	var userAllowlist string
+	var excludeDeleted bool
 	var exportFormat string
 
 	cmd := &cobra.Command{
@@ -53,18 +61,29 @@ func NewPrGraphCmd() *cobra.Command {
 		Short: "Generate a relationship graph from pull request activity",
 		Long: `Analyze pull request activity and generate a graph showing relationships between users, teams, labels, and code areas.
 
-The graph contains user, team, label, file, directory, and submodule nodes. Edges represent review, approval, comment, review request, team membership, file change, directory containment, CODEOWNERS ownership, and labeling relationships, weighted by the number of occurrences.
+The graph contains user, team, label, file, directory, and submodule nodes. Edges represent review, approval, comment, review request, team membership, file change, file creation, co-change, directory containment, CODEOWNERS ownership, and labeling relationships, weighted by the number of occurrences.
 
-Specify one or more repositories as arguments, or use --owner to analyze all repositories of an organization. Without arguments, the current repository is used.`,
+Use --weight-by to weight path edges by changed lines instead of occurrences, --half-life to decay contributions by age, --co-change to link paths changed together, and --allow-user or --user-allowlist to restrict the graph to a known set of members.
+
+Specify one or more repositories as arguments, or use --owner to analyze all repositories of an organization. Without arguments, the current repository is used.
+
+Only activity that reached GitHub through a pull request is analyzed: direct pushes are not represented, and the "created" relation is limited to files added within the selected pull requests.`,
 		Args: cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if state != "open" && state != "closed" && state != "merged" && state != "all" {
-				return fmt.Errorf("invalid state %q: expected open, closed, merged, or all", state)
-			}
 			for _, edgeType := range append(append([]string{}, edgeTypes...), excludeEdgeTypes...) {
 				if !slices.Contains(prgraph.RelationValues, edgeType) {
 					return fmt.Errorf("invalid edge type %q: expected one of %s", edgeType, strings.Join(prgraph.RelationValues, ", "))
 				}
+			}
+			if halfLife < 0 {
+				return fmt.Errorf("invalid half-life %v: expected a non-negative number of days", halfLife)
+			}
+			if coChangeMaxFiles < 0 {
+				return fmt.Errorf("invalid co-change file limit %d: expected a non-negative number", coChangeMaxFiles)
+			}
+			allowedUsers, err := resolveUserAllowlist(allowUsers, userAllowlist)
+			if err != nil {
+				return err
 			}
 
 			collectOpts := prgraph.Options{
@@ -89,6 +108,12 @@ Specify one or more repositories as arguments, or use --owner to analyze all rep
 				GroupBy:             groupBy,
 				ExcludeGenerated:    excludeGenerated,
 				KeepOrphans:         keepOrphans,
+				WeightBy:            weightBy,
+				HalfLife:            halfLife,
+				CoChange:            coChange,
+				CoChangeMaxFiles:    coChangeMaxFiles,
+				AllowUsers:          allowedUsers,
+				ExcludeDeleted:      excludeDeleted,
 			}
 			if since != "" {
 				t, err := parseDateTime(since)
@@ -179,7 +204,7 @@ Specify one or more repositories as arguments, or use --owner to analyze all rep
 
 	f := cmd.Flags()
 	f.StringVar(&owner, "owner", "", "Analyze all repositories of the organization ([HOST/]OWNER)")
-	f.StringVar(&state, "state", "all", "Filter pull requests by state: {open|closed|merged|all}")
+	cmdutil.StringEnumFlag(cmd, &state, "state", "", "all", []string{"open", "closed", "merged", "all"}, "Filter pull requests by state")
 	f.StringVar(&since, "since", "", "Only include pull requests created on or after the given date (YYYY-MM-DD or RFC 3339)")
 	f.StringVar(&until, "until", "", "Only include pull requests created on or before the given date (YYYY-MM-DD or RFC 3339)")
 	f.IntVar(&limit, "limit", 30, "Maximum number of pull requests to analyze per repository, counted after state/date/--exclude-author/--label/--base/--head filtering (0 = unlimited)")
@@ -190,7 +215,7 @@ Specify one or more repositories as arguments, or use --owner to analyze all rep
 	f.StringSliceVar(&excludeHeadBranches, "exclude-head-branch", nil, "Skip pull requests whose head branch matches any of these glob patterns (repeat or comma-separate)")
 	f.StringSliceVar(&edgeTypes, "edge-type", nil, "Only include these edge relation types in the graph (repeat or comma-separate); default: all")
 	f.StringSliceVar(&excludeEdgeTypes, "exclude-edge-type", nil, "Exclude these edge relation types from the graph (repeat or comma-separate)")
-	f.IntVar(&minWeight, "min-weight", 0, "Remove edges with a weight below this threshold from the graph (0 = no filter)")
+	f.Float64Var(&minWeight, "min-weight", 0, "Remove edges with a weight below this threshold from the graph (0 = no filter); scale it with --weight-by")
 	f.BoolVar(&keepOrphans, "keep-orphans", false, "Keep nodes left without any edge after edge filtering instead of removing them")
 	f.BoolVar(&noBots, "no-bots", false, "Automatically exclude and hide users whose login has a \"[bot]\" suffix")
 	f.BoolVar(&excludeDraft, "exclude-draft", false, "Skip draft pull requests")
@@ -203,9 +228,38 @@ Specify one or more repositories as arguments, or use --owner to analyze all rep
 	_ = f.MarkDeprecated("exclude-user", "use --exclude-author and/or --hide-user instead")
 	f.StringSliceVar(&excludeFiles, "exclude-file", nil, "Exclude files from the graph using .gitignore-style patterns (repeat or comma-separate)")
 	f.BoolVar(&excludeGenerated, "exclude-generated", false, "Exclude files marked linguist-generated in the repository's .gitattributes")
+	f.BoolVar(&excludeDeleted, "exclude-deleted", false, "Exclude paths that no longer exist on the repository's default branch")
+	cmdutil.StringEnumFlag(cmd, &weightBy, "weight-by", "", prgraph.WeightByOccurrences, prgraph.WeightByValues, "Weigh changed paths by (relations without a line count always use occurrences)")
+	f.Float64Var(&halfLife, "half-life", 0, "Decay each contribution by the age of its pull request, halving it every N days (0 = no decay)")
+	f.BoolVar(&coChange, "co-change", false, "Add co-changed edges between paths changed by the same pull request")
+	f.IntVar(&coChangeMaxFiles, "co-change-max-files", 50, "Skip co-change edges for pull requests touching more than this many paths (0 = unlimited)")
+	f.StringSliceVar(&allowUsers, "allow-user", nil, "Keep only these users in the graph, dropping others even as pull request authors (repeat or comma-separate)")
+	f.StringVar(&userAllowlist, "user-allowlist", "", "Read allowed logins from a file, one per line; blank lines, \"#\" comments and a leading \"@\" are ignored")
 	_ = cmdflags.AddFormatFlags(cmd, &opts.Exporter, &exportFormat, "mermaid", []string{"dot", "markdown", "mermaid"})
 
 	return cmd
+}
+
+// resolveUserAllowlist merges the --allow-user logins with those read from the
+// --user-allowlist file. It returns nil when neither option is set, leaving
+// every user in the graph.
+func resolveUserAllowlist(logins []string, path string) ([]string, error) {
+	if len(logins) == 0 && path == "" {
+		return nil, nil
+	}
+	allowed := append([]string(nil), prgraph.ParseUserAllowlist([]byte(strings.Join(logins, "\n")))...)
+	if path != "" {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read the user allowlist %q: %w", path, err)
+		}
+		allowed = append(allowed, prgraph.ParseUserAllowlist(content)...)
+	}
+	allowed = prgraph.ParseUserAllowlist([]byte(strings.Join(allowed, "\n")))
+	if len(allowed) == 0 {
+		return nil, fmt.Errorf("the user allowlist is empty: expected at least one login")
+	}
+	return allowed, nil
 }
 
 // parseDateTime parses a date string in RFC 3339 or YYYY-MM-DD format.

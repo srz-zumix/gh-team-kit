@@ -2,6 +2,8 @@ package prgraph
 
 import (
 	"fmt"
+	"math"
+	"strconv"
 	"strings"
 
 	"github.com/srz-zumix/go-gh-extension/pkg/render"
@@ -74,12 +76,22 @@ func renderDot(r *render.Renderer, graph *Graph) error {
 	return nil
 }
 
-// edgeLabel builds the display label for an edge, appending the weight when greater than one.
+// edgeLabel builds the display label for an edge, appending the weight unless
+// it is exactly one. Fractional weights below one are shown, since decayed or
+// line-based contributions are meaningful even when smaller than a single
+// occurrence.
 func edgeLabel(edge *Edge) string {
-	if edge.Weight > 1 {
-		return fmt.Sprintf("%s (%d)", edge.Relation, edge.Weight)
+	weight := formatWeight(edge.Weight)
+	if weight == "1" {
+		return edge.Relation
 	}
-	return edge.Relation
+	return fmt.Sprintf("%s (%s)", edge.Relation, weight)
+}
+
+// formatWeight renders a weight rounded to two decimal places without trailing
+// zeros, so that whole weights keep their original integer representation.
+func formatWeight(weight float64) string {
+	return strconv.FormatFloat(math.Round(weight*100)/100, 'f', -1, 64)
 }
 
 // mermaidNodeShape returns the Mermaid node definition for the given node,

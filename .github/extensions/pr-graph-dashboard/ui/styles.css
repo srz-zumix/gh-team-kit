@@ -24,6 +24,8 @@
     --rel-review-requested: #a371f7;
     --rel-member-of: #56b6c2;
     --rel-changed: #8b949e;
+    --rel-created: #2ea043;
+    --rel-co-changed: #6e7681;
     --rel-in: #8b949e;
     --rel-owned-by: #d29922;
     --rel-labeled: #d29922;
@@ -613,6 +615,12 @@ dialog menu {
 }
 .graph .rel-changed {
     --edge-color: var(--rel-changed);
+}
+.graph .rel-created {
+    --edge-color: var(--rel-created);
+}
+.graph .rel-co-changed {
+    --edge-color: var(--rel-co-changed);
 }
 .graph .rel-in {
     --edge-color: var(--rel-in);

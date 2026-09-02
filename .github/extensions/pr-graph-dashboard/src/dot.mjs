@@ -41,6 +41,8 @@ export const RELATIONS = [
     "review-requested",
     "member-of",
     "changed",
+    "created",
+    "co-changed",
     "in",
     "owned-by",
     "labeled",
@@ -158,10 +160,10 @@ function tokenize(source) {
     return tokens;
 }
 
-/** Splits an edge label such as `changed (3)` into its relation and weight. */
+/** Splits an edge label such as `changed (3)` or `changed (2.5)` into its relation and weight. */
 export function parseEdgeLabel(label) {
     if (!label) return { relation: "", weight: 1 };
-    const match = /^(.*?)(?:\s*\((\d+)\))?$/.exec(label.trim());
+    const match = /^(.*?)(?:\s*\((\d+(?:\.\d+)?)\))?$/.exec(label.trim());
     if (!match) return { relation: label.trim(), weight: 1 };
     return { relation: match[1].trim(), weight: match[2] ? Number(match[2]) : 1 };
 }

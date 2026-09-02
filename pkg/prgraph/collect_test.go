@@ -56,7 +56,7 @@ func TestAddUserEdgeHidesUser(t *testing.T) {
 	repo := repository.Repository{Owner: "octo", Name: "repo"}
 	authorNode := c.graph.AddNode(NodeTypeUser, "bob")
 
-	c.addUserEdge(repo, "Alice", authorNode, RelationReviewed)
+	c.addUserEdge(repo, "Alice", authorNode, RelationReviewed, 1)
 
 	if c.graph.Node(NodeID(NodeTypeUser, "Alice")) != nil {
 		t.Error("did not expect a node for a hidden user")
@@ -113,7 +113,7 @@ func TestAddDirectoryChain(t *testing.T) {
 	c := &collector{graph: NewGraph()}
 	repo := repository.Repository{Owner: "octo", Name: "repo"}
 	fileNode := c.graph.AddNode(NodeTypeFile, "a/b/c.go")
-	c.addDirectoryChain(repo, fileNode, "a/b/c.go")
+	c.addDirectoryChain(repo, fileNode, "a/b/c.go", 1)
 
 	if c.graph.Node(NodeID(NodeTypeDirectory, "a/b")) == nil {
 		t.Errorf("expected directory node a/b")
@@ -130,7 +130,7 @@ func TestAddDirectoryChainRootFile(t *testing.T) {
 	c := &collector{graph: NewGraph()}
 	repo := repository.Repository{Owner: "octo", Name: "repo"}
 	fileNode := c.graph.AddNode(NodeTypeFile, "main.go")
-	c.addDirectoryChain(repo, fileNode, "main.go")
+	c.addDirectoryChain(repo, fileNode, "main.go", 1)
 	if len(c.graph.Edges) != 0 {
 		t.Errorf("expected no directory edges for a root file, got %d", len(c.graph.Edges))
 	}
@@ -156,7 +156,7 @@ func TestAddCodeownersEdges(t *testing.T) {
 	c := &collector{graph: NewGraph()}
 	repo := repository.Repository{Owner: "octo", Name: "repo"}
 	fileNode := c.graph.AddNode(NodeTypeFile, "cmd/root.go")
-	c.addCodeownersEdges(repo, fileNode, "cmd/root.go", ruleset)
+	c.addCodeownersEdges(repo, fileNode, "cmd/root.go", ruleset, 1)
 
 	if c.graph.Node(NodeID(NodeTypeTeam, "backend")) == nil {
 		t.Errorf("expected team node for @octo/backend shortened to slug")
@@ -181,7 +181,7 @@ func TestAddCodeownersEdgesExcludesUser(t *testing.T) {
 	repo := repository.Repository{Owner: "octo", Name: "repo"}
 	fileNode := c.graph.AddNode(NodeTypeFile, "cmd/root.go")
 
-	c.addCodeownersEdges(repo, fileNode, "cmd/root.go", ruleset)
+	c.addCodeownersEdges(repo, fileNode, "cmd/root.go", ruleset, 1)
 
 	if c.graph.Node(NodeID(NodeTypeUser, "alice")) != nil {
 		t.Error("did not expect a CODEOWNERS node for an excluded user")
@@ -198,7 +198,7 @@ func TestAddCodeownersEdgesNilRuleset(t *testing.T) {
 	c := &collector{graph: NewGraph()}
 	repo := repository.Repository{Owner: "octo", Name: "repo"}
 	fileNode := c.graph.AddNode(NodeTypeFile, "cmd/root.go")
-	c.addCodeownersEdges(repo, fileNode, "cmd/root.go", nil)
+	c.addCodeownersEdges(repo, fileNode, "cmd/root.go", nil, 1)
 	if len(c.graph.Edges) != 0 {
 		t.Errorf("expected no edges without a ruleset, got %d", len(c.graph.Edges))
 	}
@@ -237,7 +237,7 @@ func TestAddCodeownersEdgesMultiOwner(t *testing.T) {
 	c := &collector{graph: NewGraph(), multiOwner: true}
 	repo := repository.Repository{Owner: "octo", Name: "repo"}
 	fileNode := c.graph.AddNode(NodeTypeFile, "cmd/root.go")
-	c.addCodeownersEdges(repo, fileNode, "cmd/root.go", ruleset)
+	c.addCodeownersEdges(repo, fileNode, "cmd/root.go", ruleset, 1)
 
 	if c.graph.Node(NodeID(NodeTypeTeam, "octo/backend")) == nil {
 		t.Errorf("expected namespaced team node octo/backend in multi-owner mode")

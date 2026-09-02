@@ -277,7 +277,7 @@ const canvas = createCanvas({
                         items: { type: "string", enum: RELATIONS },
                         description: "Keep only these edge relations; an empty array keeps all",
                     },
-                    minWeight: { type: "integer", minimum: 0, description: "Drop edges below this weight" },
+                    minWeight: { type: "number", minimum: 0, description: "Drop edges below this weight; accepts fractions when the graph was decayed or weighted by lines" },
                     search: {
                         type: "string",
                         description: "Keep nodes whose name matches this text, plus their neighbourhood",
