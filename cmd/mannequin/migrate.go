@@ -78,25 +78,34 @@ Example:
 					return fmt.Errorf("error creating GitHub clients: %w", err)
 				}
 
-				srcMembers, err := gh.ListOrgMembers(ctx, srcClient, srcRepository, []string{}, false)
-				if err != nil {
-					return fmt.Errorf("failed to list members on source organization '%s': %w", parser.GetRepositoryFullNameWithHost(srcRepository), err)
-				}
-				srcLogins = make(map[string]struct{})
-				for _, u := range srcMembers {
-					if u.Login != nil {
-						srcLogins[strings.ToLower(*u.Login)] = struct{}{}
-					}
-				}
-				if noSuspended {
-					srcMembers, err = gh.UpdateUsers(ctx, srcClient, srcMembers)
+				// Source-org membership is only needed to (a) build srcLogins, which relaxes
+				// not-found target-user errors during a real run (dry-run short-circuits before
+				// the lookup), and (b) compute suspended members for --no-suspended. Skip the
+				// member listing entirely when neither applies to avoid needless API traffic on
+				// large organizations.
+				if !dryrun || noSuspended {
+					srcMembers, err := gh.ListOrgMembers(ctx, srcClient, srcRepository, []string{}, false)
 					if err != nil {
-						return fmt.Errorf("failed to fetch member details on source organization '%s': %w", parser.GetRepositoryFullNameWithHost(srcRepository), err)
+						return fmt.Errorf("failed to list members on source organization '%s': %w", parser.GetRepositoryFullNameWithHost(srcRepository), err)
 					}
-					suspendedSrcLogins = make(map[string]struct{})
-					for _, u := range gh.CollectSuspendedUsers(srcMembers) {
-						if u.Login != nil {
-							suspendedSrcLogins[strings.ToLower(*u.Login)] = struct{}{}
+					if !dryrun {
+						srcLogins = make(map[string]struct{})
+						for _, u := range srcMembers {
+							if u.Login != nil {
+								srcLogins[strings.ToLower(*u.Login)] = struct{}{}
+							}
+						}
+					}
+					if noSuspended {
+						srcMembers, err = gh.UpdateUsers(ctx, srcClient, srcMembers)
+						if err != nil {
+							return fmt.Errorf("failed to fetch member details on source organization '%s': %w", parser.GetRepositoryFullNameWithHost(srcRepository), err)
+						}
+						suspendedSrcLogins = make(map[string]struct{})
+						for _, u := range gh.CollectSuspendedUsers(srcMembers) {
+							if u.Login != nil {
+								suspendedSrcLogins[strings.ToLower(*u.Login)] = struct{}{}
+							}
 						}
 					}
 				}
