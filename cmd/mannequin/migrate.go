@@ -34,7 +34,7 @@ Each mannequin is matched to a mapping entry first by src login, then by email.
 Mannequins already claimed are skipped unless --force is specified.
 Entries whose dst login is empty are skipped.
 Bot accounts (mannequin login ending with '[bot]') are skipped because they cannot be reclaimed.
-With --src, mannequins that are not members of the source organization are skipped without error when the target user cannot be found.
+With --src, mannequins that are not members of the source organization are skipped without error when their mapped target user does not exist.
 With --no-suspended, --src is required; mannequins whose login is a suspended member of the source organization are skipped.
 Processing continues on per-mannequin errors; all collected errors are reported at the end.
 
@@ -186,8 +186,9 @@ Example:
 				targetUser, err := gh.FindUser(ctx, client, targetLogin)
 				if err != nil {
 					// A mannequin that is not a member of the source organization is out of scope
-					// for this migration, so a missing target user is not treated as an error.
-					if srcLogins != nil {
+					// for this migration, so a genuinely missing (404) target user is not treated
+					// as an error. Other failures (auth, rate limiting, transient errors) still surface.
+					if gh.IsHTTPNotFound(err) && srcLogins != nil {
 						if _, ok := srcLogins[strings.ToLower(mannequinLogin)]; !ok {
 							logger.Debug("Target user not found and mannequin is not a member of the source organization, skipping", "mannequin", mannequinLogin, "target-user", targetLogin, "error", err)
 							continue
@@ -230,7 +231,7 @@ Example:
 
 	f := cmd.Flags()
 	f.StringVar(&owner, "owner", "", "Target organization ([HOST/]OWNER; uses current repository's organization if omitted)")
-	f.StringVar(&srcOwner, "src", "", "Source organization ([HOST/]OWNER) whose members are used to scope mannequins; required when --no-suspended is specified")
+	f.StringVar(&srcOwner, "src", "", "Source organization ([HOST/]OWNER) used for membership and suspension checks; required when --no-suspended is specified")
 	f.StringVar(&mapFile, "usermap", "", "User mapping file (as produced by 'user map') for login resolution")
 	f.BoolVar(&skipInvitation, "skip-invitation", false, "Skip the invitation step and directly reclaim mannequins (requires the feature to be enabled by GitHub Support)")
 	f.BoolVar(&force, "force", false, "Process even mannequins that are already claimed")

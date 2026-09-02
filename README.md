@@ -647,7 +647,7 @@ gh team-kit mannequin migrate --usermap <file> [--owner <[HOST/]OWNER>] [--skip-
 List all mannequins in the organization and reattribute each one to its mapped target user.
 The mapping file (`--usermap`) must be a YAML file as produced by `user map`. Each mannequin is matched first by src login (supports regular expressions), then by email.
 Mannequins already claimed are skipped unless `--force` is specified. Entries whose dst is empty are skipped. Bot mannequins (login ending with `[bot]`) are skipped because they cannot be reclaimed.
-With `--src`, mannequins that are not members of the source organization are skipped without error when the target user cannot be found.
+With `--src`, mannequins that are not members of the source organization are skipped without error when their mapped target user does not exist.
 With `--no-suspended`, `--src` is required; mannequins whose login is a suspended member of the source organization are skipped.
 
 | Flag | Default | Description |
@@ -658,7 +658,7 @@ With `--no-suspended`, `--src` is required; mannequins whose login is a suspende
 | `--force` | `false` | Process mannequins that are already claimed |
 | `--dryrun`, `-n` | `false` | Show what would be done without making changes |
 | `--no-suspended` | `false` | Skip mannequins whose login is a suspended member of `--src` |
-| `--src <[HOST/]OWNER>` | — | Source organization whose members scope the migration; required with `--no-suspended` |
+| `--src <[HOST/]OWNER>` | — | Source organization used for membership and suspension checks; required with `--no-suspended` |
 
 #### Reattribute a mannequin by email
 
