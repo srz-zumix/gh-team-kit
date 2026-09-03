@@ -77,7 +77,9 @@ func renderDot(r *render.Renderer, graph *Graph) error {
 }
 
 // edgeLabel builds the display label for an edge, appending the weight unless
-// it is exactly one. Fractional weights below one are shown, since decayed or
+// its value rounded to two decimal places is displayed as "1" (so weights very
+// close to one are folded into the bare relation). Weights that round to any
+// other value, including fractions below one, are shown because decayed or
 // line-based contributions are meaningful even when smaller than a single
 // occurrence.
 func edgeLabel(edge *Edge) string {

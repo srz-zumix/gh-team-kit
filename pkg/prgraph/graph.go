@@ -63,7 +63,7 @@ type Node struct {
 
 // Edge represents a weighted, typed relationship between two nodes. The weight
 // is a float64 because contributions can be fractional, for example when they
-// are decayed by age or measured in changed lines.
+// are decayed by age.
 type Edge struct {
 	From     string  `json:"from"`
 	To       string  `json:"to"`
