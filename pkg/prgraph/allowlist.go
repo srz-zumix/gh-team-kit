@@ -1,8 +1,6 @@
 package prgraph
 
 import (
-	"bufio"
-	"bytes"
 	"strings"
 )
 
@@ -12,9 +10,8 @@ import (
 func ParseUserAllowlist(content []byte) []string {
 	var logins []string
 	seen := make(map[string]bool)
-	scanner := bufio.NewScanner(bytes.NewReader(content))
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
+	for _, raw := range strings.Split(string(content), "\n") {
+		line := strings.TrimSpace(raw)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}

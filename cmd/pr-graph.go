@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"slices"
 	"strings"
@@ -77,6 +78,9 @@ Only activity that reached GitHub through a pull request is analyzed: direct pus
 			}
 			if halfLife < 0 {
 				return fmt.Errorf("invalid half-life %v: expected a non-negative number of days", halfLife)
+			}
+			if minWeight < 0 || math.IsNaN(minWeight) || math.IsInf(minWeight, 0) {
+				return fmt.Errorf("invalid min-weight %v: expected a finite non-negative number", minWeight)
 			}
 			if coChangeMaxFiles < 0 {
 				return fmt.Errorf("invalid co-change file limit %d: expected a non-negative number", coChangeMaxFiles)

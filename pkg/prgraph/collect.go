@@ -130,8 +130,9 @@ type collector struct {
 	// generatedFiles matches the linguist-generated patterns of the repository
 	// being collected.
 	generatedFiles *ignore.GitIgnore
-	// trackedPaths holds the blob paths of the default branch of the repository
-	// being collected. It is nil unless --exclude-deleted resolved a complete tree.
+	// trackedPaths holds the tracked paths (blobs and submodule commit entries)
+	// of the default branch of the repository being collected. It is nil unless
+	// --exclude-deleted resolved a complete tree.
 	trackedPaths map[string]bool
 }
 
