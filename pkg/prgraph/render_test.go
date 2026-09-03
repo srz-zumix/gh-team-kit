@@ -117,3 +117,44 @@ func TestMermaidCompactNodeIDs(t *testing.T) {
 		}
 	}
 }
+
+func TestFormatWeight(t *testing.T) {
+	tests := []struct {
+		weight float64
+		want   string
+	}{
+		{weight: 1, want: "1"},
+		{weight: 2, want: "2"},
+		{weight: 0.5, want: "0.5"},
+		{weight: 2.5, want: "2.5"},
+		{weight: 0.125, want: "0.13"},
+		{weight: 1.0000001, want: "1"},
+		{weight: 0, want: "0"},
+	}
+	for _, tt := range tests {
+		if got := formatWeight(tt.weight); got != tt.want {
+			t.Errorf("formatWeight(%v) = %q, want %q", tt.weight, got, tt.want)
+		}
+	}
+}
+
+func TestEdgeLabelShowsFractionalWeights(t *testing.T) {
+	tests := []struct {
+		name   string
+		weight float64
+		want   string
+	}{
+		{name: "a single occurrence hides the weight", weight: 1, want: "reviewed"},
+		{name: "a whole weight keeps its integer form", weight: 3, want: "reviewed (3)"},
+		{name: "a decayed weight is shown", weight: 0.5, want: "reviewed (0.5)"},
+		{name: "a weight rounding to one is hidden", weight: 1.004, want: "reviewed"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			edge := &Edge{From: "a", To: "b", Relation: RelationReviewed, Weight: tt.weight}
+			if got := edgeLabel(edge); got != tt.want {
+				t.Errorf("edgeLabel() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

@@ -35,7 +35,7 @@ func TestAddEdgeAccumulatesWeight(t *testing.T) {
 		t.Fatalf("expected 1 edge, got %d", len(g.Edges))
 	}
 	if edge.Weight != 2 {
-		t.Errorf("expected weight 2, got %d", edge.Weight)
+		t.Errorf("expected weight 2, got %v", edge.Weight)
 	}
 }
 
@@ -132,5 +132,47 @@ func TestRemoveOrphanNodes(t *testing.T) {
 	}
 	if g.Node(dir.ID) != nil {
 		t.Error("expected the orphaned node to be dropped from the index")
+	}
+}
+
+func TestAddEdgeWeightAccumulates(t *testing.T) {
+	g := NewGraph()
+	a := g.AddNode(NodeTypeUser, "alice")
+	b := g.AddNode(NodeTypeFile, "cmd/root.go")
+	g.AddEdgeWeight(a, b, RelationChanged, 0.5)
+	edge := g.AddEdgeWeight(a, b, RelationChanged, 0.25)
+	if len(g.Edges) != 1 {
+		t.Fatalf("expected 1 edge, got %d", len(g.Edges))
+	}
+	if edge.Weight != 0.75 {
+		t.Errorf("expected weight 0.75, got %v", edge.Weight)
+	}
+}
+
+func TestRoundWeights(t *testing.T) {
+	g := NewGraph()
+	a := g.AddNode(NodeTypeUser, "alice")
+	b := g.AddNode(NodeTypeFile, "cmd/root.go")
+	edge := g.AddEdgeWeight(a, b, RelationChanged, 0.1)
+	g.AddEdgeWeight(a, b, RelationChanged, 0.2)
+	g.RoundWeights()
+	if edge.Weight != 0.3 {
+		t.Errorf("expected weight 0.3, got %v", edge.Weight)
+	}
+}
+
+func TestFilterMinWeightAcceptsFractions(t *testing.T) {
+	g := NewGraph()
+	a := g.AddNode(NodeTypeUser, "alice")
+	b := g.AddNode(NodeTypeFile, "a.go")
+	c := g.AddNode(NodeTypeFile, "b.go")
+	g.AddEdgeWeight(a, b, RelationChanged, 0.25)
+	g.AddEdgeWeight(a, c, RelationChanged, 0.75)
+	g.FilterMinWeight(0.5)
+	if len(g.Edges) != 1 {
+		t.Fatalf("expected 1 edge, got %d", len(g.Edges))
+	}
+	if g.Edges[0].To != c.ID {
+		t.Errorf("expected the heavier edge to survive, got %q", g.Edges[0].To)
 	}
 }

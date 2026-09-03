@@ -3,6 +3,7 @@ package prgraph
 import (
 	"context"
 	"fmt"
+	"math"
 	"path"
 	"sort"
 	"strings"
@@ -14,6 +15,22 @@ import (
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 )
+
+// Weight bases selecting how a changed path contributes to path-derived edge weights.
+const (
+	WeightByOccurrences = "occurrences"
+	WeightByLines       = "lines"
+	WeightByAdditions   = "additions"
+	WeightByDeletions   = "deletions"
+)
+
+// WeightByValues lists all valid weight bases in display order.
+var WeightByValues = []string{
+	WeightByOccurrences,
+	WeightByLines,
+	WeightByAdditions,
+	WeightByDeletions,
+}
 
 // Options controls which pull requests are analyzed.
 type Options struct {
@@ -35,7 +52,7 @@ type Options struct {
 	ExcludeHeadBranches []string // Skip pull requests whose head branch matches any of these glob patterns
 	IncludeEdgeTypes    []string // Keep only edges of these relation types in the final graph
 	ExcludeEdgeTypes    []string // Remove edges of these relation types from the final graph
-	MinWeight           int      // Remove edges with a weight below this threshold from the final graph (0 = no filter)
+	MinWeight           float64  // Remove edges with a weight below this threshold from the final graph (0 = no filter)
 	NoBots              bool     // Automatically exclude/hide users whose login has a "[bot]" suffix
 	ExcludeDraft        bool     // Skip draft pull requests
 	// Depth folds a changed file's path into its ancestor directory truncated
@@ -51,14 +68,42 @@ type Options struct {
 	ExcludeGenerated bool
 	// KeepOrphans retains nodes left with no edges after edge filtering.
 	KeepOrphans bool
+	// WeightBy selects how a changed path contributes to path-derived edge
+	// weights: WeightByOccurrences (default), WeightByLines, WeightByAdditions,
+	// or WeightByDeletions. Relations that have no line count, such as reviews
+	// and comments, always count occurrences.
+	WeightBy string
+	// HalfLife decays every contribution by the age of its pull request,
+	// halving it every HalfLife days (0 = no decay).
+	HalfLife float64
+	// CoChange adds co-changed edges between the paths of the same pull request.
+	CoChange bool
+	// CoChangeMaxFiles skips co-change edges for pull requests touching more
+	// than this many distinct paths, bounding the quadratic pair count
+	// (0 = unlimited).
+	CoChangeMaxFiles int
+	// AllowUsers restricts the users kept in the graph to these logins. An
+	// empty list keeps every user.
+	AllowUsers []string
+	// ExcludeDeleted skips paths that no longer exist on the repository's
+	// default branch.
+	ExcludeDeleted bool
 }
 
 type pullRequestActivity struct {
 	number             int
 	author             string
+	created            time.Time
 	labels             []string
 	requestedReviewers []string
 	requestedTeams     []string
+}
+
+// pathContribution accumulates the weight a single pull request contributes to
+// one path node, used to build co-change pairs.
+type pathContribution struct {
+	node   *Node
+	weight float64
 }
 
 // collector accumulates PR activity into a graph.
@@ -76,11 +121,19 @@ type collector struct {
 	includeFiles   *ignore.GitIgnore
 	excludeAuthors []string
 	hideUsers      []string
+	allowUsers     []string
+	// referenceTime is the timestamp contributions are aged against when
+	// --half-life is set. It is resolved once so that a run is reproducible.
+	referenceTime time.Time
 	// submodules holds the .gitmodules paths of the repository being collected.
 	submodules map[string]bool
 	// generatedFiles matches the linguist-generated patterns of the repository
 	// being collected.
 	generatedFiles *ignore.GitIgnore
+	// trackedPaths holds the tracked paths (blobs and submodule commit entries)
+	// of the default branch of the repository being collected. It is nil unless
+	// --exclude-deleted resolved a complete tree.
+	trackedPaths map[string]bool
 }
 
 // Collect analyzes pull request activity in the given repositories and builds
@@ -97,6 +150,8 @@ func Collect(ctx context.Context, client *gh.GitHubClient, repos []repository.Re
 		includeFiles:   compileIncludeFiles(opts.IncludeFiles),
 		excludeAuthors: combineLogins(opts.ExcludeAuthors, opts.ExcludeUsers),
 		hideUsers:      combineLogins(opts.HideUsers, opts.ExcludeUsers),
+		allowUsers:     opts.AllowUsers,
+		referenceTime:  decayReference(opts),
 	}
 	for _, repo := range repos {
 		if err := c.collectRepository(ctx, repo); err != nil {
@@ -104,12 +159,23 @@ func Collect(ctx context.Context, client *gh.GitHubClient, repos []repository.Re
 		}
 	}
 	c.collectTeamMemberships(ctx, repos)
+	c.graph.RoundWeights()
 	c.graph.FilterEdges(opts.IncludeEdgeTypes, opts.ExcludeEdgeTypes)
 	c.graph.FilterMinWeight(opts.MinWeight)
 	if !opts.KeepOrphans {
 		c.graph.RemoveOrphanNodes()
 	}
 	return c.graph, nil
+}
+
+// decayReference returns the timestamp contributions are aged against. It uses
+// the --until bound when set so that repeating the same command yields the same
+// weights, and the current time otherwise.
+func decayReference(opts Options) time.Time {
+	if opts.Until != nil {
+		return *opts.Until
+	}
+	return time.Now()
 }
 
 // collectRepository analyzes the pull requests of a single repository.
@@ -139,6 +205,10 @@ func (c *collector) collectRepository(ctx context.Context, repo repository.Repos
 	c.generatedFiles = nil
 	if c.opts.ExcludeGenerated {
 		c.generatedFiles = fetchGeneratedMatcher(ctx, c.client, repo)
+	}
+	c.trackedPaths = nil
+	if c.opts.ExcludeDeleted {
+		c.trackedPaths = fetchTrackedPaths(ctx, c.client, repo)
 	}
 
 	count := 0
@@ -184,9 +254,10 @@ func (c *collector) collectRepository(ctx context.Context, repo repository.Repos
 		}
 		count++
 		activity := pullRequestActivity{
-			number: pr.GetNumber(),
-			author: pr.GetUser().GetLogin(),
-			labels: labels,
+			number:  pr.GetNumber(),
+			author:  pr.GetUser().GetLogin(),
+			created: created,
+			labels:  labels,
 		}
 		for _, user := range pr.RequestedReviewers {
 			if login := user.GetLogin(); login != "" {
@@ -214,28 +285,48 @@ func (c *collector) collectRepository(ctx context.Context, repo repository.Repos
 }
 
 // collectPullRequest adds nodes and edges derived from a single pull request.
+// An author outside the allowlist yields no author node: the pull request is
+// still analyzed so that its paths keep contributing directory, CODEOWNERS and
+// co-change edges, but no user-anchored edge is created for it.
 func (c *collector) collectPullRequest(ctx context.Context, repo repository.Repository, pr any, activity pullRequestActivity, ruleset codeowners.Ruleset) error {
 	author := activity.author
 	if author == "" || c.isExcludedAuthor(author) {
 		return nil
 	}
-	authorNode := c.addUser(repo, author)
+	var authorNode *Node
+	if c.isAllowedUser(author) {
+		authorNode = c.addUser(repo, author)
+	}
+	decay := c.decayFactor(activity.created)
+
+	if authorNode != nil {
+		if err := c.collectParticipants(ctx, repo, pr, activity, authorNode, decay); err != nil {
+			return err
+		}
+	}
+	return c.collectPaths(ctx, repo, pr, activity, ruleset, authorNode, decay)
+}
+
+// collectParticipants adds the label, review request, review and comment edges
+// that point at the pull request author.
+func (c *collector) collectParticipants(ctx context.Context, repo repository.Repository, pr any, activity pullRequestActivity, authorNode *Node, decay float64) error {
+	author := activity.author
 
 	// Labels: author -> label
 	for _, name := range activity.labels {
 		labelNode := c.graph.AddNode(NodeTypeLabel, name)
-		c.graph.AddEdge(authorNode, labelNode, RelationLabeled)
+		c.graph.AddEdgeWeight(authorNode, labelNode, RelationLabeled, decay)
 	}
 
 	// Requested reviewers: reviewer/team -> author
 	for _, login := range activity.requestedReviewers {
 		if login != author {
-			c.addUserEdge(repo, login, authorNode, RelationReviewRequested)
+			c.addUserEdge(repo, login, authorNode, RelationReviewRequested, decay)
 		}
 	}
 	for _, slug := range activity.requestedTeams {
 		teamNode := c.graph.AddNode(NodeTypeTeam, c.teamName(repo.Owner, slug))
-		c.graph.AddEdge(teamNode, authorNode, RelationReviewRequested)
+		c.graph.AddEdgeWeight(teamNode, authorNode, RelationReviewRequested, decay)
 	}
 
 	// Reviews: reviewer -> author, relation by review state
@@ -255,7 +346,7 @@ func (c *collector) collectPullRequest(ctx context.Context, repo repository.Repo
 		case gh.PullRequestReviewStateChangesRequested:
 			relation = RelationChangesRequested
 		}
-		c.addUserEdge(repo, login, authorNode, relation)
+		c.addUserEdge(repo, login, authorNode, relation, decay)
 	}
 
 	// Review comments (comments on code): commenter -> author
@@ -268,7 +359,7 @@ func (c *collector) collectPullRequest(ctx context.Context, repo repository.Repo
 		if login == "" || login == author {
 			continue
 		}
-		c.addUserEdge(repo, login, authorNode, RelationReviewCommented)
+		c.addUserEdge(repo, login, authorNode, RelationReviewCommented, decay)
 	}
 
 	// Issue comments (conversation comments): commenter -> author
@@ -281,27 +372,122 @@ func (c *collector) collectPullRequest(ctx context.Context, repo repository.Repo
 		if login == "" || login == author {
 			continue
 		}
-		c.addUserEdge(repo, login, authorNode, RelationCommented)
+		c.addUserEdge(repo, login, authorNode, RelationCommented, decay)
 	}
 
-	// Changed files: author -> file, file -> directory chain, file -> CODEOWNERS owner
+	return nil
+}
+
+// collectPaths adds the edges derived from the pull request's changed files:
+// author -> path, the directory chain, CODEOWNERS ownership, and the co-change
+// pairs of the pull request.
+func (c *collector) collectPaths(ctx context.Context, repo repository.Repository, pr any, activity pullRequestActivity, ruleset codeowners.Ruleset, authorNode *Node, decay float64) error {
 	files, err := gh.ListPullRequestFiles(ctx, c.client, repo, pr)
 	if err != nil {
 		return fmt.Errorf("failed to list files for %s/%s#%d: %w", repo.Owner, repo.Name, activity.number, err)
 	}
+	contributions := make(map[string]*pathContribution)
+	var order []string
 	for _, file := range files {
 		filename := file.GetFilename()
-		if filename == "" || c.isExcludedFile(filename) || !c.isIncludedFile(filename) || c.isGeneratedFile(filename) {
+		if filename == "" || c.isExcludedFile(filename) || !c.isIncludedFile(filename) || c.isGeneratedFile(filename) || c.isDeletedFile(filename) {
+			continue
+		}
+		// A zero contribution, such as a deletion-only file weighted by
+		// additions, carries no information and is left out of the graph.
+		weight := c.fileWeight(file.GetAdditions(), file.GetDeletions()) * decay
+		if weight <= 0 {
 			continue
 		}
 		groupedPath, folded := c.groupedPath(filename)
 		fileNode := c.graph.AddNode(c.pathNodeType(groupedPath, folded), c.pathName(repo, groupedPath))
-		c.graph.AddEdge(authorNode, fileNode, RelationChanged)
-		c.addDirectoryChain(repo, fileNode, groupedPath)
-		c.addCodeownersEdges(repo, fileNode, filename, ruleset)
+		if authorNode != nil {
+			c.graph.AddEdgeWeight(authorNode, fileNode, RelationChanged, weight)
+			if isCreatedStatus(file.GetStatus()) {
+				c.graph.AddEdgeWeight(authorNode, fileNode, RelationCreated, weight)
+			}
+		}
+		c.addDirectoryChain(repo, fileNode, groupedPath, weight)
+		c.addCodeownersEdges(repo, fileNode, filename, ruleset, weight)
+		if c.opts.CoChange {
+			if existing, ok := contributions[fileNode.ID]; ok {
+				existing.weight += weight
+			} else {
+				contributions[fileNode.ID] = &pathContribution{node: fileNode, weight: weight}
+				order = append(order, fileNode.ID)
+			}
+		}
 	}
-
+	c.addCoChangeEdges(activity.number, contributions, order)
 	return nil
+}
+
+// addCoChangeEdges links every pair of distinct paths touched by the same pull
+// request. The relation is undirected, so each pair is stored once with the
+// lexicographically smaller node ID as its source. The pair weight is the
+// smaller of the two contributions, which keeps a single sweeping change from
+// dominating every pair it touches.
+func (c *collector) addCoChangeEdges(number int, contributions map[string]*pathContribution, order []string) {
+	if !c.opts.CoChange || len(contributions) < 2 {
+		return
+	}
+	// The pair count grows quadratically, so wide pull requests such as
+	// repository-wide reformatting are skipped instead of exploding the graph.
+	if c.opts.CoChangeMaxFiles > 0 && len(contributions) > c.opts.CoChangeMaxFiles {
+		logger.Info("skipped co-change edges",
+			"pull_request", number,
+			"paths", len(contributions),
+			"max", c.opts.CoChangeMaxFiles,
+		)
+		return
+	}
+	ids := append([]string(nil), order...)
+	sort.Strings(ids)
+	for i, fromID := range ids {
+		from := contributions[fromID]
+		for _, toID := range ids[i+1:] {
+			to := contributions[toID]
+			c.graph.AddEdgeWeight(from.node, to.node, RelationCoChanged, math.Min(from.weight, to.weight))
+		}
+	}
+}
+
+// isCreatedStatus reports whether a pull request file status means the author
+// introduced the path. Renames are excluded because the content already existed
+// under its previous name.
+func isCreatedStatus(status string) bool {
+	return status == "added" || status == "copied"
+}
+
+// fileWeight returns the contribution of one changed file according to
+// --weight-by. Line-based bases let a rewrite outweigh a one-line fix, while
+// the default counts every changed file once.
+func (c *collector) fileWeight(additions, deletions int) float64 {
+	switch c.opts.WeightBy {
+	case WeightByLines:
+		return float64(additions + deletions)
+	case WeightByAdditions:
+		return float64(additions)
+	case WeightByDeletions:
+		return float64(deletions)
+	default:
+		return 1
+	}
+}
+
+// decayFactor returns the exponential decay applied to a contribution made at
+// the given time, halving it every --half-life days. It is 1 when decay is
+// disabled, the time is unknown, or the contribution is not older than the
+// reference time.
+func (c *collector) decayFactor(created time.Time) float64 {
+	if c.opts.HalfLife <= 0 || created.IsZero() {
+		return 1
+	}
+	ageDays := c.referenceTime.Sub(created).Hours() / 24
+	if ageDays <= 0 {
+		return 1
+	}
+	return math.Pow(0.5, ageDays/c.opts.HalfLife)
 }
 
 // addUser adds a user node and records the user as involved for team detection.
@@ -315,11 +501,11 @@ func (c *collector) addUser(repo repository.Repository, login string) *Node {
 }
 
 // addUserEdge adds an edge from a user unless that user is hidden.
-func (c *collector) addUserEdge(repo repository.Repository, login string, to *Node, relation string) {
+func (c *collector) addUserEdge(repo repository.Repository, login string, to *Node, relation string, weight float64) {
 	if c.isHiddenUser(login) {
 		return
 	}
-	c.graph.AddEdge(c.addUser(repo, login), to, relation)
+	c.graph.AddEdgeWeight(c.addUser(repo, login), to, relation, weight)
 }
 
 // isExcludedAuthor reports whether login matches an --exclude-author
@@ -330,11 +516,20 @@ func (c *collector) isExcludedAuthor(login string) bool {
 }
 
 // isHiddenUser reports whether login matches a --hide-user (or deprecated
-// --exclude-user) pattern, or --no-bots is set and login has a "[bot]"
-// suffix; matching users are omitted from the graph as non-author
-// participants, without affecting pull request selection.
+// --exclude-user) pattern, --no-bots is set and login has a "[bot]"
+// suffix, or an allowlist is configured and login is not on it; matching
+// users are omitted from the graph as non-author participants, without
+// affecting pull request selection.
 func (c *collector) isHiddenUser(login string) bool {
-	return matchesAnyLogin(login, c.hideUsers) || (c.opts.NoBots && isBotLogin(login))
+	return matchesAnyLogin(login, c.hideUsers) || (c.opts.NoBots && isBotLogin(login)) || !c.isAllowedUser(login)
+}
+
+// isAllowedUser reports whether login may appear in the graph. Without an
+// allowlist every user is allowed. Unlike --hide-user, a login rejected here is
+// also dropped as a pull request author, while its pull request still
+// contributes path-derived edges.
+func (c *collector) isAllowedUser(login string) bool {
+	return len(c.allowUsers) == 0 || matchesAnyLogin(login, c.allowUsers)
 }
 
 // isBotLogin reports whether login follows the GitHub App bot convention of
@@ -414,6 +609,13 @@ func (c *collector) isGeneratedFile(filename string) bool {
 // --exclude-file pattern. A nil matcher (no patterns configured) excludes nothing.
 func (c *collector) isExcludedFile(filename string) bool {
 	return c.excludeFiles != nil && c.excludeFiles.MatchesPath(filename)
+}
+
+// isDeletedFile reports whether filename is absent from the default branch of
+// the repository. It is always false unless --exclude-deleted resolved a
+// complete tree.
+func (c *collector) isDeletedFile(filename string) bool {
+	return c.trackedPaths != nil && !c.trackedPaths[filename]
 }
 
 // compileIncludeFiles compiles --include-file patterns, returning nil when
@@ -518,17 +720,17 @@ func distinctOwners(repos []repository.Repository) int {
 }
 
 // addDirectoryChain links a file node to its parent directories up to the repository root.
-func (c *collector) addDirectoryChain(repo repository.Repository, fileNode *Node, filename string) {
+func (c *collector) addDirectoryChain(repo repository.Repository, fileNode *Node, filename string, weight float64) {
 	child := fileNode
 	for dir := path.Dir(filename); dir != "." && dir != "/"; dir = path.Dir(dir) {
 		dirNode := c.graph.AddNode(NodeTypeDirectory, c.pathName(repo, dir))
-		c.graph.AddEdge(child, dirNode, RelationInDirectory)
+		c.graph.AddEdgeWeight(child, dirNode, RelationInDirectory, weight)
 		child = dirNode
 	}
 }
 
 // addCodeownersEdges links a file node to its CODEOWNERS owners.
-func (c *collector) addCodeownersEdges(repo repository.Repository, fileNode *Node, filename string, ruleset codeowners.Ruleset) {
+func (c *collector) addCodeownersEdges(repo repository.Repository, fileNode *Node, filename string, ruleset codeowners.Ruleset, weight float64) {
 	if ruleset == nil {
 		return
 	}
@@ -541,7 +743,7 @@ func (c *collector) addCodeownersEdges(repo repository.Repository, fileNode *Nod
 			continue
 		}
 		ownerNode := codeownersOwnerNode(c.graph, repo, owner, c.multiOwner)
-		c.graph.AddEdge(fileNode, ownerNode, RelationOwnedBy)
+		c.graph.AddEdgeWeight(fileNode, ownerNode, RelationOwnedBy, weight)
 	}
 }
 

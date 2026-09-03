@@ -3,7 +3,10 @@
 // and CODEOWNERS owners).
 package prgraph
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 // NodeType identifies the kind of entity a graph node represents.
 type NodeType string
@@ -27,6 +30,8 @@ const (
 	RelationReviewRequested  = "review-requested"
 	RelationMemberOf         = "member-of"
 	RelationChanged          = "changed"
+	RelationCreated          = "created"
+	RelationCoChanged        = "co-changed"
 	RelationInDirectory      = "in"
 	RelationOwnedBy          = "owned-by"
 	RelationLabeled          = "labeled"
@@ -42,6 +47,8 @@ var RelationValues = []string{
 	RelationReviewRequested,
 	RelationMemberOf,
 	RelationChanged,
+	RelationCreated,
+	RelationCoChanged,
 	RelationInDirectory,
 	RelationOwnedBy,
 	RelationLabeled,
@@ -54,12 +61,14 @@ type Node struct {
 	Name string   `json:"name"`
 }
 
-// Edge represents a weighted, typed relationship between two nodes.
+// Edge represents a weighted, typed relationship between two nodes. The weight
+// is a float64 because contributions can be fractional, for example when they
+// are decayed by age.
 type Edge struct {
-	From     string `json:"from"`
-	To       string `json:"to"`
-	Relation string `json:"relation"`
-	Weight   int    `json:"weight"`
+	From     string  `json:"from"`
+	To       string  `json:"to"`
+	Relation string  `json:"relation"`
+	Weight   float64 `json:"weight"`
 }
 
 // Graph holds the nodes and edges of a PR activity relationship graph.
@@ -97,17 +106,32 @@ func (g *Graph) AddNode(t NodeType, name string) *Node {
 }
 
 // AddEdge adds a directed edge between two nodes with the given relation,
-// incrementing the weight if the same edge already exists.
+// incrementing the weight by one if the same edge already exists.
 func (g *Graph) AddEdge(from, to *Node, relation string) *Edge {
+	return g.AddEdgeWeight(from, to, relation, 1)
+}
+
+// AddEdgeWeight adds a directed edge between two nodes with the given relation
+// and weight, accumulating the weight if the same edge already exists.
+func (g *Graph) AddEdgeWeight(from, to *Node, relation string, weight float64) *Edge {
 	key := fmt.Sprintf("%s|%s|%s", from.ID, to.ID, relation)
 	if edge, ok := g.edgeIndex[key]; ok {
-		edge.Weight++
+		edge.Weight += weight
 		return edge
 	}
-	edge := &Edge{From: from.ID, To: to.ID, Relation: relation, Weight: 1}
+	edge := &Edge{From: from.ID, To: to.ID, Relation: relation, Weight: weight}
 	g.edgeIndex[key] = edge
 	g.Edges = append(g.Edges, edge)
 	return edge
+}
+
+// RoundWeights rounds every edge weight to four decimal places so that the
+// accumulated floating point error of fractional contributions does not leak
+// into the rendered output.
+func (g *Graph) RoundWeights() {
+	for _, edge := range g.Edges {
+		edge.Weight = math.Round(edge.Weight*10000) / 10000
+	}
 }
 
 // Node returns the node with the given ID, or nil if it does not exist.
@@ -145,7 +169,7 @@ func (g *Graph) FilterEdges(include, exclude []string) {
 
 // FilterMinWeight removes edges whose weight is below min. A min of 0 or
 // less is a no-op.
-func (g *Graph) FilterMinWeight(min int) {
+func (g *Graph) FilterMinWeight(min float64) {
 	if min <= 0 {
 		return
 	}
