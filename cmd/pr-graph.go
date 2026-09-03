@@ -215,7 +215,7 @@ Only activity that reached GitHub through a pull request is analyzed: direct pus
 	f.StringSliceVar(&excludeHeadBranches, "exclude-head-branch", nil, "Skip pull requests whose head branch matches any of these glob patterns (repeat or comma-separate)")
 	f.StringSliceVar(&edgeTypes, "edge-type", nil, "Only include these edge relation types in the graph (repeat or comma-separate); default: all")
 	f.StringSliceVar(&excludeEdgeTypes, "exclude-edge-type", nil, "Exclude these edge relation types from the graph (repeat or comma-separate)")
-	f.Float64Var(&minWeight, "min-weight", 0, "Remove edges with a weight below this threshold from the graph (0 = no filter); weights can be fractional (from --weight-by or --half-life), so set the threshold accordingly")
+	f.Float64Var(&minWeight, "min-weight", 0, "Remove edges with a weight below this threshold from the graph (0 = no filter); --half-life can make weights fractional and --weight-by changes their scale, so choose the threshold accordingly")
 	f.BoolVar(&keepOrphans, "keep-orphans", false, "Keep nodes left without any edge after edge filtering instead of removing them")
 	f.BoolVar(&noBots, "no-bots", false, "Automatically exclude and hide users whose login has a \"[bot]\" suffix")
 	f.BoolVar(&excludeDraft, "exclude-draft", false, "Skip draft pull requests")

@@ -147,7 +147,7 @@ func TestEdgeLabelShowsFractionalWeights(t *testing.T) {
 		{name: "a single occurrence hides the weight", weight: 1, want: "reviewed"},
 		{name: "a whole weight keeps its integer form", weight: 3, want: "reviewed (3)"},
 		{name: "a decayed weight is shown", weight: 0.5, want: "reviewed (0.5)"},
-		{name: "a rounded weight is shown", weight: 1.004, want: "reviewed"},
+		{name: "a weight rounding to one is hidden", weight: 1.004, want: "reviewed"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

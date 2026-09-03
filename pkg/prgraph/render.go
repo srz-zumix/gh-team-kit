@@ -76,12 +76,8 @@ func renderDot(r *render.Renderer, graph *Graph) error {
 	return nil
 }
 
-// edgeLabel builds the display label for an edge, appending the weight unless
-// its value rounded to two decimal places is displayed as "1" (so weights very
-// close to one are folded into the bare relation). Weights that round to any
-// other value, including fractions below one, are shown because decayed or
-// line-based contributions are meaningful even when smaller than a single
-// occurrence.
+// edgeLabel builds the display label for an edge, appending the formatted
+// weight unless its value rounded to two decimal places is displayed as "1".
 func edgeLabel(edge *Edge) string {
 	weight := formatWeight(edge.Weight)
 	if weight == "1" {
