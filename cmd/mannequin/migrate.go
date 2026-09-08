@@ -79,7 +79,7 @@ Example:
 				}
 
 				// Source-org membership is only needed to (a) build srcLogins, which relaxes
-				// not-found target-user errors during a real run (dry-run short-circuits before
+				// not-found target-user errors during a real run (dryrun short-circuits before
 				// the lookup), and (b) compute suspended members for --no-suspended. Skip the
 				// member listing entirely when neither applies to avoid needless API traffic on
 				// large organizations.
