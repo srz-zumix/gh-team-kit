@@ -3,7 +3,7 @@ module github.com/srz-zumix/gh-team-kit
 go 1.26.1
 
 require (
-	github.com/cli/go-gh/v2 v2.13.0
+	github.com/cli/go-gh/v2 v2.16.0
 	github.com/hmarr/codeowners v1.2.1
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/srz-zumix/go-gh-extension v0.6.12
@@ -50,10 +50,10 @@ require (
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/henvic/httpretty v0.1.4 // indirect
+	github.com/henvic/httpretty v0.2.0 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
-	github.com/itchyny/gojq v0.12.17 // indirect
-	github.com/itchyny/timefmt-go v0.1.6 // indirect
+	github.com/itchyny/gojq v0.12.19 // indirect
+	github.com/itchyny/timefmt-go v0.1.8 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
@@ -76,9 +76,10 @@ require (
 	github.com/shurcooL/githubv4 v0.0.0-20240727222349-48295856cce7 // indirect
 	github.com/shurcooL/graphql v0.0.0-20230722043721-ed46e5a46466 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
-	github.com/stretchr/testify v1.12.0 // indirect
-	github.com/thlib/go-timezone-local v0.0.6 // indirect
+	github.com/stretchr/testify v1.12.1 // indirect
+	github.com/thlib/go-timezone-local v0.0.8 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.55.0 // indirect
 	golang.org/x/mod v0.38.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
