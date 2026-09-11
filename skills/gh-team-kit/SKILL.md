@@ -1158,5 +1158,7 @@ gh team-kit repo --help
 ## References
 
 - Extension: https://github.com/srz-zumix/gh-team-kit
+- Command reference: https://github.com/srz-zumix/gh-team-kit/blob/main/docs/commands.md
+- Team migration guide: https://github.com/srz-zumix/gh-team-kit/blob/main/docs/migrate.md
 - GitHub Teams API: https://docs.github.com/en/rest/teams
 - GitHub Orgs API: https://docs.github.com/en/rest/orgs
