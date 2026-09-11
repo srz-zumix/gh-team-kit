@@ -1157,6 +1157,11 @@ gh team-kit repo --help
 
 ## References
 
-- Extension: https://github.com/srz-zumix/gh-team-kit
-- GitHub Teams API: https://docs.github.com/en/rest/teams
-- GitHub Orgs API: https://docs.github.com/en/rest/orgs
+The README provides a concise overview and quick start;
+detailed command usage and options are maintained in the command reference.
+
+- [Overview and quick start](https://github.com/srz-zumix/gh-team-kit#readme)
+- [Command reference](https://github.com/srz-zumix/gh-team-kit/blob/HEAD/docs/commands.md)
+- [Team migration guide](https://github.com/srz-zumix/gh-team-kit/blob/HEAD/docs/migrate.md)
+- [GitHub Teams API](https://docs.github.com/en/rest/teams)
+- [GitHub Orgs API](https://docs.github.com/en/rest/orgs)
