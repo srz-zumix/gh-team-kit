@@ -946,7 +946,7 @@ gh team-kit copilot extension install --dry-run
 # Show installation status (local only, no GitHub API calls)
 gh team-kit copilot extension status
 
-# Update installed extensions when a newer commit is available
+# Update installed extensions when the resolved ref points at a different commit
 gh team-kit copilot extension update
 
 # Remove installed extensions

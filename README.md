@@ -807,7 +807,7 @@ Remove the given extensions (or all bundled extensions, when none are given). Re
 gh team-kit copilot extension update [<name>...] [--scope <user|repo>] [--prefix <dir>] [--ref <ref>] [--dry-run] [--force]
 ```
 
-Re-install the given extensions (or all bundled extensions, when none are given) when their resolved ref points at a newer commit than what is currently installed, or when `--force` is given. Prints that the extension is already up to date and makes no changes otherwise.
+Re-install the given extensions (or all bundled extensions, when none are given) when their resolved ref points at a different commit than what is currently installed, or when `--force` is given. Prints that the extension is already up to date and makes no changes otherwise.
 
 ### Code Review Management
 
