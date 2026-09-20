@@ -12,7 +12,7 @@ Commands are grouped by area:
 - **Organization-Role Management**: Manage roles within the organization, including listing available roles.
 - **Mannequin Management**: List and reattribute mannequins (placeholder accounts for unclaimed users), individually or in bulk via a user mapping file.
 - **IDP Management**: Manage IDP groups (SAML team sync) and external groups (Enterprise Managed Users).
-- **Copilot Management**: Show GitHub Copilot usage metrics for a team.
+- **Copilot Management**: Show GitHub Copilot usage metrics for a team, and install/manage Copilot CLI canvas extensions bundled with this tool.
 - **Code Review Management**: Get and set code review assignment settings for teams.
 - **Pull Request Analysis**: Generate relationship graphs from pull request activity, including users, teams, labels, and code areas.
 - **Configuration Management**: Export and import team information for backup and bulk operations.
@@ -731,6 +731,38 @@ Remove the connection between an external group and a team in the organization (
 
 ## Copilot Management
 
+### Install Copilot CLI canvas extensions
+
+```sh
+gh team-kit copilot extension install [<name>...] [--scope <user|repo>] [--prefix <dir>] [--ref <ref>] [--dry-run] [--force]
+```
+
+Download and install the Copilot CLI canvas extensions bundled with this tool. When no extension names are given, all bundled extensions are installed. Fails if the destination directory already exists and is not managed by this command, unless `--force` is given.
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--scope <user\|repo>` | `user` | Installation scope: `user` (`~/.copilot/extensions`, or `$COPILOT_HOME/extensions` when set) or `repo` (`.github/extensions`) |
+| `--prefix <dir>` | — | Override the installation directory (ignores `--scope`) |
+| `--ref <ref>` | extension's default ref | Git ref to install |
+| `--dry-run` | `false` | Preview changes without applying them |
+| `--force` | `false` | Overwrite an unmanaged destination directory |
+
+### List Copilot CLI canvas extensions
+
+```sh
+gh team-kit copilot extension list
+```
+
+List the Copilot CLI canvas extensions bundled with this tool, along with their source URL and default ref.
+
+### Show Copilot CLI canvas extension installation status
+
+```sh
+gh team-kit copilot extension status [<name>...] [--scope <user|repo>] [--prefix <dir>]
+```
+
+Show whether the given extensions (or all bundled extensions, when none are given) are installed, and if so, which ref and commit they were installed from. Status only inspects the local filesystem and does not query GitHub.
+
 ### Show Copilot metrics for a team
 
 ```sh
@@ -738,6 +770,22 @@ gh team-kit copilot metrics <team-slug> [--owner <[HOST/]OWNER>] [--since <RFC33
 ```
 
 Display GitHub Copilot usage metrics for the specified team. You can optionally specify the owner with `--owner` and limit the date range with `--since` and `--until`.
+
+### Uninstall Copilot CLI canvas extensions
+
+```sh
+gh team-kit copilot extension uninstall [<name>...] [--scope <user|repo>] [--prefix <dir>] [--dry-run] [--force]
+```
+
+Remove the given extensions (or all bundled extensions, when none are given). Refuses to remove a destination directory that is not managed by this command, unless `--force` is given.
+
+### Update Copilot CLI canvas extensions
+
+```sh
+gh team-kit copilot extension update [<name>...] [--scope <user|repo>] [--prefix <dir>] [--ref <ref>] [--dry-run] [--force]
+```
+
+Re-install the given extensions (or all bundled extensions, when none are given) when their resolved ref points at a different commit than what is currently installed, or when `--force` is given. Prints that the extension is already up to date and makes no changes otherwise.
 
 ## Code Review Management
 
