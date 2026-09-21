@@ -12,6 +12,7 @@ func NewCopilotCmd() *cobra.Command {
 		Long:  `Manage Copilot for teams with various subcommands.`,
 	}
 
+	cmd.AddCommand(copilot.NewExtensionCmd())
 	cmd.AddCommand(copilot.NewMetricsCmd())
 
 	return cmd

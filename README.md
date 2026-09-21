@@ -72,7 +72,9 @@ gh team-kit member add my-team alice --read-only
 This repository ships a [GitHub Copilot CLI](https://github.com/github/copilot-cli) canvas extension in
 [`.github/extensions/pr-graph-dashboard`](.github/extensions/pr-graph-dashboard) that renders `pr-graph` output as an
 interactive graph in the Copilot app side panel, with filtering, search, and focus controls. It is discovered
-automatically when the repository is opened in the Copilot app and requires a local Graphviz `dot` binary. See the
+automatically when this repository is opened in the Copilot app; install it for other repositories or per-user use with
+`gh team-kit copilot extension install` (see [Command Reference](docs/commands.md#copilot-management)). Rendering
+requires a local Graphviz `dot` binary. See the
 [extension README](.github/extensions/pr-graph-dashboard/README.md) for details.
 
 ## License

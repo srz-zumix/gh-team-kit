@@ -1,6 +1,6 @@
 ---
 name: gh-team-kit
-description: gh-team-kit GitHub CLI extension for managing GitHub Organization teams, members, repositories, org roles, member privileges, IDP/EMU groups, and Copilot metrics. Use when performing team membership operations, syncing teams, managing org roles, comparing repository permissions, exporting/importing team configurations, handling Enterprise Managed Users (EMU), or generating pull request activity relationship graphs.
+description: gh-team-kit GitHub CLI extension for managing GitHub Organization teams, members, repositories, org roles, member privileges, IDP/EMU groups, and Copilot (metrics and CLI canvas extension installation). Use when performing team membership operations, syncing teams, managing org roles, comparing repository permissions, exporting/importing team configurations, handling Enterprise Managed Users (EMU), or generating pull request activity relationship graphs.
 license: MIT
 compatibility:
   - Requires gh CLI (https://cli.github.com) with gh-team-kit extension installed (`gh extension install srz-zumix/gh-team-kit`)
@@ -92,8 +92,14 @@ gh team-kit
 │       ├── set
 │       ├── teams
 │       └── unset
-├── copilot                     # Copilot metrics
-│   └── metrics
+├── copilot                     # Copilot metrics and canvas extensions
+│   ├── metrics
+│   └── extension               # Manage Copilot CLI canvas extensions
+│       ├── install
+│       ├── list
+│       ├── status
+│       ├── uninstall
+│       └── update
 ├── mannequin                   # Manage mannequins
 │   ├── list
 │   ├── migrate
@@ -902,7 +908,7 @@ gh team-kit idp emu teams <group-name>
 
 ---
 
-## `copilot` — Copilot Metrics
+## `copilot` — Copilot Metrics and Canvas Extensions
 
 ```bash
 # Show Copilot metrics for a team
@@ -913,6 +919,38 @@ gh team-kit copilot metrics <team-slug> --since 2025-01-01T00:00:00Z --until 202
 
 # JSON output
 gh team-kit copilot metrics <team-slug> --format json
+```
+
+### `copilot extension` — Manage Copilot CLI Canvas Extensions
+
+Install, update, and manage the Copilot CLI canvas extensions bundled with this tool (for example
+`pr-graph-dashboard`). When no extension names are given, `install`/`status`/`uninstall`/`update` operate on all
+bundled extensions.
+
+```bash
+# List extensions bundled with this tool
+gh team-kit copilot extension list
+
+# Install all bundled extensions (default: ~/.copilot/extensions, or $COPILOT_HOME/extensions when set)
+gh team-kit copilot extension install
+
+# Install to the current repository's .github/extensions instead
+gh team-kit copilot extension install --scope repo
+
+# Install a specific extension from a specific ref
+gh team-kit copilot extension install pr-graph-dashboard --ref main
+
+# Preview an install without writing any files
+gh team-kit copilot extension install --dry-run
+
+# Show installation status (local only, no GitHub API calls)
+gh team-kit copilot extension status
+
+# Update installed extensions when the resolved ref points at a different commit
+gh team-kit copilot extension update
+
+# Remove installed extensions
+gh team-kit copilot extension uninstall
 ```
 
 ---
