@@ -1,5 +1,7 @@
 package config
 
+import "slices"
+
 // ApplyUserMapping applies the user mapping to an OrganizationConfig.
 // It converts all source logins to destination logins in Maintainers, Members, and ExcludedTeamMembers.
 func ApplyUserMapping(orgConfig *OrganizationConfig, mapping map[string]string) error {
@@ -23,6 +25,8 @@ func ApplyUserMapping(orgConfig *OrganizationConfig, mapping map[string]string) 
 				team.Members[j] = dst
 			}
 		}
+		slices.Sort(team.Maintainers)
+		slices.Sort(team.Members)
 
 		// Apply mapping to CodeReviewSettings.ExcludedTeamMembers
 		if team.CodeReviewSettings != nil {
@@ -54,6 +58,8 @@ func ApplyUserMappingFn(orgConfig *OrganizationConfig, resolve func(string) (str
 				team.Members[j] = dst
 			}
 		}
+		slices.Sort(team.Maintainers)
+		slices.Sort(team.Members)
 
 		if team.CodeReviewSettings != nil {
 			for j, excluded := range team.CodeReviewSettings.ExcludedTeamMembers {
