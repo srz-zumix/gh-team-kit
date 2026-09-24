@@ -174,9 +174,8 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 		if hasExternalGroups {
 			group, err := gh.FindExternalGroupByTeamSlug(e.ctx, e.client, e.Owner, slug)
 			if err != nil {
-				return nil, fmt.Errorf("error retrieving external groups for team %s: %w", slug, err)
-			}
-			if group != nil && group.GroupName != nil {
+				logger.Warn("skipping external group export for team", "team", slug, "error", err)
+			} else if group != nil && group.GroupName != nil {
 				groupName = *group.GroupName
 			}
 		}
