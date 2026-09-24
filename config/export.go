@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
@@ -180,6 +181,11 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 			}
 		}
 
+		maintainerNames := gh.GetUserNames(maintainers)
+		slices.Sort(maintainerNames)
+		memberNames := gh.GetUserNames(members)
+		slices.Sort(memberNames)
+
 		teamConfig := TeamConfig{
 			Name:                team.GetName(),
 			Slug:                slug,
@@ -187,8 +193,8 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 			Privacy:             team.GetPrivacy(),
 			ParentTeam:          parentSlug,
 			NotificationSetting: team.GetNotificationSetting(),
-			Maintainers:         gh.GetUserNames(maintainers),
-			Members:             gh.GetUserNames(members),
+			Maintainers:         maintainerNames,
+			Members:             memberNames,
 			Group:               groupName,
 			OrgRoles:            teamOrgRoleNames(teamOrgRoleMap[slug]),
 			Repositories:        repoPermissions,
