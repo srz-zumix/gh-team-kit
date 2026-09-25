@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/cli/go-gh/v2/pkg/repository"
+	"github.com/google/go-github/v90/github"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh/client"
 	"github.com/srz-zumix/go-gh-extension/pkg/logger"
@@ -15,6 +16,9 @@ type Exporter struct {
 	ctx    context.Context
 	client *client.GitHubClient
 	Owner  repository.Repository
+
+	teamRepos     map[string][]*github.Repository
+	repoTeamSlugs map[int64][]string
 }
 
 // teamOrgRoleNames extracts role names from a TeamOrgRoleEntry. Returns nil when entry is nil.
@@ -71,10 +75,80 @@ func NewExporter(ctx context.Context, repository repository.Repository) (*Export
 		return nil, fmt.Errorf("error creating GitHub client: %w", err)
 	}
 	return &Exporter{
-		ctx:    ctx,
-		client: client,
-		Owner:  repository,
+		ctx:           ctx,
+		client:        client,
+		Owner:         repository,
+		teamRepos:     make(map[string][]*github.Repository),
+		repoTeamSlugs: make(map[int64][]string),
 	}, nil
+}
+
+// listTeamRepos returns the team's repositories including inherited ones, cached per team.
+func (e *Exporter) listTeamRepos(slug string) ([]*github.Repository, error) {
+	if repos, ok := e.teamRepos[slug]; ok {
+		return repos, nil
+	}
+	repos, err := gh.ListTeamRepos(e.ctx, e.client, e.Owner, slug, nil, true)
+	if err != nil {
+		return nil, err
+	}
+	e.teamRepos[slug] = repos
+	return repos, nil
+}
+
+// isRepoTeam reports whether the team is listed in the repository's teams, cached per repository.
+func (e *Exporter) isRepoTeam(repo *github.Repository, slug string) (bool, error) {
+	slugs, ok := e.repoTeamSlugs[repo.GetID()]
+	if !ok {
+		teams, err := gh.ListRepositoryTeams(e.ctx, e.client, repository.Repository{
+			Host:  e.Owner.Host,
+			Owner: repo.GetOwner().GetLogin(),
+			Name:  repo.GetName(),
+		})
+		if err != nil {
+			return false, err
+		}
+		slugs = make([]string, 0, len(teams))
+		for _, t := range teams {
+			slugs = append(slugs, t.GetSlug())
+		}
+		e.repoTeamSlugs[repo.GetID()] = slugs
+	}
+	return slices.Contains(slugs, slug), nil
+}
+
+// listDirectTeamRepos returns the team's repositories excluding those inherited from the parent team.
+func (e *Exporter) listDirectTeamRepos(team *github.Team) ([]*github.Repository, error) {
+	slug := team.GetSlug()
+	repos, err := e.listTeamRepos(slug)
+	if err != nil || team.Parent == nil {
+		return repos, err
+	}
+	parentRepos, err := e.listTeamRepos(team.Parent.GetSlug())
+	if err != nil {
+		return nil, err
+	}
+	parentRepoMap := make(map[int64]*github.Repository, len(parentRepos))
+	for _, r := range parentRepos {
+		parentRepoMap[r.GetID()] = r
+	}
+
+	var directRepos []*github.Repository
+	for _, repo := range repos {
+		if gh.CompareRepository(repo, parentRepoMap[repo.GetID()]) != nil {
+			directRepos = append(directRepos, repo)
+			continue
+		}
+		// Same permission as the parent: only an explicit grant makes it a direct repository.
+		ok, err := e.isRepoTeam(repo, slug)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			directRepos = append(directRepos, repo)
+		}
+	}
+	return directRepos, nil
 }
 
 func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
@@ -155,7 +229,7 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 
 		var repoPermissions []TeamRepositoryPermission
 		if options.GetIsExportRepositories() {
-			repos, err := gh.ListTeamRepos(e.ctx, e.client, e.Owner, *team.Slug, nil, false)
+			repos, err := e.listDirectTeamRepos(team)
 			if err != nil {
 				return nil, fmt.Errorf("error retrieving team repositories for team %s: %w", *team.Slug, err)
 			}
