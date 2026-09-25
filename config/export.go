@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/repository"
 	"github.com/google/go-github/v90/github"
@@ -243,6 +244,9 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 					Permission: gh.GetRepositoryPermissions(repo),
 				})
 			}
+			slices.SortFunc(repoPermissions, func(a, b TeamRepositoryPermission) int {
+				return strings.Compare(a.Name, b.Name)
+			})
 		}
 
 		var groupName string
