@@ -4,6 +4,7 @@ go 1.26.1
 
 require (
 	github.com/cli/go-gh/v2 v2.13.0
+	github.com/google/go-github/v90 v90.0.0
 	github.com/hmarr/codeowners v1.2.1
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/srz-zumix/go-gh-extension v0.6.16
@@ -46,7 +47,6 @@ require (
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/google/go-github/v88 v88.0.0 // indirect
-	github.com/google/go-github/v90 v90.0.0 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
