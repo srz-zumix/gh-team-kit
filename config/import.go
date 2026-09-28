@@ -18,6 +18,8 @@ type Importer struct {
 	client               *client.GitHubClient
 	Owner                repository.Repository
 	NoRemoveExtraMembers bool
+	// SkipExistingTeamSettings keeps team settings, code review settings and external group connections of existing teams.
+	SkipExistingTeamSettings bool
 }
 
 func NewImporter(ctx context.Context, repository repository.Repository) (*Importer, error) {
@@ -55,6 +57,7 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 			return errorList, fmt.Errorf("error looking up team %s: %w", teamConfig.Slug, err)
 		}
 
+		skipTeamSettings := existingTeam != nil && i.SkipExistingTeamSettings
 		didUnsetExternalGroup := false
 		didSetExternalGroup := false
 		if existingTeam != nil && allowExternalGroups {
@@ -64,9 +67,11 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 			}
 			if existingGroup != nil {
 				existingGroupName := existingGroup.GetGroupName()
-				// Unset when the config specifies no group, the group name has changed,
-				// or the team is no longer eligible for an external group.
-				if teamConfig.Group == "" || existingGroupName != teamConfig.Group || !isTopLevelLeafTeam {
+				if skipTeamSettings {
+					// Keep the existing connection; members are managed by the IdP group.
+					logger.Info("keeping existing external group of existing team", "team", teamConfig.Slug, "group", existingGroupName)
+					didSetExternalGroup = true
+				} else if teamConfig.Group == "" || existingGroupName != teamConfig.Group || !isTopLevelLeafTeam {
 					err = gh.UnsetExternalGroupForTeam(i.ctx, i.client, i.Owner, teamConfig.Slug)
 					if err != nil {
 						errorList = append(errorList, fmt.Errorf("error removing external group for team %s: %w", teamConfig.Slug, err))
@@ -86,7 +91,9 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 		// When creating, use teamConfig.Slug as the name so that GitHub generates a slug
 		// that matches the configured slug. If Name and Slug differ, follow up with an
 		// UpdateTeam call to set the intended display name.
-		if existingTeam != nil {
+		if skipTeamSettings {
+			logger.Info("skipping settings update of existing team", "team", teamConfig.Slug)
+		} else if existingTeam != nil {
 			_, err = gh.UpdateTeam(i.ctx, i.client, i.Owner, teamConfig.Slug, &teamConfig.Name, &teamConfig.Description, &teamConfig.Privacy, teamConfig.NotificationSetting, teamConfig.ParentTeam)
 			if err != nil {
 				return errorList, fmt.Errorf("error updating team %s: %w", teamConfig.Slug, err)
@@ -108,7 +115,9 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 		// Determine whether to connect an external group for this team.
 		// Log the reason when the external group cannot be applied.
 		if teamConfig.Group != "" && !didSetExternalGroup {
-			if !allowExternalGroups {
+			if skipTeamSettings {
+				logger.Info("skipping external group: existing team settings are kept", "team", teamConfig.Slug, "group", teamConfig.Group)
+			} else if !allowExternalGroups {
 				logger.Warn("skipping external group: organization does not support external groups", "team", teamConfig.Slug, "group", teamConfig.Group)
 				errorList = append(errorList, fmt.Errorf("cannot set external group for team %s because the organization does not support external groups", teamConfig.Slug))
 			} else if !isTopLevelLeafTeam {
@@ -150,7 +159,7 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 			// is removed before adding members, unless it was already unset during the
 			// pre-creation check above. A team with an external group cannot have explicit members.
 			// Newly created teams cannot have an existing external group, so skip the unset call.
-			if existingTeam != nil && allowExternalGroups && !didUnsetExternalGroup {
+			if existingTeam != nil && allowExternalGroups && !didUnsetExternalGroup && !skipTeamSettings {
 				err = gh.UnsetExternalGroupForTeam(i.ctx, i.client, i.Owner, teamConfig.Slug)
 				if err != nil {
 					errorList = append(errorList, fmt.Errorf("error removing external group for team %s: %w", teamConfig.Slug, err))
@@ -194,7 +203,7 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 			}
 		}
 
-		if teamConfig.CodeReviewSettings != nil {
+		if teamConfig.CodeReviewSettings != nil && !skipTeamSettings {
 			err = gh.SetTeamCodeReviewSettings(i.ctx, i.client, i.Owner, teamConfig.Slug, &gh.TeamCodeReviewSettings{
 				TeamSlug:                     teamConfig.Slug,
 				Enabled:                      teamConfig.CodeReviewSettings.Enabled,

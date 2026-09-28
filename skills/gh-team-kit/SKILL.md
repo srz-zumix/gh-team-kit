@@ -327,6 +327,9 @@ gh team-kit import teams.yaml --usermap usermap.yaml
 # Skip removing extra members not in config
 gh team-kit import teams.yaml --no-remove-extra-members
 
+# Keep settings of existing teams (create missing teams, still apply members)
+gh team-kit import teams.yaml --skip-existing-team-settings
+
 # Continue on errors without exiting
 gh team-kit import teams.yaml --ignore-errors
 ```
