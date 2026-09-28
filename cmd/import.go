@@ -116,7 +116,7 @@ When --usermap is specified, source logins are automatically converted to target
 	f.StringVarP(&host, "host", "H", "", "Specify the GitHub host")
 	f.StringVar(&mapFile, "usermap", "", "User mapping file (as produced by 'user map') for login conversion during import")
 	f.BoolVar(&noRemoveExtraMembers, "no-remove-extra-members", false, "Skip removing existing team members that are not in the imported configuration; this does not affect removals required when setting an external group")
-	f.BoolVar(&skipExistingTeamSettings, "skip-existing-team-settings", false, "Keep settings (name, description, privacy, notification, parent, code review, external group) of existing teams; only missing teams are created, and members, repositories and org roles are still applied")
+	f.BoolVar(&skipExistingTeamSettings, "skip-existing-team-settings", false, "Keep settings (name, description, privacy, notification, parent, code review, external group) of existing teams; only missing teams are created, and members, repositories and org roles are still applied (member changes are skipped for existing teams connected to an external group)")
 	f.BoolVar(&ignoreErrors, "ignore-errors", false, "Continue without exiting on error during import")
 
 	_ = cmdflags.AddFormatFlags(cmd, &opts.Exporter, &format, "", []string{"yaml"})
