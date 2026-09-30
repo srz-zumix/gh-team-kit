@@ -91,6 +91,7 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 		// When creating, use teamConfig.Slug as the name so that GitHub generates a slug
 		// that matches the configured slug. If Name and Slug differ, follow up with an
 		// UpdateTeam call to set the intended display name.
+		isNewTeam := existingTeam == nil
 		if skipTeamSettings {
 			logger.Info("skipping settings update of existing team", "team", teamConfig.Slug)
 		} else if existingTeam != nil {
@@ -175,7 +176,9 @@ func (i *Importer) importTeam(organizationConfig *OrganizationConfig, teamHierar
 				errorList = append(errorList, fmt.Errorf("error adding maintainers to team %s: %w", teamConfig.Slug, err))
 			}
 
-			if !i.NoRemoveExtraMembers {
+			// Even with NoRemoveExtraMembers, a newly created team must still have its
+			// auto-added creator removed if they are not part of the configured members.
+			if !i.NoRemoveExtraMembers || isNewTeam {
 				allMembers := make([]string, len(teamConfig.Members), len(teamConfig.Members)+len(teamConfig.Maintainers))
 				copy(allMembers, teamConfig.Members)
 				allMembers = append(allMembers, teamConfig.Maintainers...)
