@@ -33,6 +33,7 @@ func NewListCmd() *cobra.Command {
 		Aliases: []string{"ls"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			fetchDetails := details
 			if suspended.IsSet() {
 				details = true
 			}
@@ -55,12 +56,22 @@ func NewListCmd() *cobra.Command {
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if details {
-				collaborators, err = gh.UpdateUsers(ctx, client, collaborators)
+				if fetchDetails {
+					collaborators, err = gh.UpdateUsers(ctx, client, collaborators)
+				} else {
+					collaborators, err = gh.UpdateUsersForSuspension(ctx, client, collaborators)
+				}
 				if err != nil {
 					return fmt.Errorf("failed to update collaborators: %w", err)
 				}
 				if suspended.IsEnabled() {
 					collaborators = gh.CollectSuspendedUsers(collaborators)
+					if !fetchDetails && !nameOnly {
+						collaborators, err = gh.UpdateUsers(ctx, client, collaborators)
+						if err != nil {
+							return fmt.Errorf("failed to update suspended collaborators: %w", err)
+						}
+					}
 				}
 				if suspended.IsDisabled() {
 					collaborators = gh.ExcludeSuspendedUsers(collaborators)
@@ -85,6 +96,9 @@ func NewListCmd() *cobra.Command {
 				return renderer.RenderNames(collaborators)
 			}
 			headers := []string{"USERNAME", "ROLE"}
+			if details {
+				headers = []string{"LOGIN", "NAME", "ROLE"}
+			}
 			if withTeam {
 				headers = append(headers, "TEAM")
 			}

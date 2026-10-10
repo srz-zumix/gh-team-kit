@@ -34,6 +34,7 @@ func NewListCmd() *cobra.Command {
 				role = args[0]
 			}
 
+			fetchDetails := details
 			if suspended.IsSet() {
 				details = true
 			}
@@ -55,12 +56,22 @@ func NewListCmd() *cobra.Command {
 			}
 
 			if details {
-				users, err = gh.UpdateUsers(ctx, client, users)
+				if fetchDetails {
+					users, err = gh.UpdateUsers(ctx, client, users)
+				} else {
+					users, err = gh.UpdateUsersForSuspension(ctx, client, users)
+				}
 				if err != nil {
 					return fmt.Errorf("failed to update user details: %w", err)
 				}
 				if suspended.IsEnabled() {
 					users = gh.CollectSuspendedUsers(users)
+					if !fetchDetails && !nameOnly {
+						users, err = gh.UpdateUsers(ctx, client, users)
+						if err != nil {
+							return fmt.Errorf("failed to update suspended user details: %w", err)
+						}
+					}
 				}
 				if suspended.IsDisabled() {
 					users = gh.ExcludeSuspendedUsers(users)
@@ -74,6 +85,7 @@ func NewListCmd() *cobra.Command {
 
 			headers := []string{"USERNAME", "ROLE", "TEAM"}
 			if details {
+				headers = []string{"LOGIN", "NAME", "ROLE", "TEAM"}
 				headers = append(headers, "EMAIL", "SUSPENDED")
 			}
 			return renderer.RenderUsers(users, headers)

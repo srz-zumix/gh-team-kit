@@ -44,6 +44,7 @@ func NewPickCmd() *cobra.Command {
 				}
 			}
 
+			fetchDetails := details
 			if suspended.IsSet() {
 				details = true
 			}
@@ -78,12 +79,22 @@ func NewPickCmd() *cobra.Command {
 
 			// Apply filters if details are requested
 			if details {
-				members, err = gh.UpdateUsers(ctx, client, members)
+				if fetchDetails {
+					members, err = gh.UpdateUsers(ctx, client, members)
+				} else {
+					members, err = gh.UpdateUsersForSuspension(ctx, client, members)
+				}
 				if err != nil {
 					return fmt.Errorf("failed to update users: %w", err)
 				}
 				if suspended.IsEnabled() {
 					members = gh.CollectSuspendedUsers(members)
+					if !fetchDetails && !nameOnly {
+						members, err = gh.UpdateUsers(ctx, client, members)
+						if err != nil {
+							return fmt.Errorf("failed to update suspended users: %w", err)
+						}
+					}
 				}
 				if suspended.IsDisabled() {
 					members = gh.ExcludeSuspendedUsers(members)
