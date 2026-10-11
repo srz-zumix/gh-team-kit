@@ -30,6 +30,7 @@ func NewOnlyCmd() *cobra.Command {
 		Long:  `List members who belong exclusively to the specified team and are not members of any other team in the organization.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			fetchDetails := details
 			if suspended.IsSet() {
 				details = true
 			}
@@ -53,7 +54,11 @@ func NewOnlyCmd() *cobra.Command {
 			renderer := render.NewRenderer(opts.Exporter)
 
 			if details {
-				members, err = gh.UpdateUsers(ctx, client, members)
+				if fetchDetails {
+					members, err = gh.UpdateUsers(ctx, client, members)
+				} else {
+					members, err = gh.UpdateUsersForSuspension(ctx, client, members)
+				}
 				if err != nil {
 					return fmt.Errorf("failed to update users: %w", err)
 				}
@@ -62,6 +67,12 @@ func NewOnlyCmd() *cobra.Command {
 				}
 				if suspended.IsDisabled() {
 					members = gh.ExcludeSuspendedUsers(members)
+				}
+				if suspended.IsSet() && !fetchDetails && !nameOnly {
+					members, err = gh.UpdateUsers(ctx, client, members)
+					if err != nil {
+						return fmt.Errorf("failed to update user details: %w", err)
+					}
 				}
 			}
 
