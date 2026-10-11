@@ -66,15 +66,15 @@ func NewListCmd() *cobra.Command {
 				}
 				if suspended.IsEnabled() {
 					users = gh.CollectSuspendedUsers(users)
-					if !fetchDetails && !nameOnly {
-						users, err = gh.UpdateUsers(ctx, client, users)
-						if err != nil {
-							return fmt.Errorf("failed to update suspended user details: %w", err)
-						}
-					}
 				}
 				if suspended.IsDisabled() {
 					users = gh.ExcludeSuspendedUsers(users)
+				}
+				if suspended.IsSet() && !fetchDetails && !nameOnly {
+					users, err = gh.UpdateUsers(ctx, client, users)
+					if err != nil {
+						return fmt.Errorf("failed to update user details: %w", err)
+					}
 				}
 			}
 

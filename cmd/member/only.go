@@ -64,15 +64,15 @@ func NewOnlyCmd() *cobra.Command {
 				}
 				if suspended.IsEnabled() {
 					members = gh.CollectSuspendedUsers(members)
-					if !fetchDetails && !nameOnly {
-						members, err = gh.UpdateUsers(ctx, client, members)
-						if err != nil {
-							return fmt.Errorf("failed to update suspended users: %w", err)
-						}
-					}
 				}
 				if suspended.IsDisabled() {
 					members = gh.ExcludeSuspendedUsers(members)
+				}
+				if suspended.IsSet() && !fetchDetails && !nameOnly {
+					members, err = gh.UpdateUsers(ctx, client, members)
+					if err != nil {
+						return fmt.Errorf("failed to update user details: %w", err)
+					}
 				}
 			}
 
