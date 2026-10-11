@@ -5,6 +5,7 @@ import (
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
+	"github.com/srz-zumix/gh-team-kit/pkg/userfilter"
 	"github.com/srz-zumix/go-gh-extension/pkg/cmdflags"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
@@ -35,6 +36,7 @@ func NewListCmd() *cobra.Command {
 				owner = args[0]
 			}
 
+			fetchDetails := details
 			if suspended.IsSet() {
 				details = true
 			}
@@ -58,15 +60,9 @@ func NewListCmd() *cobra.Command {
 			renderer := render.NewRenderer(opts.Exporter)
 
 			if details {
-				members, err = gh.UpdateUsers(ctx, client, members)
+				members, err = userfilter.UpdateAndFilter(ctx, client, members, suspended, fetchDetails, nameOnly)
 				if err != nil {
 					return fmt.Errorf("failed to update users: %w", err)
-				}
-				if suspended.IsEnabled() {
-					members = gh.CollectSuspendedUsers(members)
-				}
-				if suspended.IsDisabled() {
-					members = gh.ExcludeSuspendedUsers(members)
 				}
 			}
 

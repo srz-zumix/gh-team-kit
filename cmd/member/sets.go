@@ -5,6 +5,7 @@ import (
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
+	"github.com/srz-zumix/gh-team-kit/pkg/userfilter"
 	"github.com/srz-zumix/go-gh-extension/pkg/cmdflags"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
@@ -47,6 +48,7 @@ Special team slugs:
 			team1 := args[0]
 			team2 := args[2]
 
+			fetchDetails := details
 			if suspended.IsSet() {
 				details = true
 			}
@@ -83,13 +85,22 @@ Special team slugs:
 
 			if details && repo1.Host != repo2.Host {
 				// If the repositories are on different hosts, we need to update the user details
-				members1, err = gh.UpdateUsers(ctx, client1, members1)
+				members1, err = userfilter.Update(ctx, client1, members1, fetchDetails)
 				if err != nil {
 					return fmt.Errorf("failed to update users after set operation: %w", err)
 				}
-				members2, err = gh.UpdateUsers(ctx, client2, members2)
+				members2, err = userfilter.Update(ctx, client2, members2, fetchDetails)
 				if err != nil {
 					return fmt.Errorf("failed to update users after set operation: %w", err)
+				}
+				if userfilter.NeedsDetailsAfterFilter(suspended, fetchDetails, nameOnly) {
+					// Fetch full details with each host's client for the members kept by the suspension filter
+					if _, err = gh.UpdateUsers(ctx, client1, userfilter.FilterSuspended(suspended, members1)); err != nil {
+						return fmt.Errorf("failed to update user details in team1: %w", err)
+					}
+					if _, err = gh.UpdateUsers(ctx, client2, userfilter.FilterSuspended(suspended, members2)); err != nil {
+						return fmt.Errorf("failed to update user details in team2: %w", err)
+					}
 				}
 			}
 
@@ -98,16 +109,17 @@ Special team slugs:
 
 			if details {
 				if repo1.Host == repo2.Host {
-					result, err = gh.UpdateUsers(ctx, client1, result)
+					result, err = userfilter.Update(ctx, client1, result, fetchDetails)
 					if err != nil {
 						return fmt.Errorf("failed to update users after set operation: %w", err)
 					}
 				}
-				if suspended.IsEnabled() {
-					result = gh.CollectSuspendedUsers(result)
-				}
-				if suspended.IsDisabled() {
-					result = gh.ExcludeSuspendedUsers(result)
+				result = userfilter.FilterSuspended(suspended, result)
+				if userfilter.NeedsDetailsAfterFilter(suspended, fetchDetails, nameOnly) && repo1.Host == repo2.Host {
+					result, err = gh.UpdateUsers(ctx, client1, result)
+					if err != nil {
+						return fmt.Errorf("failed to update user details after set operation: %w", err)
+					}
 				}
 			}
 

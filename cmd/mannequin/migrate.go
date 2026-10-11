@@ -97,7 +97,7 @@ Example:
 						}
 					}
 					if noSuspended {
-						srcMembers, err = gh.UpdateUsers(ctx, srcClient, srcMembers)
+						srcMembers, err = gh.UpdateUsersForSuspension(ctx, srcClient, srcMembers)
 						if err != nil {
 							return fmt.Errorf("failed to fetch member details on source organization '%s': %w", parser.GetRepositoryFullNameWithHost(srcRepository), err)
 						}

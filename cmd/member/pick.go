@@ -8,6 +8,7 @@ import (
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
+	"github.com/srz-zumix/gh-team-kit/pkg/userfilter"
 	"github.com/srz-zumix/go-gh-extension/pkg/cmdflags"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
@@ -44,6 +45,7 @@ func NewPickCmd() *cobra.Command {
 				}
 			}
 
+			fetchDetails := details
 			if suspended.IsSet() {
 				details = true
 			}
@@ -78,15 +80,9 @@ func NewPickCmd() *cobra.Command {
 
 			// Apply filters if details are requested
 			if details {
-				members, err = gh.UpdateUsers(ctx, client, members)
+				members, err = userfilter.UpdateAndFilter(ctx, client, members, suspended, fetchDetails, nameOnly)
 				if err != nil {
 					return fmt.Errorf("failed to update users: %w", err)
-				}
-				if suspended.IsEnabled() {
-					members = gh.CollectSuspendedUsers(members)
-				}
-				if suspended.IsDisabled() {
-					members = gh.ExcludeSuspendedUsers(members)
 				}
 
 				// Re-check count after filtering

@@ -5,6 +5,7 @@ import (
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
+	"github.com/srz-zumix/gh-team-kit/pkg/userfilter"
 	"github.com/srz-zumix/go-gh-extension/pkg/cmdflags"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
@@ -33,6 +34,7 @@ func NewListCmd() *cobra.Command {
 		Aliases: []string{"ls"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			fetchDetails := details
 			if suspended.IsSet() {
 				details = true
 			}
@@ -55,15 +57,9 @@ func NewListCmd() *cobra.Command {
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if details {
-				collaborators, err = gh.UpdateUsers(ctx, client, collaborators)
+				collaborators, err = userfilter.UpdateAndFilter(ctx, client, collaborators, suspended, fetchDetails, nameOnly)
 				if err != nil {
 					return fmt.Errorf("failed to update collaborators: %w", err)
-				}
-				if suspended.IsEnabled() {
-					collaborators = gh.CollectSuspendedUsers(collaborators)
-				}
-				if suspended.IsDisabled() {
-					collaborators = gh.ExcludeSuspendedUsers(collaborators)
 				}
 			}
 
@@ -85,6 +81,9 @@ func NewListCmd() *cobra.Command {
 				return renderer.RenderNames(collaborators)
 			}
 			headers := []string{"USERNAME", "ROLE"}
+			if details {
+				headers = []string{"LOGIN", "NAME", "ROLE"}
+			}
 			if withTeam {
 				headers = append(headers, "TEAM")
 			}

@@ -185,7 +185,7 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 			return nil, fmt.Errorf("error retrieving team members for team %s: %w", *team.Slug, err)
 		}
 		if options.GetExcludeSuspended() {
-			members, err = gh.UpdateUsers(e.ctx, e.client, members)
+			members, err = gh.UpdateUsersForSuspension(e.ctx, e.client, members)
 			if err != nil {
 				return nil, fmt.Errorf("error updating team members for team %s: %w", *team.Slug, err)
 			}
@@ -196,7 +196,7 @@ func (e *Exporter) Export(options *ExportOptions) (*OrganizationConfig, error) {
 			return nil, fmt.Errorf("error retrieving team maintainers for team %s: %w", *team.Slug, err)
 		}
 		if options.GetExcludeSuspended() {
-			maintainers, err = gh.UpdateUsers(e.ctx, e.client, maintainers)
+			maintainers, err = gh.UpdateUsersForSuspension(e.ctx, e.client, maintainers)
 			if err != nil {
 				return nil, fmt.Errorf("error updating team maintainers for team %s: %w", *team.Slug, err)
 			}
