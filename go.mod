@@ -7,7 +7,7 @@ require (
 	github.com/google/go-github/v90 v90.0.0
 	github.com/hmarr/codeowners v1.2.1
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
-	github.com/srz-zumix/go-gh-extension v0.6.26
+	github.com/srz-zumix/go-gh-extension v0.6.28
 )
 
 require (
