@@ -8,8 +8,8 @@ import (
 func NewRepoCmd() *cobra.Command {
 	var cmd = &cobra.Command{
 		Use:   "repo",
-		Short: "Manage repositories",
-		Long:  `Manage repositories.`,
+		Short: "Manage repository team access",
+		Long:  `Manage teams and permissions for repositories.`,
 	}
 
 	cmd.AddCommand(repo.NewAddCmd())

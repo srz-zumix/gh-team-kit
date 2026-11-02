@@ -12,6 +12,8 @@ permissions, migrating an organization — becomes a single scriptable command.
   on import-style commands.
 - **Set operations on teams**: Answer "who is in team A but not team B?" with union, intersection, and difference
   operations on team members.
+- **Team repository access**: List, compare, copy, sync, grant, and revoke repository permissions from the team's
+  perspective with `gh team-kit access`.
 - **Diff and sync**: Compare teams, repositories, and permissions, then copy or synchronize them across repositories and
   organizations.
 - **Organization migration**: Export an entire team structure (members, repositories, external groups, org roles, code
@@ -42,6 +44,9 @@ gh team-kit member add my-team alice bob
 
 # Who is in team-a but not in team-b?
 gh team-kit member sets team-a '-' team-b
+
+# Copy team-a's repository access to team-b
+gh team-kit access copy team-a team-b
 
 # Compare team permissions between two repositories
 gh team-kit repo diff owner/repo1 owner/repo2

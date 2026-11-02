@@ -1,6 +1,6 @@
 ---
 name: gh-team-kit
-description: gh-team-kit GitHub CLI extension for managing GitHub Organization teams, members, repositories, org roles, member privileges, IDP/EMU groups, and Copilot (metrics and CLI canvas extension installation). Use when performing team membership operations, syncing teams, managing org roles, comparing repository permissions, exporting/importing team configurations, handling Enterprise Managed Users (EMU), or generating pull request activity relationship graphs.
+description: gh-team-kit GitHub CLI extension for managing GitHub Organization teams, members, team repository access, repository collaborators, org roles, member privileges, IDP/EMU groups, and Copilot (metrics and CLI canvas extension installation). Use when performing team membership operations, syncing team repository permissions, managing org roles, comparing repository permissions, exporting/importing team configurations, handling Enterprise Managed Users (EMU), or generating pull request activity relationship graphs.
 license: MIT
 compatibility:
   - Requires gh CLI (https://cli.github.com) with gh-team-kit extension installed (`gh extension install srz-zumix/gh-team-kit`)
@@ -21,7 +21,6 @@ gh team-kit
 ├── delete                      # Delete a team
 ├── rename                      # Rename a team
 ├── move                        # Move a team to a new parent
-├── diff                        # Compare repositories between two teams
 ├── tree                        # Display team hierarchy as a tree
 ├── export                      # Export team configuration to file
 ├── import                      # Import team configuration from file
@@ -36,7 +35,14 @@ gh team-kit
 │   ├── role
 │   ├── sets
 │   └── sync
-├── repo                        # Manage team repository access
+├── access                      # Manage repository access for teams
+│   ├── add
+│   ├── copy
+│   ├── diff
+│   ├── list
+│   ├── remove
+│   └── sync
+├── repo                        # Manage repository team access
 │   ├── add
 │   ├── check
 │   ├── copy
@@ -253,22 +259,6 @@ gh team-kit move <team-slug> <new-parent-slug>
 gh team-kit move <team-slug>
 ```
 
-### `diff`
-
-```bash
-# Compare repositories between two teams
-gh team-kit diff <team-slug1> <team-slug2>
-
-# Filter by specific repositories
-gh team-kit diff <team-slug1> <team-slug2> repo1 repo2
-
-# Return exit code 1 if differences exist
-gh team-kit diff <team-slug1> <team-slug2> --exit-code
-
-# Control color output
-gh team-kit diff <team-slug1> <team-slug2> --color always
-```
-
 ### `tree`
 
 ```bash
@@ -477,7 +467,68 @@ gh team-kit member pick <team-slug> -2
 
 ---
 
-## `repo` — Manage Team Repository Access
+## `access` — Manage Team Repository Access
+
+Team arguments accept `[[HOST/]OWNER/]team-slug`. Use `--owner` to set the default organization.
+
+### `access add`
+
+```bash
+gh team-kit access add <team-slug> push repo1 repo2
+```
+
+Repository names must belong to the team's organization. Use a repository name, `OWNER/REPO`, or `[HOST/]OWNER/REPO`.
+
+### `access copy`
+
+```bash
+# Add direct permissions without removing destination grants
+gh team-kit access copy <src-team-slug> <dst-team-slug>
+
+# Overwrite conflicting permissions
+gh team-kit access copy <src-team-slug> <dst-team-slug> --force
+```
+
+### `access diff`
+
+```bash
+# Compare repositories between two teams
+gh team-kit access diff <team-slug1> <team-slug2>
+
+# Filter by repository name
+gh team-kit access diff <team-slug1> <team-slug2> repo1 repo2
+
+# Return exit code 1 if differences exist
+gh team-kit access diff <team-slug1> <team-slug2> --exit-code
+```
+
+### `access list`
+
+```bash
+gh team-kit access list <team-slug>
+gh team-kit access list <team-slug> --no-inherit
+gh team-kit access list <team-slug> --role push
+```
+
+### `access remove`
+
+```bash
+gh team-kit access remove <team-slug> repo1 repo2
+```
+
+### `access sync`
+
+```bash
+# Make destination direct permissions match the source team
+gh team-kit access sync <src-team-slug> <dst-team-slug>
+```
+
+Copy skips permission conflicts with a warning unless `--force` is set. Sync removes destination
+direct grants absent from the source but leaves inherited permissions in place.
+
+---
+
+## `repo` — Manage Repository Team Access
 
 ### `repo add`
 
@@ -499,17 +550,14 @@ gh team-kit repo remove <team-slug> --repo owner/repo
 ### `repo list` (alias: `ls`)
 
 ```bash
-# List repositories for a team
-gh team-kit repo list <team-slug>
+# List teams with access to the current repository
+gh team-kit repo list
 
-# Output only names
-gh team-kit repo list <team-slug> --name-only
+# List teams with access to a specified repository
+gh team-kit repo list --repo owner/repo
 
-# Filter by permission
-gh team-kit repo list <team-slug> --role push
-
-# Disable inherited permissions
-gh team-kit repo list <team-slug> --no-inherit
+# Output only team names
+gh team-kit repo list --repo owner/repo --name-only
 ```
 
 ### `repo check`

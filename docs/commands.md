@@ -207,6 +207,81 @@ gh team-kit member remove <team-slug> <username...>
 
 Remove a specified user from the specified team in the organization.
 
+## Team Access Management
+
+Team arguments accept `[[HOST/]OWNER/]team-slug`. If `OWNER` is omitted, the current repository
+organization is used; `--owner` can override it.
+
+### Add repository access for a team
+
+```sh
+gh team-kit access add <team-slug> <permission> <repository...> [--owner <[HOST/]OWNER>]
+```
+
+Grant a team `admin`, `maintain`, `push`, `triage`, or `pull` access to one or more repositories in
+the same organization. Each repository can be a name, `OWNER/REPO`, or `[HOST/]OWNER/REPO`; its
+owner and host must match the team organization. `--owner` is optional and defaults to the current
+repository organization.
+
+### Compare repositories between two teams
+
+```sh
+gh team-kit access diff <team-slug1> <team-slug2> [repository...] \
+  [--color <auto|always|never>] [--exit-code] [--owner <[HOST/]OWNER>]
+```
+
+Compare the repositories and permissions associated with two teams. Repository filters are optional;
+`--color` defaults to `auto`, `--exit-code` defaults to `false`, and `--owner` defaults to the
+current repository organization. Fully qualified team arguments can specify separate organizations
+or hosts. The former top-level `gh team-kit diff` command has moved here.
+
+### Copy repository access between teams
+
+```sh
+gh team-kit access copy <src-team-slug> <dst-team-slug> [-f|--force] [--owner <[HOST/]OWNER>]
+```
+
+Add the source team's direct repository permissions to the destination team without removing other
+destination permissions. Existing equal permissions are unchanged; conflicting destination
+permissions are skipped with a warning unless `--force` is specified, in which case they are
+overwritten. Repositories missing from the destination organization are skipped with a warning.
+`--force` defaults to `false`; `--owner` is optional and defaults to the current repository
+organization. Fully qualified team arguments can specify separate organizations or hosts. An
+unavailable custom permission is reported as an error rather than silently changed.
+
+### List repositories accessible to a team
+
+```sh
+gh team-kit access list <team-slug> [--name-only] [--no-inherit] \
+  [-r|--role <permission[,permission...]>] [--owner <[HOST/]OWNER>]
+```
+
+List repositories accessible to the team. `--name-only`, `--no-inherit`, and `--role` are optional;
+inherited permissions are included by default, and no role filter is applied by default. `--owner`
+defaults to the current repository organization. Standard format flags are also supported.
+
+### Remove repository access for a team
+
+```sh
+gh team-kit access remove <team-slug> <repository...> [--owner <[HOST/]OWNER>]
+```
+
+Revoke the team's access to one or more repositories in the same organization. Each repository can
+be a name, `OWNER/REPO`, or `[HOST/]OWNER/REPO`; its owner and host must match the team
+organization. `--owner` is optional and defaults to the current repository organization.
+
+### Synchronize repository access between teams
+
+```sh
+gh team-kit access sync <src-team-slug> <dst-team-slug> [--owner <[HOST/]OWNER>]
+```
+
+Make the destination team's direct repository permissions match the source team's direct permissions,
+adding or updating grants and removing direct grants absent from the source. Permissions inherited
+by the destination team are not removed and are reported with a warning. `--owner` is optional and
+defaults to the current repository organization. Fully qualified team arguments can specify separate
+organizations or hosts.
+
 ## Repository Management
 
 ### Add a repository to a team
@@ -225,14 +300,6 @@ gh team-kit repo check <team-slug>
 
 Checks whether a team has admin, push, maintain, triage, pull, or none permission for a repository.
 
-### Compare repositories between two teams
-
-```sh
-gh team-kit diff <team-slug1> <team-slug2> [repository...]
-```
-
-Compare the repositories associated with two teams and display the differences.
-
 ### Compare team permissions between two repositories
 
 ```sh
@@ -249,13 +316,15 @@ gh team-kit repo copy <dst-repository...>
 
 Copy teams and permissions from a source repository to multiple destination repositories.
 
-### List repositories for a team
+### List teams for a repository
 
 ```sh
-gh team-kit repo list <team-slug>
+gh team-kit repo list [--repo <[HOST/]OWNER/REPO>] [--name-only]
 ```
 
-List all repositories for the specified team in the organization.
+List teams with access to the repository and their permissions. If `--repo` is omitted, the current
+repository is used. `--name-only` is optional and outputs only team names. Standard format flags
+are also supported.
 
 ### Remove a repository from a team
 

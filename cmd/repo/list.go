@@ -17,19 +17,16 @@ type ListOptions struct {
 func NewListCmd() *cobra.Command {
 	opts := &ListOptions{}
 	var nameOnly bool
-	var noInherit bool
-	var owner string
-	var roles []string
+	var repo string
 
 	cmd := &cobra.Command{
-		Use:     "list <team-slug>",
-		Short:   "List repositories",
-		Long:    `List all repositories for the specified team in the organization.`,
+		Use:     "list",
+		Short:   "List teams for a repository",
+		Long:    `List the teams with access to the specified repository and their permissions.`,
 		Aliases: []string{"ls"},
-		Args:    cobra.ExactArgs(1),
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			teamSlug := args[0]
-			repository, err := parser.Repository(parser.RepositoryOwnerWithHost(owner))
+			repository, err := parser.Repository(parser.RepositoryInput(repo))
 			if err != nil {
 				return fmt.Errorf("error parsing repository: %w", err)
 			}
@@ -40,24 +37,22 @@ func NewListCmd() *cobra.Command {
 			}
 
 			ctx := cmd.Context()
-			repos, err := gh.ListTeamRepos(ctx, client, repository, teamSlug, roles, !noInherit)
+			teams, err := gh.ListRepositoryTeams(ctx, client, repository)
 			if err != nil {
-				return fmt.Errorf("failed to list team repositories: %w", err)
+				return fmt.Errorf("failed to list teams for repository %s: %w", parser.GetRepositoryFullName(repository), err)
 			}
 
 			renderer := render.NewRenderer(opts.Exporter)
 			if nameOnly {
-				return renderer.RenderNames(repos)
+				return renderer.RenderNames(teams)
 			}
-			return renderer.RenderRepository(repos, nil)
+			return renderer.RenderTeamsWithPermission(teams)
 		},
 	}
 
 	f := cmd.Flags()
-	f.BoolVar(&nameOnly, "name-only", false, "Output only repository names")
-	f.BoolVar(&noInherit, "no-inherit", false, "Disable inherited permissions")
-	f.StringVar(&owner, "owner", "", "Organization ([HOST/]OWNER)")
-	cmdutil.StringSliceEnumFlag(cmd, &roles, "role", "r", nil, gh.PermissionsList, "List of permissions to filter repositories")
+	f.BoolVar(&nameOnly, "name-only", false, "Output only team names")
+	f.StringVarP(&repo, "repo", "R", "", "The repository in the format '[HOST/]OWNER/REPO' (defaults to the current repository)")
 	cmdutil.AddFormatFlags(cmd, &opts.Exporter)
 
 	return cmd
