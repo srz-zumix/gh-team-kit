@@ -3,14 +3,18 @@ package user
 import (
 	"fmt"
 
+	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
+	"github.com/srz-zumix/go-gh-extension/pkg/render"
 )
 
 // NewSyncCmd creates a new `repo user sync` command
 func NewSyncCmd() *cobra.Command {
+	var dryrun bool
+	var exporter cmdutil.Exporter
 	var repo string
 	var dstHost string
 
@@ -31,6 +35,7 @@ func NewSyncCmd() *cobra.Command {
 			}
 
 			ctx := cmd.Context()
+			var changes []gh.SyncChange
 			for _, dstArg := range args {
 				dstRepository, err := parser.Repository(parser.RepositoryInput(dstArg))
 				if err != nil {
@@ -47,19 +52,34 @@ func NewSyncCmd() *cobra.Command {
 					}
 				}
 
+				if dryrun {
+					planned, err := gh.PlanSyncRepoUserPermissions(ctx, srcClient, repository, dstClient, dstRepository)
+					if err != nil {
+						return fmt.Errorf("failed to plan sync of user permissions to %s: %w", parser.GetRepositoryFullName(dstRepository), err)
+					}
+					changes = append(changes, planned...)
+					continue
+				}
 				if err := gh.SyncRepoUserPermissions(ctx, srcClient, repository, dstClient, dstRepository); err != nil {
 					return fmt.Errorf("failed to sync user permissions to %s: %w", parser.GetRepositoryFullName(dstRepository), err)
 				}
 				logger.Info("User permissions synced successfully.", "from", parser.GetRepositoryFullName(repository), "to", parser.GetRepositoryFullName(dstRepository))
 			}
 
+			if dryrun {
+				if err := render.NewRenderer(exporter).RenderSyncChanges(changes, nil); err != nil {
+					return fmt.Errorf("failed to render planned user permission changes: %w", err)
+				}
+			}
 			return nil
 		},
 	}
 
 	f := cmd.Flags()
+	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: show planned changes without applying them")
 	f.StringVarP(&repo, "repo", "R", "", "The repository in the format '[HOST/]OWNER/REPO'")
 	f.StringVar(&dstHost, "dst-host", "", "The destination host")
+	cmdutil.AddFormatFlags(cmd, &exporter)
 
 	return cmd
 }

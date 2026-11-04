@@ -8,8 +8,8 @@ permissions, migrating an organization — becomes a single scriptable command.
 ## Highlights
 
 - **Bulk and scriptable**: Operate on many teams, members, and repositories at once, straight from the shell or CI.
-- **Safe by default**: Run any command with `--read-only` to see what would happen before it happens, and use `--dryrun`
-  on import-style commands.
+- **Safe by default**: Use `--read-only` to block write operations, or `--dryrun` to preview changes
+  for import, copy, and sync commands.
 - **Set operations on teams**: Answer "who is in team A but not team B?" with union, intersection, and difference
   operations on team members.
 - **Team repository access**: List, compare, copy, sync, grant, and revoke repository permissions from the team's
@@ -47,6 +47,9 @@ gh team-kit member sets team-a '-' team-b
 
 # Copy team-a's repository access to team-b
 gh team-kit access copy team-a team-b
+
+# Preview team membership changes before syncing
+gh team-kit member sync team-a team-b --dryrun
 
 # Compare team permissions between two repositories
 gh team-kit repo diff owner/repo1 owner/repo2

@@ -3,14 +3,18 @@ package access
 import (
 	"fmt"
 
+	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
+	"github.com/srz-zumix/go-gh-extension/pkg/render"
 )
 
 func NewSyncCmd() *cobra.Command {
 	var owner string
+	var dryrun bool
+	var exporter cmdutil.Exporter
 
 	cmd := &cobra.Command{
 		Use:   "sync <[[host/]owner/]src-team-slug> <[[host/]owner/]dst-team-slug>",
@@ -30,6 +34,19 @@ func NewSyncCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("error creating GitHub clients: %w", err)
 			}
+			if dryrun {
+				plan, err := gh.PlanSyncTeamRepoPermissions(cmd.Context(), srcClient, srcRepo, srcTeamSlug, dstClient, dstRepo, dstTeamSlug)
+				if err != nil {
+					return fmt.Errorf("failed to plan sync of team repository permissions: %w", err)
+				}
+				for _, warning := range plan.Warnings() {
+					logger.Warn(warning, "from", args[0], "to", args[1])
+				}
+				if err := render.NewRenderer(exporter).RenderSyncChanges(plan.Changes(), nil); err != nil {
+					return fmt.Errorf("failed to render planned team repository permission changes: %w", err)
+				}
+				return nil
+			}
 			warnings, err := gh.SyncTeamRepoPermissions(cmd.Context(), srcClient, srcRepo, srcTeamSlug, dstClient, dstRepo, dstTeamSlug)
 			for _, warning := range warnings {
 				logger.Warn(warning, "from", args[0], "to", args[1])
@@ -41,6 +58,9 @@ func NewSyncCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&owner, "owner", "", "Default organization ([HOST/]OWNER)")
+	f := cmd.Flags()
+	f.StringVar(&owner, "owner", "", "Default organization ([HOST/]OWNER)")
+	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: show planned changes without applying them")
+	cmdutil.AddFormatFlags(cmd, &exporter)
 	return cmd
 }

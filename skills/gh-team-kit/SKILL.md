@@ -53,8 +53,10 @@ gh team-kit
 │   └── user
 │       ├── add
 │       ├── check
+│       ├── copy
 │       ├── list
-│       └── remove
+│       ├── remove
+│       └── sync
 ├── org-role                    # Manage organization roles
 │   ├── import
 │   ├── list
@@ -405,6 +407,10 @@ gh team-kit member copy <src-team-slug> <dst-team-slug>
 
 # Cross-org copy
 gh team-kit member copy src-org/src-team dst-org/dst-team
+
+# Preview changes as a table or JSON without applying them
+gh team-kit member copy src-org/src-team dst-org/dst-team --dryrun
+gh team-kit member copy src-org/src-team dst-org/dst-team --dryrun --format json
 ```
 
 ### `member sync`
@@ -415,6 +421,9 @@ gh team-kit member sync <src-team-slug> <dst-team-slug>
 
 # Cross-org sync
 gh team-kit member sync src-org/src-team dst-org/dst-team
+
+# Preview additions, role updates, and removals without applying them
+gh team-kit member sync src-org/src-team dst-org/dst-team --dryrun
 ```
 
 ### `member sets`
@@ -487,6 +496,9 @@ gh team-kit access copy <src-team-slug> <dst-team-slug>
 
 # Overwrite conflicting permissions
 gh team-kit access copy <src-team-slug> <dst-team-slug> --force
+
+# Preview planned repository permission changes
+gh team-kit access copy <src-team-slug> <dst-team-slug> --dryrun
 ```
 
 ### `access diff`
@@ -521,6 +533,9 @@ gh team-kit access remove <team-slug> repo1 repo2
 ```bash
 # Make destination direct permissions match the source team
 gh team-kit access sync <src-team-slug> <dst-team-slug>
+
+# Preview planned grants and revocations
+gh team-kit access sync <src-team-slug> <dst-team-slug> --dryrun
 ```
 
 Copy skips permission conflicts with a warning unless `--force` is set. Sync removes destination
@@ -600,6 +615,9 @@ gh team-kit repo copy <dst-repo> --repo owner/src-repo --force
 
 # Cross-host copy
 gh team-kit repo copy <dst-repo> --repo owner/src-repo --dst-host enterprise.internal
+
+# Preview changes without applying them
+gh team-kit repo copy <dst-repo> --repo owner/src-repo --dryrun
 ```
 
 ### `repo sync`
@@ -610,6 +628,9 @@ gh team-kit repo sync <dst-repo> --repo owner/src-repo
 
 # Sync to multiple destinations
 gh team-kit repo sync dst-repo1 dst-repo2 --repo owner/src-repo
+
+# Preview changes without applying them
+gh team-kit repo sync dst-repo1 dst-repo2 --repo owner/src-repo --dryrun
 ```
 
 ### `repo user` — Manage Repository Collaborators
@@ -642,11 +663,17 @@ gh team-kit repo user copy owner/dst-repo --repo owner/src-repo --force
 # Copy across hosts
 gh team-kit repo user copy owner/dst-repo --repo owner/src-repo --dst-host ghe.example.com
 
+# Preview changes without applying them
+gh team-kit repo user copy owner/dst-repo --repo owner/src-repo --dryrun
+
 # Sync direct user permissions to another repository (adds, updates, and removes)
 gh team-kit repo user sync owner/dst-repo --repo owner/src-repo
 
 # Sync across hosts
 gh team-kit repo user sync owner/dst-repo --repo owner/src-repo --dst-host ghe.example.com
+
+# Preview changes without applying them
+gh team-kit repo user sync owner/dst-repo --repo owner/src-repo --dryrun
 ```
 
 ---
