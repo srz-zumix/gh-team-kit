@@ -333,7 +333,7 @@ gh team-kit repo copy <dst-repository...> [--dst-host <host>] [-n|--dryrun] [-f|
 
 Copy teams and permissions from a source repository to multiple destination repositories. `--dryrun`
 defaults to `false` and displays planned changes without applying them. `--force` defaults to
-`false`; `--dst-host` is optional and defaults to the source repository host; `--repo` is optional
+`false`; `--dst-host` is optional and overrides the host of every destination (when omitted, each destination uses its own `HOST/` prefix, or the GitHub CLI default host for `OWNER/REPO`, not the source host); `--repo` is optional
 and defaults to the current repository. For dry-run output, `--format` defaults to table output and
 accepts `json`; `--jq` and `--template` default to empty and require `--format json`.
 
@@ -364,7 +364,7 @@ gh team-kit repo sync <dst-repository...> [--dst-host <host>] [-n|--dryrun] \
 
 Synchronize teams and permissions from a source repository to multiple destination repositories.
 `--dryrun` defaults to `false` and displays planned changes without applying them; `--dst-host` is
-optional and defaults to the source repository host; `--repo` is optional and defaults to the current
+optional and overrides the host of every destination (when omitted, each destination uses its own `HOST/` prefix, or the GitHub CLI default host for `OWNER/REPO`, not the source host); `--repo` is optional and defaults to the current
 repository. For dry-run output, `--format` defaults to table output and accepts `json`; `--jq` and
 `--template` default to empty and require `--format json`.
 
@@ -524,13 +524,13 @@ Copy direct user collaborator permissions from the source repository to multiple
 repositories. Only direct collaborators (not team-inherited) are copied. If a user already has a
 different permission on the destination, the command fails unless `--force` (or `-f`) is specified.
 `--dryrun` and `--force` default to `false`; `--dryrun` displays planned changes without applying
-them. `--dst-host` is optional and defaults to the source repository host; `--repo` is optional and
+them. `--dst-host` is optional and overrides the host of every destination (when omitted, each destination uses its own `HOST/` prefix, or the GitHub CLI default host for `OWNER/REPO`, not the source host); `--repo` is optional and
 defaults to the current repository. For dry-run output, `--format` defaults to table output and
 accepts `json`; `--jq` and `--template` default to empty and require `--format json`.
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `--dst-host <host>` | (same as source) | Destination host for cross-host copy |
+| `--dst-host <host>` | (destination host, or GitHub CLI default host) | Destination host for cross-host copy |
 | `--dryrun` / `-n` | `false` | Display planned changes without applying them |
 | `--force` / `-f` | `false` | Overwrite existing permissions if they differ |
 | `--format <format>` | table | Output format; `json` enables JSON output |
@@ -565,13 +565,13 @@ Synchronize direct user collaborator permissions from the source repository to m
 repositories. Users are added or updated to match the source, and users not present in the source
 are removed from the destination.
 `--dryrun` defaults to `false` and displays planned changes without applying them; `--dst-host` is
-optional and defaults to the source repository host; `--repo` is optional and defaults to the current
+optional and overrides the host of every destination (when omitted, each destination uses its own `HOST/` prefix, or the GitHub CLI default host for `OWNER/REPO`, not the source host); `--repo` is optional and defaults to the current
 repository. For dry-run output, `--format` defaults to table output and accepts `json`; `--jq` and
 `--template` default to empty and require `--format json`.
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `--dst-host <host>` | (same as source) | Destination host for cross-host sync |
+| `--dst-host <host>` | (destination host, or GitHub CLI default host) | Destination host for cross-host sync |
 | `--dryrun` / `-n` | `false` | Display planned changes without applying them |
 | `--format <format>` | table | Output format; `json` enables JSON output |
 | `--jq <expression>` / `-q` | empty | Filter JSON output; requires `--format json` |
