@@ -186,18 +186,28 @@ Perform set operations on the members of two teams. The operation can be union (
 ### Sync members from one team to another
 
 ```sh
-gh team-kit member sync <[[HOST/]OWNER/]src-team-slug> <[[HOST/]OWNER/]dst-team-slug>
+gh team-kit member sync <[[HOST/]OWNER/]src-team-slug> <[[HOST/]OWNER/]dst-team-slug> \
+  [-n|--dryrun] [--format json] [--jq <expression>] [--template <string>]
 ```
 
-Sync members from the source team to the destination team. Members in the source team will be added to the destination team, and members not in the source team will be removed from the destination team.
+Sync members from the source team to the destination team. Members in the source team will be added
+to the destination team, and members not in the source team will be removed. `--dryrun` defaults to
+`false`; when enabled, it displays planned changes without applying them. For dry-run output,
+`--format` defaults to table output and accepts `json`; `--jq` and `--template` default to empty and
+require `--format json`.
 
 ### Copy members from one team to another
 
 ```sh
-gh team-kit member copy <[[HOST/]OWNER/]src-team-slug> <[[HOST/]OWNER/]dst-team-slug>
+gh team-kit member copy <[[HOST/]OWNER/]src-team-slug> <[[HOST/]OWNER/]dst-team-slug> \
+  [-n|--dryrun] [--format json] [--jq <expression>] [--template <string>]
 ```
 
-Copy members from the source team to the destination team. Members in the source team will be added to the destination team, but no members will be removed from the destination team.
+Copy members from the source team to the destination team. Members in the source team will be added
+to the destination team, but no members will be removed. `--dryrun` defaults to `false`; when
+enabled, it displays planned changes without applying them. For dry-run output, `--format` defaults
+to table output and accepts `json`; `--jq` and `--template` default to empty and require
+`--format json`.
 
 ### Remove a member from a team
 
@@ -238,16 +248,19 @@ or hosts. The former top-level `gh team-kit diff` command has moved here.
 ### Copy repository access between teams
 
 ```sh
-gh team-kit access copy <src-team-slug> <dst-team-slug> [-f|--force] [--owner <[HOST/]OWNER>]
+gh team-kit access copy <src-team-slug> <dst-team-slug> [-n|--dryrun] [-f|--force] \
+  [--format json] [--jq <expression>] [--owner <[HOST/]OWNER>] [--template <string>]
 ```
 
 Add the source team's direct repository permissions to the destination team without removing other
 destination permissions. Existing equal permissions are unchanged; conflicting destination
 permissions are skipped with a warning unless `--force` is specified, in which case they are
 overwritten. Repositories missing from the destination organization are skipped with a warning.
-`--force` defaults to `false`; `--owner` is optional and defaults to the current repository
-organization. Fully qualified team arguments can specify separate organizations or hosts. An
-unavailable custom permission is reported as an error rather than silently changed.
+`--dryrun` and `--force` default to `false`; `--dryrun` displays planned changes without applying
+them. For dry-run output, `--format` defaults to table output and accepts `json`; `--jq` and
+`--template` default to empty and require `--format json`. `--owner` is optional and defaults to the
+current repository organization. Fully qualified team arguments can specify separate organizations
+or hosts. An unavailable custom permission is reported as an error rather than silently changed.
 
 ### List repositories accessible to a team
 
@@ -273,14 +286,17 @@ organization. `--owner` is optional and defaults to the current repository organ
 ### Synchronize repository access between teams
 
 ```sh
-gh team-kit access sync <src-team-slug> <dst-team-slug> [--owner <[HOST/]OWNER>]
+gh team-kit access sync <src-team-slug> <dst-team-slug> [-n|--dryrun] \
+  [--format json] [--jq <expression>] [--owner <[HOST/]OWNER>] [--template <string>]
 ```
 
 Make the destination team's direct repository permissions match the source team's direct permissions,
 adding or updating grants and removing direct grants absent from the source. Permissions inherited
 by the destination team are not removed and are reported with a warning. `--owner` is optional and
-defaults to the current repository organization. Fully qualified team arguments can specify separate
-organizations or hosts.
+defaults to the current repository organization. `--dryrun` defaults to `false`; when enabled, it
+displays planned changes without applying them. For dry-run output, `--format` defaults to table
+output and accepts `json`; `--jq` and `--template` default to empty and require `--format json`. Fully qualified team
+arguments can specify separate organizations or hosts.
 
 ## Repository Management
 
@@ -311,10 +327,15 @@ Compare the team permissions between two repositories and display the difference
 ### Copy teams and permissions to multiple destination repos
 
 ```sh
-gh team-kit repo copy <dst-repository...>
+gh team-kit repo copy <dst-repository...> [--dst-host <host>] [-n|--dryrun] [-f|--force] \
+  [--format json] [--jq <expression>] [-R|--repo <[HOST/]OWNER/REPO>] [--template <string>]
 ```
 
-Copy teams and permissions from a source repository to multiple destination repositories.
+Copy teams and permissions from a source repository to multiple destination repositories. `--dryrun`
+defaults to `false` and displays planned changes without applying them. `--force` defaults to
+`false`; `--dst-host` is optional and defaults to the source repository host; `--repo` is optional
+and defaults to the current repository. For dry-run output, `--format` defaults to table output and
+accepts `json`; `--jq` and `--template` default to empty and require `--format json`.
 
 ### List teams for a repository
 
@@ -337,10 +358,15 @@ Remove a specified repository from the specified team in the organization.
 ### Sync teams and permissions to multiple destination repos
 
 ```sh
-gh team-kit repo sync <dst-repository...>
+gh team-kit repo sync <dst-repository...> [--dst-host <host>] [-n|--dryrun] \
+  [--format json] [--jq <expression>] [-R|--repo <[HOST/]OWNER/REPO>] [--template <string>]
 ```
 
 Synchronize teams and permissions from a source repository to multiple destination repositories.
+`--dryrun` defaults to `false` and displays planned changes without applying them; `--dst-host` is
+optional and defaults to the source repository host; `--repo` is optional and defaults to the current
+repository. For dry-run output, `--format` defaults to table output and accepts `json`; `--jq` and
+`--template` default to empty and require `--format json`.
 
 ## User Management
 
@@ -490,16 +516,27 @@ Check the permissions of a specified user for a repository.
 ### Copy direct user permissions to multiple destination repos
 
 ```sh
-gh team-kit repo user copy [-R <[HOST/]OWNER/REPO>] [--dst-host <host>] [-f] <dst-repository...>
+gh team-kit repo user copy <dst-repository...> [--dst-host <host>] [-n|--dryrun] [-f|--force] \
+  [--format json] [--jq <expression>] [-R|--repo <[HOST/]OWNER/REPO>] [--template <string>]
 ```
 
-Copy direct user collaborator permissions from the source repository to multiple destination repositories. Only direct collaborators (not team-inherited) are copied. If a user already has a different permission on the destination, the command fails unless `--force` (or `-f`) is specified.
+Copy direct user collaborator permissions from the source repository to multiple destination
+repositories. Only direct collaborators (not team-inherited) are copied. If a user already has a
+different permission on the destination, the command fails unless `--force` (or `-f`) is specified.
+`--dryrun` and `--force` default to `false`; `--dryrun` displays planned changes without applying
+them. `--dst-host` is optional and defaults to the source repository host; `--repo` is optional and
+defaults to the current repository. For dry-run output, `--format` defaults to table output and
+accepts `json`; `--jq` and `--template` default to empty and require `--format json`.
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `-R, --repo <[HOST/]OWNER/REPO>` | (current repo) | Source repository |
 | `--dst-host <host>` | (same as source) | Destination host for cross-host copy |
-| `-f, --force` | `false` | Overwrite existing permissions if they differ |
+| `--dryrun` / `-n` | `false` | Display planned changes without applying them |
+| `--force` / `-f` | `false` | Overwrite existing permissions if they differ |
+| `--format <format>` | table | Output format; `json` enables JSON output |
+| `--jq <expression>` / `-q` | empty | Filter JSON output; requires `--format json` |
+| `--repo <[HOST/]OWNER/REPO>` / `-R` | current repository | Source repository |
+| `--template <string>` / `-t` | empty | Format JSON output; requires `--format json` |
 
 ### List users with access to a repository
 
@@ -520,15 +557,26 @@ Remove a specified user's access to a repository.
 ### Sync direct user permissions to multiple destination repos
 
 ```sh
-gh team-kit repo user sync [-R <[HOST/]OWNER/REPO>] [--dst-host <host>] <dst-repository...>
+gh team-kit repo user sync <dst-repository...> [--dst-host <host>] [-n|--dryrun] \
+  [--format json] [--jq <expression>] [-R|--repo <[HOST/]OWNER/REPO>] [--template <string>]
 ```
 
-Synchronize direct user collaborator permissions from the source repository to multiple destination repositories. Users are added or updated to match the source, and users not present in the source are removed from the destination.
+Synchronize direct user collaborator permissions from the source repository to multiple destination
+repositories. Users are added or updated to match the source, and users not present in the source
+are removed from the destination.
+`--dryrun` defaults to `false` and displays planned changes without applying them; `--dst-host` is
+optional and defaults to the source repository host; `--repo` is optional and defaults to the current
+repository. For dry-run output, `--format` defaults to table output and accepts `json`; `--jq` and
+`--template` default to empty and require `--format json`.
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `-R, --repo <[HOST/]OWNER/REPO>` | (current repo) | Source repository |
 | `--dst-host <host>` | (same as source) | Destination host for cross-host sync |
+| `--dryrun` / `-n` | `false` | Display planned changes without applying them |
+| `--format <format>` | table | Output format; `json` enables JSON output |
+| `--jq <expression>` / `-q` | empty | Filter JSON output; requires `--format json` |
+| `--repo <[HOST/]OWNER/REPO>` / `-R` | current repository | Source repository |
+| `--template <string>` / `-t` | empty | Format JSON output; requires `--format json` |
 
 ## Member Privileges Management
 
