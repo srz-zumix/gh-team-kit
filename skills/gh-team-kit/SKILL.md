@@ -491,15 +491,36 @@ Repository names must belong to the team's organization. Use a repository name, 
 ### `access copy`
 
 ```bash
-# Add direct permissions without removing destination grants
+# Copy direct permissions, overwriting conflicting direct grants
 gh team-kit access copy <src-team-slug> <dst-team-slug>
 
-# Overwrite conflicting permissions
-gh team-kit access copy <src-team-slug> <dst-team-slug> --force
+# Also copy inherited-only source permissions missing or weaker at the destination
+gh team-kit access copy <src-team-slug> <dst-team-slug> --include-inherited
+
+# Copy the source team's effective permissions
+gh team-kit access copy <src-team-slug> <dst-team-slug> --effective
 
 # Preview planned repository permission changes
 gh team-kit access copy <src-team-slug> <dst-team-slug> --dryrun
 ```
+
+Direct source grants are materialized at the destination even if inherited
+access matches; conflicting destination direct grants are overwritten,
+including downgrades. The former `--force` flag is no longer accepted.
+`--include-inherited` adds inherited-only source access when the destination has
+no equal or stronger effective access; source direct roles take precedence.
+`--effective` copies source effective roles, still materializing direct-backed
+source access, and skips inherited-only access when the destination effective
+role matches. A differing destination direct role is overwritten, even if it
+is stronger. If a destination parent grants stronger access, `--effective` warns
+and grants the source role directly without reducing inherited access.
+
+The two modes are mutually exclusive. Inherited-only candidates with
+incomparable custom roles, including same-named roles across organizations or
+hosts, are warned and skipped. When copying custom roles across organizations
+or hosts, the command warns that their definitions may differ; they must exist
+at the destination. Destination repositories returning 404 are warned and
+skipped; other errors stop the operation without rolling back earlier grants.
 
 ### `access diff`
 
@@ -507,12 +528,21 @@ gh team-kit access copy <src-team-slug> <dst-team-slug> --dryrun
 # Compare repositories between two teams
 gh team-kit access diff <team-slug1> <team-slug2>
 
+# Compare only permissions directly assigned to each team
+gh team-kit access diff <team-slug1> <team-slug2> --no-inherit
+
 # Filter by repository name
 gh team-kit access diff <team-slug1> <team-slug2> repo1 repo2
 
 # Return exit code 1 if differences exist
 gh team-kit access diff <team-slug1> <team-slug2> --exit-code
 ```
+
+Inherited permissions are included by default. `access copy` does not remove
+destination-only grants, so differences can remain after copying. When no
+differences are found, plain text output is empty and an info-level message is
+logged to standard error unless suppressed by `--log-level`. JSON output is an
+empty array before applying a jq filter or template.
 
 ### `access list`
 
@@ -534,12 +564,32 @@ gh team-kit access remove <team-slug> repo1 repo2
 # Make destination direct permissions match the source team
 gh team-kit access sync <src-team-slug> <dst-team-slug>
 
+# Synchronize inherited access against the destination parent
+gh team-kit access sync <src-team-slug> <dst-team-slug> --include-inherited
+
+# Synchronize effective access
+gh team-kit access sync <src-team-slug> <dst-team-slug> --effective
+
 # Preview planned grants and revocations
 gh team-kit access sync <src-team-slug> <dst-team-slug> --dryrun
 ```
 
-Copy skips permission conflicts with a warning unless `--force` is set. Sync removes destination
-direct grants absent from the source but leaves inherited permissions in place.
+By default, sync removes destination direct grants absent from the source and
+leaves inherited permissions in place. With `--include-inherited`, source direct
+roles take precedence. For inherited-only source access, an equal or stronger
+destination parent replaces any destination direct grant; otherwise the source
+role is directly granted, including downgrades. `--effective` uses source
+effective roles, materializes direct-backed access, and leaves inherited-only
+source access unchanged when destination effective access matches. Otherwise it
+sets the source role directly, including downgrades. Stronger destination parent
+access cannot be removed and is reported.
+
+The options are mutually exclusive. Both remove destination direct grants for
+repositories absent from source effective access. Incomparable inherited-only
+custom roles are warned and skipped. Custom roles copied across organizations or
+hosts may have different definitions. A 404 is warned and skipped; other errors
+can leave earlier changes applied. After applying, direct and effective access
+are verified and discrepancies are reported.
 
 ---
 
