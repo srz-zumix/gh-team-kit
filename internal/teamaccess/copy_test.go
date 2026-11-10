@@ -12,7 +12,7 @@ import (
 )
 
 func testRepository(name, permission string) *github.Repository {
-	return &github.Repository{Name: github.Ptr(name), RoleName: github.Ptr(permission)}
+	return &github.Repository{Name: new(name), RoleName: new(permission)}
 }
 
 func TestCopyRepositorySelection(t *testing.T) {
@@ -273,9 +273,9 @@ func TestCopyRepositorySelectionRejectsInvalidData(t *testing.T) {
 	}{
 		{"missing name", []*github.Repository{{}}, nil, "source direct repository has no name"},
 		{"duplicate name", []*github.Repository{testRepository("sample", "pull"), testRepository("SAMPLE", "push")}, nil, "returned more than once"},
-		{"missing role", []*github.Repository{{Name: github.Ptr("sample")}}, nil, "no usable direct permission"},
+		{"missing role", []*github.Repository{{Name: new("sample")}}, nil, "no usable direct permission"},
 		{"missing effective source", []*github.Repository{testRepository("sample", "pull")}, nil, "missing from effective permissions"},
-		{"missing effective role", nil, []*github.Repository{{Name: github.Ptr("sample")}}, "no usable effective permission"},
+		{"missing effective role", nil, []*github.Repository{{Name: new("sample")}}, "no usable effective permission"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

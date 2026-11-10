@@ -206,7 +206,8 @@ func TestAccessSyncApplyMatchesDryRun(t *testing.T) {
 					fixture.mu.Lock()
 					defer fixture.mu.Unlock()
 					request := copyRequest{method: r.Method, path: r.URL.Path}
-					if r.Method == http.MethodPut {
+					switch r.Method {
+					case http.MethodPut:
 						var body struct {
 							Permission string `json:"permission"`
 						}
@@ -217,7 +218,7 @@ func TestAccessSyncApplyMatchesDryRun(t *testing.T) {
 						}
 						request.permission = body.Permission
 						destination["alpha"] = body.Permission
-					} else if r.Method == http.MethodDelete {
+					case http.MethodDelete:
 						delete(destination, "extra")
 					}
 					fixture.requests = append(fixture.requests, request)
