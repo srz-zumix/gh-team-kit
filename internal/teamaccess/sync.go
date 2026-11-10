@@ -33,16 +33,19 @@ func (p *SyncPlan) Warnings() []string {
 	return append(p.grants.Warnings(), p.predicted...)
 }
 
-func PlanSync(ctx context.Context, source, destination Team, mode CopyMode) (*SyncPlan, error) {
+func PlanSync(ctx context.Context, source, destination Team, mode CopyMode, force bool) (*SyncPlan, error) {
 	if source.Slug == "" || destination.Slug == "" {
 		return nil, fmt.Errorf("source and destination team slugs must not be empty")
 	}
-	if mode != CopyWithInherited && mode != CopyEffective {
-		return nil, fmt.Errorf("unsupported inherited sync mode %d", mode)
+	if mode != CopyDirect && mode != CopyWithInherited && mode != CopyEffective {
+		return nil, fmt.Errorf("unsupported team repository sync mode %d", mode)
 	}
-	state, err := loadAccessState(ctx, source, destination, true, true)
+	state, err := loadAccessState(ctx, source, destination, mode != CopyDirect, true)
 	if err != nil {
 		return nil, err
+	}
+	if mode == CopyDirect {
+		state.sourceEffective = state.sourceDirect
 	}
 	sourceDirect, err := repositoriesByName("source direct", state.sourceDirect)
 	if err != nil {
@@ -53,6 +56,10 @@ func PlanSync(ctx context.Context, source, destination Team, mode CopyMode) (*Sy
 		return nil, err
 	}
 	destinationDirect, err := repositoriesByName("destination direct", state.destinationDirect)
+	if err != nil {
+		return nil, err
+	}
+	destinationEffective, err := repositoriesByName("destination effective", state.destinationEffective)
 	if err != nil {
 		return nil, err
 	}
@@ -74,46 +81,29 @@ func PlanSync(ctx context.Context, source, destination Team, mode CopyMode) (*Sy
 	var warnings []string
 	if mode == CopyEffective {
 		selected, warnings, err = selectCopyRepositoriesWithSkipped(
-			mode, sameOrg, state.sourceDirect, state.sourceEffective,
+			mode, sameOrg, force, state.sourceDirect, state.sourceEffective,
 			state.destinationDirect, state.destinationEffective, state.destinationParent, skipped,
 		)
 	} else {
-		selected, warnings, err = selectCopyRepositories(CopyDirect, sameOrg, state.sourceDirect, nil, nil, nil, nil)
-		if err == nil {
+		selected, warnings, err = selectCopyRepositories(CopyDirect, sameOrg, force, state.sourceDirect, nil, nil, nil, nil)
+		if err == nil && mode == CopyWithInherited {
 			selected, warnings, err = selectInheritedSync(
 				selected, warnings, state.sourceEffective, sourceDirect, destinationDirect, parent,
-				sameOrg, skipped, redundant,
+				sameOrg, force, skipped, redundant,
 			)
 		}
 	}
 	if err != nil {
 		return nil, err
 	}
-	var predicted []string
-	for _, repo := range state.destinationParent {
-		if sourceEffective[strings.ToLower(repo.GetName())] == nil {
-			predicted = append(predicted, fmt.Sprintf("repository %s remains accessible through an inherited permission", repo.GetName()))
-		} else if mode == CopyWithInherited {
-			direct := sourceDirect[strings.ToLower(repo.GetName())]
-			if direct != nil {
-				comparison, comparable := comparePermissions(gh.GetRepositoryPermissions(direct), gh.GetRepositoryPermissions(repo), sameOrg)
-				if !comparable || comparison < 0 {
-					predicted = append(predicted, fmt.Sprintf(
-						"repository %s has an inherited permission that may differ from the synchronized direct permission",
-						repo.GetName(),
-					))
-				}
-			}
-		}
-	}
-	grantPlan, planErr := planGrants(ctx, destination, selected, state.destinationDirect, state.destinationEffective, warnings)
+	grantPlan, planErr := planGrants(ctx, destination, selected, state.destinationDirect, state.destinationEffective, warnings, sameOrg, force)
 	if grantPlan == nil {
 		return nil, planErr
 	}
 	plan := &SyncPlan{
 		grants: grantPlan, expected: sourceEffective, sourceDirect: sourceDirect,
-		expectedDirect: make(map[string]string), expectedAbsent: redundant,
-		skipped: skipped, mode: mode, sameOrg: sameOrg, predicted: predicted,
+		expectedDirect: make(map[string]string), expectedAbsent: make(map[string]string),
+		skipped: skipped, mode: mode, sameOrg: sameOrg,
 	}
 	for key := range grantPlan.skipped {
 		plan.skipped[key] = struct{}{}
@@ -130,8 +120,23 @@ func PlanSync(ctx context.Context, source, destination Team, mode CopyMode) (*Sy
 	}
 	for _, repo := range state.destinationDirect {
 		key := strings.ToLower(repo.GetName())
+		if _, skip := skipped[key]; skip {
+			continue
+		}
 		_, removeRedundant := redundant[key]
 		if sourceEffective[key] != nil && !removeRedundant {
+			continue
+		}
+		if !force && !safeToRemoveDirectPermission(repo, destinationEffective[key], parent[key]) {
+			skipped[key] = struct{}{}
+			current := "unknown"
+			if destinationEffective[key] != nil {
+				current = gh.GetRepositoryPermissions(destinationEffective[key])
+			}
+			plan.grants.warnings = append(plan.grants.warnings, fmt.Sprintf(
+				"repository %s cannot safely remove direct permission %s with effective permission %s and parent permission %s; skipped; use --force to override",
+				repo.GetName(), gh.GetRepositoryPermissions(repo), current, gh.GetRepositoryPermissions(parent[key]),
+			))
 			continue
 		}
 		plan.expectedAbsent[key] = repo.GetName()
@@ -142,14 +147,46 @@ func PlanSync(ctx context.Context, source, destination Team, mode CopyMode) (*Sy
 			Current:     gh.GetRepositoryPermissions(repo),
 		})
 	}
+	for _, repo := range state.destinationParent {
+		key := strings.ToLower(repo.GetName())
+		if _, skip := skipped[key]; skip {
+			continue
+		}
+		if sourceEffective[key] == nil {
+			plan.predicted = append(plan.predicted, fmt.Sprintf("repository %s remains accessible through an inherited permission", repo.GetName()))
+		} else if mode != CopyEffective {
+			direct := sourceDirect[key]
+			if direct != nil {
+				comparison, comparable := comparePermissions(gh.GetRepositoryPermissions(direct), gh.GetRepositoryPermissions(repo), sameOrg)
+				if !comparable || comparison < 0 {
+					plan.predicted = append(plan.predicted, fmt.Sprintf(
+						"repository %s has an inherited permission that may differ from the synchronized direct permission",
+						repo.GetName(),
+					))
+				}
+			}
+		}
+	}
 	plan.complete = true
 	return plan, nil
+}
+
+func safeToRemoveDirectPermission(direct, effective, parent *github.Repository) bool {
+	if direct == nil || effective == nil || parent == nil {
+		return false
+	}
+	directPermission := gh.GetRepositoryPermissions(direct)
+	effectivePermission := gh.GetRepositoryPermissions(effective)
+	parentPermission := gh.GetRepositoryPermissions(parent)
+	directComparison, directComparable := comparePermissions(directPermission, parentPermission, true)
+	effectiveComparison, effectiveComparable := comparePermissions(effectivePermission, parentPermission, true)
+	return directComparable && effectiveComparable && directComparison <= 0 && effectiveComparison <= 0
 }
 
 func selectInheritedSync(
 	selected []*github.Repository, warnings []string, sourceEffective []*github.Repository,
 	sourceDirect, destinationDirect, parent map[string]*github.Repository,
-	sameOrg bool, skipped map[string]struct{}, redundant map[string]string,
+	sameOrg, force bool, skipped map[string]struct{}, redundant map[string]string,
 ) ([]*github.Repository, []string, error) {
 	for _, repo := range sourceEffective {
 		name := repo.GetName()
@@ -163,11 +200,8 @@ func selectInheritedSync(
 		}
 		if direct := destinationDirect[key]; direct != nil {
 			current := gh.GetRepositoryPermissions(direct)
-			if _, comparable := comparePermissions(permission, current, sameOrg); !comparable {
-				warnings = append(warnings, fmt.Sprintf(
-					"repository %s has incomparable source permission %s and destination direct permission %s; skipped",
-					name, permission, current,
-				))
+			if _, comparable := comparePermissions(permission, current, sameOrg); !comparable && !force {
+				warnings = append(warnings, incomparablePermissionSkipWarning(name, permission, current, "direct"))
 				skipped[key] = struct{}{}
 				continue
 			}
@@ -176,14 +210,16 @@ func selectInheritedSync(
 			parentPermission := gh.GetRepositoryPermissions(inherited)
 			comparison, comparable := comparePermissions(permission, parentPermission, sameOrg)
 			if !comparable {
+				if !force {
+					warnings = append(warnings, incomparablePermissionSkipWarning(name, permission, parentPermission, "parent"))
+					skipped[key] = struct{}{}
+					continue
+				}
 				warnings = append(warnings, fmt.Sprintf(
-					"repository %s has incomparable source permission %s and destination parent permission %s; skipped",
+					"repository %s has incomparable source permission %s and destination parent permission %s; effective access may differ",
 					name, permission, parentPermission,
 				))
-				skipped[key] = struct{}{}
-				continue
-			}
-			if comparison <= 0 {
+			} else if comparison <= 0 {
 				redundant[key] = name
 				continue
 			}
@@ -258,6 +294,9 @@ func (p *SyncPlan) verify(direct, effective []*github.Repository) ([]string, err
 		}
 	}
 	for _, key := range slices.Sorted(maps.Keys(p.expectedAbsent)) {
+		if _, skip := p.skipped[key]; skip {
+			continue
+		}
 		name := p.expectedAbsent[key]
 		if directByName[key] != nil {
 			warnings = append(warnings, fmt.Sprintf("repository %s still has direct access after synchronization", name))
@@ -292,7 +331,11 @@ func (p *SyncPlan) verify(direct, effective []*github.Repository) ([]string, err
 		}
 	}
 	for _, repo := range effective {
-		if p.expected[strings.ToLower(repo.GetName())] == nil {
+		key := strings.ToLower(repo.GetName())
+		if _, skip := p.skipped[key]; skip {
+			continue
+		}
+		if p.expected[key] == nil {
 			warnings = append(warnings, fmt.Sprintf("repository %s remains accessible after synchronization", repo.GetName()))
 		}
 	}

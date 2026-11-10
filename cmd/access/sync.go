@@ -17,12 +17,14 @@ func NewSyncCmd() *cobra.Command {
 	var dryrun bool
 	var includeInherited bool
 	var effective bool
+	var force bool
 	var exporter cmdutil.Exporter
 
 	cmd := &cobra.Command{
 		Use:   "sync <[[host/]owner/]src-team-slug> <[[host/]owner/]dst-team-slug>",
 		Short: "Synchronize repository access between teams",
 		Long: `Synchronize repository permissions from the source team, removing destination direct grants outside the selected source access.
+Permission downgrades, incomparable custom roles, and removals that may reduce effective access are skipped with a warning unless --force is set.
 Use --include-inherited to synchronize inherited access based on the destination parent, or --effective to synchronize source effective permissions.`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -38,57 +40,35 @@ Use --include-inherited to synchronize inherited access based on the destination
 			if err != nil {
 				return fmt.Errorf("error creating GitHub clients: %w", err)
 			}
-			if includeInherited || effective {
-				mode := teamaccess.CopyWithInherited
-				if effective {
-					mode = teamaccess.CopyEffective
-				}
-				source := teamaccess.Team{Client: srcClient, Repository: srcRepo, Slug: srcTeamSlug}
-				destination := teamaccess.Team{Client: dstClient, Repository: dstRepo, Slug: dstTeamSlug}
-				plan, planErr := teamaccess.PlanSync(cmd.Context(), source, destination, mode)
-				if dryrun || planErr != nil {
-					if plan != nil {
-						for _, warning := range plan.Warnings() {
-							logger.Warn(warning, "from", args[0], "to", args[1])
-						}
-					}
-					if planErr != nil {
-						if !dryrun && plan != nil {
-							if err := teamaccess.ApplySyncGrants(cmd.Context(), plan); err != nil {
-								return fmt.Errorf("failed to sync team repository permissions: %w", err)
-							}
-						}
-						return fmt.Errorf("failed to plan sync of team repository permissions: %w", planErr)
-					}
-					if err := render.NewRenderer(exporter).RenderSyncChanges(plan.Changes(), nil); err != nil {
-						return fmt.Errorf("failed to render planned team repository permission changes: %w", err)
-					}
-					return nil
-				}
-				warnings, err := teamaccess.ApplySync(cmd.Context(), plan)
-				for _, warning := range warnings {
-					logger.Warn(warning, "from", args[0], "to", args[1])
-				}
-				if err != nil {
-					return fmt.Errorf("failed to sync team repository permissions: %w", err)
-				}
-				logger.Info("Team repository permissions synced.", "from", args[0], "to", args[1])
-				return nil
+			mode := teamaccess.CopyDirect
+			if includeInherited {
+				mode = teamaccess.CopyWithInherited
+			} else if effective {
+				mode = teamaccess.CopyEffective
 			}
-			if dryrun {
-				plan, err := gh.PlanSyncTeamRepoPermissions(cmd.Context(), srcClient, srcRepo, srcTeamSlug, dstClient, dstRepo, dstTeamSlug)
-				if err != nil {
-					return fmt.Errorf("failed to plan sync of team repository permissions: %w", err)
+			source := teamaccess.Team{Client: srcClient, Repository: srcRepo, Slug: srcTeamSlug}
+			destination := teamaccess.Team{Client: dstClient, Repository: dstRepo, Slug: dstTeamSlug}
+			plan, planErr := teamaccess.PlanSync(cmd.Context(), source, destination, mode, force)
+			if dryrun || planErr != nil {
+				if plan != nil {
+					for _, warning := range plan.Warnings() {
+						logger.Warn(warning, "from", args[0], "to", args[1])
+					}
 				}
-				for _, warning := range plan.Warnings() {
-					logger.Warn(warning, "from", args[0], "to", args[1])
+				if planErr != nil {
+					if !dryrun && plan != nil {
+						if err := teamaccess.ApplySyncGrants(cmd.Context(), plan); err != nil {
+							return fmt.Errorf("failed to sync team repository permissions: %w", err)
+						}
+					}
+					return fmt.Errorf("failed to plan sync of team repository permissions: %w", planErr)
 				}
 				if err := render.NewRenderer(exporter).RenderSyncChanges(plan.Changes(), nil); err != nil {
 					return fmt.Errorf("failed to render planned team repository permission changes: %w", err)
 				}
 				return nil
 			}
-			warnings, err := gh.SyncTeamRepoPermissions(cmd.Context(), srcClient, srcRepo, srcTeamSlug, dstClient, dstRepo, dstTeamSlug)
+			warnings, err := teamaccess.ApplySync(cmd.Context(), plan)
 			for _, warning := range warnings {
 				logger.Warn(warning, "from", args[0], "to", args[1])
 			}
@@ -104,6 +84,7 @@ Use --include-inherited to synchronize inherited access based on the destination
 	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: show planned changes without applying them")
 	f.BoolVar(&includeInherited, "include-inherited", false, "Synchronize source inherited permissions against destination parent access")
 	f.BoolVar(&effective, "effective", false, "Synchronize source effective permissions, including direct-backed access")
+	f.BoolVarP(&force, "force", "f", false, "Allow downgrades, incomparable custom roles, and removals that may reduce access")
 	cmd.MarkFlagsMutuallyExclusive("include-inherited", "effective")
 	cmdutil.AddFormatFlags(cmd, &exporter)
 	return cmd

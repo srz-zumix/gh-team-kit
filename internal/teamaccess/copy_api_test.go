@@ -109,7 +109,7 @@ func TestPlanCopyValidatesOnlyFinalGrants(t *testing.T) {
 	}
 	g, transport := newCopyFixtureClient(t, responses)
 	source, destination := fixtureTeams(g)
-	plan, err := PlanCopy(context.Background(), source, destination, CopyEffective)
+	plan, err := PlanCopy(context.Background(), source, destination, CopyEffective, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +142,7 @@ func TestPlanCopyMissingRepositoriesAndPartialErrors(t *testing.T) {
 	g, transport := newCopyFixtureClient(t, responses)
 	source, destination := fixtureTeams(g)
 	destination.Repository.Host = "github.example.test"
-	plan, err := PlanCopy(context.Background(), source, destination, CopyDirect)
+	plan, err := PlanCopy(context.Background(), source, destination, CopyDirect, false)
 	if err == nil || !strings.Contains(err.Error(), "failed to check destination repository destination-org/failure") {
 		t.Fatalf("PlanCopy() error = %v, want destination lookup failure", err)
 	}
@@ -208,7 +208,7 @@ func TestPlanCopyContinuesAfterMissingRepository(t *testing.T) {
 	}
 	g, transport := newCopyFixtureClient(t, responses)
 	source, destination := fixtureTeams(g)
-	plan, err := PlanCopy(context.Background(), source, destination, CopyDirect)
+	plan, err := PlanCopy(context.Background(), source, destination, CopyDirect, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,7 +242,7 @@ func TestPlanCopyRejectsEmptyDestinationRepositoryResponse(t *testing.T) {
 	}
 	g, transport := newCopyFixtureClient(t, responses)
 	source, destination := fixtureTeams(g)
-	plan, err := PlanCopy(context.Background(), source, destination, CopyDirect)
+	plan, err := PlanCopy(context.Background(), source, destination, CopyDirect, false)
 	if err == nil || !strings.Contains(err.Error(), "destination repository destination-org/alpha was not returned") {
 		t.Fatalf("PlanCopy() error = %v, want an empty response error", err)
 	}
@@ -271,7 +271,7 @@ func TestApplyCopyStopsAfterGrantError(t *testing.T) {
 	}
 	g, transport := newCopyFixtureClient(t, responses)
 	source, destination := fixtureTeams(g)
-	plan, err := PlanCopy(context.Background(), source, destination, CopyDirect)
+	plan, err := PlanCopy(context.Background(), source, destination, CopyDirect, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -297,7 +297,7 @@ func TestPlanCopyParentDiscoveryFailureDoesNotReturnPartialPlan(t *testing.T) {
 	}
 	g, transport := newCopyFixtureClient(t, responses)
 	source, destination := fixtureTeams(g)
-	plan, err := PlanCopy(context.Background(), source, destination, CopyEffective)
+	plan, err := PlanCopy(context.Background(), source, destination, CopyEffective, false)
 	if err == nil || !strings.Contains(err.Error(), "failed to get destination team") || plan != nil {
 		t.Fatalf("PlanCopy() = %#v, %v; want nil plan and parent discovery error", plan, err)
 	}
@@ -329,7 +329,7 @@ func TestPlanCopyUpdatesDestinationDirectRoleMaskedByParent(t *testing.T) {
 	}
 	g, transport := newCopyFixtureClient(t, responses)
 	source, destination := fixtureTeams(g)
-	plan, err := PlanCopy(context.Background(), source, destination, CopyDirect)
+	plan, err := PlanCopy(context.Background(), source, destination, CopyDirect, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -374,7 +374,7 @@ func TestInheritedSourceAgainstStrongerDestinationDirectRole(t *testing.T) {
 	}
 	g, transport := newCopyFixtureClient(t, responses)
 	source, destination := fixtureTeams(g)
-	includePlan, err := PlanCopy(context.Background(), source, destination, CopyWithInherited)
+	includePlan, err := PlanCopy(context.Background(), source, destination, CopyWithInherited, false)
 	if err != nil || len(includePlan.Changes()) != 0 || len(includePlan.Warnings()) != 0 {
 		t.Fatalf("include inherited plan = %#v, %v; want no changes or warnings", includePlan, err)
 	}
@@ -383,7 +383,20 @@ func TestInheritedSourceAgainstStrongerDestinationDirectRole(t *testing.T) {
 			t.Fatalf("unchanged inherited permission was unnecessarily validated: %#v", request)
 		}
 	}
-	effectivePlan, err := PlanCopy(context.Background(), source, destination, CopyEffective)
+	protectedPlan, err := PlanCopy(context.Background(), source, destination, CopyEffective, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(protectedPlan.Changes()) != 0 || len(protectedPlan.Warnings()) != 1 ||
+		!strings.Contains(protectedPlan.Warnings()[0], "would downgrade direct permission from admin to pull") {
+		t.Fatalf("protected effective plan changes = %#v, warnings = %q", protectedPlan.Changes(), protectedPlan.Warnings())
+	}
+	for _, request := range transport.requests {
+		if request.path == "/repos/destination-org/sample" {
+			t.Fatalf("skipped downgrade was unnecessarily validated: %#v", request)
+		}
+	}
+	effectivePlan, err := PlanCopy(context.Background(), source, destination, CopyEffective, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -440,7 +453,7 @@ func TestInheritedCustomRoleComparisonUsesResolvedOrganization(t *testing.T) {
 			g, _ := newCopyFixtureClient(t, responses)
 			source, destination := fixtureTeams(g)
 			destination.Repository = repository.Repository{Host: "github.example.test", Owner: tt.destination}
-			plan, err := PlanCopy(context.Background(), source, destination, CopyWithInherited)
+			plan, err := PlanCopy(context.Background(), source, destination, CopyWithInherited, false)
 			if err != nil {
 				t.Fatal(err)
 			}

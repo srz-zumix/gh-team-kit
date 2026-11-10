@@ -491,8 +491,11 @@ Repository names must belong to the team's organization. Use a repository name, 
 ### `access copy`
 
 ```bash
-# Copy direct permissions, overwriting conflicting direct grants
+# Copy direct permissions without reducing existing access
 gh team-kit access copy <src-team-slug> <dst-team-slug>
+
+# Allow direct downgrades and incomparable role changes
+gh team-kit access copy <src-team-slug> <dst-team-slug> --force
 
 # Also copy inherited-only source permissions missing or weaker at the destination
 gh team-kit access copy <src-team-slug> <dst-team-slug> --include-inherited
@@ -504,21 +507,23 @@ gh team-kit access copy <src-team-slug> <dst-team-slug> --effective
 gh team-kit access copy <src-team-slug> <dst-team-slug> --dryrun
 ```
 
-Direct source grants are materialized at the destination even if inherited
-access matches; conflicting destination direct grants are overwritten,
-including downgrades. The former `--force` flag is no longer accepted.
-`--include-inherited` adds inherited-only source access when the destination has
-no equal or stronger effective access; source direct roles take precedence.
-`--effective` copies source effective roles, still materializing direct-backed
-source access, and skips inherited-only access when the destination effective
-role matches. A differing destination direct role is overwritten, even if it
-is stronger. If a destination parent grants stronger access, `--effective` warns
-and grants the source role directly without reducing inherited access.
+Eligible direct source grants are materialized even when inherited access
+matches. Standard upgrades are allowed, but direct downgrades and incomparable
+existing roles are warned and skipped unless `--force` is set. This check
+compares direct roles even if a stronger parent masks the downgrade. A new
+custom role can be granted when the destination has no access.
 
-The two modes are mutually exclusive. Inherited-only candidates with
-incomparable custom roles, including same-named roles across organizations or
-hosts, are warned and skipped. When copying custom roles across organizations
-or hosts, the command warns that their definitions may differ; they must exist
+`--include-inherited` adds inherited-only source access when the destination has
+no comparable equal or stronger effective access; source direct roles take
+precedence. `--effective` copies source effective roles, materializes
+direct-backed source access, and leaves inherited-only access unchanged when
+the destination effective role matches. The options are mutually exclusive.
+`--force` permits otherwise-skipped changes but does not force inherited-only
+grants when comparable access already satisfies the selected mode, or remove
+inherited access.
+
+Same-named custom roles in different organizations or hosts are incomparable;
+their definitions may differ and are not copied. The requested role must exist
 at the destination. Destination repositories returning 404 are warned and
 skipped; other errors stop the operation without rolling back earlier grants.
 
@@ -564,6 +569,9 @@ gh team-kit access remove <team-slug> repo1 repo2
 # Make destination direct permissions match the source team
 gh team-kit access sync <src-team-slug> <dst-team-slug>
 
+# Allow downgrades, incomparable roles, and removals that may reduce access
+gh team-kit access sync <src-team-slug> <dst-team-slug> --force
+
 # Synchronize inherited access against the destination parent
 gh team-kit access sync <src-team-slug> <dst-team-slug> --include-inherited
 
@@ -574,22 +582,26 @@ gh team-kit access sync <src-team-slug> <dst-team-slug> --effective
 gh team-kit access sync <src-team-slug> <dst-team-slug> --dryrun
 ```
 
-By default, sync removes destination direct grants absent from the source and
-leaves inherited permissions in place. With `--include-inherited`, source direct
-roles take precedence. For inherited-only source access, an equal or stronger
-destination parent replaces any destination direct grant; otherwise the source
-role is directly granted, including downgrades. `--effective` uses source
-effective roles, materializes direct-backed access, and leaves inherited-only
-source access unchanged when destination effective access matches. Otherwise it
-sets the source role directly, including downgrades. Stronger destination parent
-access cannot be removed and is reported.
+Direct downgrades and incomparable existing roles are warned and skipped unless
+`--force` is set. New grants and standard upgrades are allowed. Sync removes a
+direct grant without `--force` only when the destination parent provides
+comparable access at least as strong as both its direct and effective roles;
+otherwise the removal is warned and skipped. Inherited access cannot be removed.
 
-The options are mutually exclusive. Both remove destination direct grants for
-repositories absent from source effective access. Incomparable inherited-only
-custom roles are warned and skipped. Custom roles copied across organizations or
-hosts may have different definitions. A 404 is warned and skipped; other errors
-can leave earlier changes applied. After applying, direct and effective access
-are verified and discrepancies are reported.
+With `--include-inherited`, source direct roles take precedence. For
+inherited-only source access, a direct grant is removed when the destination
+parent provides equal or stronger access and removal is safe; an unsafe
+removal is skipped. When the parent does not provide sufficient access, the
+source role is granted subject to the same checks. `--effective` uses source
+effective roles, materializes direct-backed access, and leaves inherited-only
+source access unchanged when destination effective access matches. The options
+are mutually exclusive, and `--force` does not force inherited-only grants when
+comparable access already satisfies the selected mode.
+
+Custom role definitions can differ across organizations or hosts and are not
+copied. A 404 is warned and skipped; other errors can leave earlier grants
+applied. After applying, direct and effective access are verified and
+discrepancies are reported.
 
 ---
 

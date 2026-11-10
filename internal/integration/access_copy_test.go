@@ -231,11 +231,21 @@ func TestAccessCopyModesMatchDryRunAndApply(t *testing.T) {
 	tests := []struct {
 		name         string
 		flag         string
+		force        string
 		wantChanges  []gh.SyncChange
 		wantWarnings []string
 	}{
 		{
 			name: "direct",
+			wantChanges: []gh.SyncChange{
+				add("direct-only", "pull", ""), add("direct-equal", "pull", "pull"),
+				add("masked", "pull", "admin"),
+			},
+			wantWarnings: []string{"repository conflict would downgrade direct permission from push to pull"},
+		},
+		{
+			name:  "direct with short force flag",
+			force: "-f",
 			wantChanges: []gh.SyncChange{
 				add("direct-only", "pull", ""), add("direct-equal", "pull", "pull"),
 				add("masked", "pull", "admin"), update("conflict", "pull", "push"),
@@ -246,21 +256,45 @@ func TestAccessCopyModesMatchDryRunAndApply(t *testing.T) {
 			flag: "--include-inherited",
 			wantChanges: []gh.SyncChange{
 				add("direct-only", "pull", ""), add("direct-equal", "pull", "pull"),
-				add("masked", "pull", "admin"), update("conflict", "pull", "push"),
+				add("masked", "pull", "admin"),
 				add("inherited-weaker", "push", "pull"), add("custom", "custom-reader", ""),
 			},
-			wantWarnings: []string{"repository custom-conflict has incomparable", "repository missing is unavailable"},
+			wantWarnings: []string{"repository conflict would downgrade", "repository custom-conflict has incomparable", "repository missing is unavailable"},
+		},
+		{
+			name:  "include inherited with force",
+			flag:  "--include-inherited",
+			force: "--force",
+			wantChanges: []gh.SyncChange{
+				add("direct-only", "pull", ""), add("direct-equal", "pull", "pull"),
+				add("masked", "pull", "admin"), update("conflict", "pull", "push"),
+				add("inherited-weaker", "push", "pull"), add("custom", "custom-reader", ""),
+				add("custom-conflict", "custom-reader", "custom-writer"),
+			},
+			wantWarnings: []string{"repository missing is unavailable"},
 		},
 		{
 			name: "effective",
 			flag: "--effective",
 			wantChanges: []gh.SyncChange{
 				add("direct-only", "pull", ""), add("direct-equal", "pull", "pull"),
-				add("masked", "admin", "admin"), update("conflict", "pull", "push"),
+				add("masked", "admin", "admin"),
 				add("inherited-stronger", "pull", "admin"), add("inherited-weaker", "push", "pull"),
 				add("custom", "custom-reader", ""),
 			},
-			wantWarnings: []string{"repository inherited-stronger inherits destination parent permission admin", "repository custom-conflict has incomparable", "repository missing is unavailable"},
+			wantWarnings: []string{"repository conflict would downgrade", "repository inherited-stronger inherits destination parent permission admin", "repository custom-conflict has incomparable", "repository missing is unavailable"},
+		},
+		{
+			name:  "effective with force",
+			flag:  "--effective",
+			force: "--force",
+			wantChanges: []gh.SyncChange{
+				add("direct-only", "pull", ""), add("direct-equal", "pull", "pull"),
+				add("masked", "admin", "admin"), update("conflict", "pull", "push"),
+				add("inherited-stronger", "pull", "admin"), add("inherited-weaker", "push", "pull"),
+				add("custom", "custom-reader", ""), add("custom-conflict", "custom-reader", "custom-writer"),
+			},
+			wantWarnings: []string{"repository inherited-stronger inherits destination parent permission admin", "repository custom-conflict has incomparable", "effective access may differ", "repository missing is unavailable"},
 		},
 	}
 	for _, tt := range tests {
@@ -275,6 +309,9 @@ func TestAccessCopyModesMatchDryRunAndApply(t *testing.T) {
 			args := []string{"example-org/source-team", destination}
 			if tt.flag != "" {
 				args = append(args, tt.flag)
+			}
+			if tt.force != "" {
+				args = append(args, tt.force)
 			}
 			dryArgs := append(slices.Clone(args), "--dryrun", "--format", "json")
 			stdout, stderr, status := runAccessCopy(t, dryArgs...)
@@ -329,14 +366,14 @@ func TestAccessCopyModesMatchDryRunAndApply(t *testing.T) {
 	}
 }
 
-func TestAccessCopyRejectsConflictingAndRemovedFlags(t *testing.T) {
+func TestAccessCopyRejectsConflictingModes(t *testing.T) {
 	server, fixture := newAccessCopyFixtureServer(t)
 	defer server.Close()
 	t.Setenv("GH_CONFIG_DIR", t.TempDir())
 	t.Setenv("GH_HOST", "github.com")
 	t.Setenv("GH_TOKEN", "test-token")
 	t.Setenv("GITHUB_API_URL", server.URL)
-	for _, flags := range [][]string{{"--include-inherited", "--effective"}, {"--force"}, {"-f"}} {
+	for _, flags := range [][]string{{"--include-inherited", "--effective"}, {"--include-inherited", "--effective", "--force"}} {
 		t.Run(strings.Join(flags, "-"), func(t *testing.T) {
 			fixture.reset()
 			args := append([]string{"example-org/source-team", "example-org/destination-team"}, flags...)

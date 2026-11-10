@@ -49,7 +49,7 @@ func (p *CopyPlan) Warnings() []string {
 	return slices.Clone(p.warnings)
 }
 
-func PlanCopy(ctx context.Context, source, destination Team, mode CopyMode) (*CopyPlan, error) {
+func PlanCopy(ctx context.Context, source, destination Team, mode CopyMode, force bool) (*CopyPlan, error) {
 	if source.Slug == "" || destination.Slug == "" {
 		return nil, fmt.Errorf("source and destination team slugs must not be empty")
 	}
@@ -61,14 +61,15 @@ func PlanCopy(ctx context.Context, source, destination Team, mode CopyMode) (*Co
 	if err != nil {
 		return nil, err
 	}
+	sameOrg := sameOrganization(source.Repository, destination.Repository)
 	selected, warnings, err := selectCopyRepositories(
-		mode, sameOrganization(source.Repository, destination.Repository),
+		mode, sameOrg, force,
 		state.sourceDirect, state.sourceEffective, state.destinationDirect, state.destinationEffective, state.destinationParent,
 	)
 	if err != nil {
 		return nil, err
 	}
-	return planGrants(ctx, destination, selected, state.destinationDirect, state.destinationEffective, warnings)
+	return planGrants(ctx, destination, selected, state.destinationDirect, state.destinationEffective, warnings, sameOrg, force)
 }
 
 func loadAccessState(ctx context.Context, source, destination Team, includeEffective, includeParent bool) (*accessState, error) {
@@ -103,7 +104,7 @@ func loadAccessState(ctx context.Context, source, destination Team, includeEffec
 	return state, nil
 }
 
-func planGrants(ctx context.Context, destination Team, selected, destinationDirect, destinationEffective []*github.Repository, warnings []string) (*CopyPlan, error) {
+func planGrants(ctx context.Context, destination Team, selected, destinationDirect, destinationEffective []*github.Repository, warnings []string, sameOrg, force bool) (*CopyPlan, error) {
 	directByName, err := repositoriesByName("destination direct", destinationDirect)
 	if err != nil {
 		return nil, err
@@ -113,8 +114,41 @@ func planGrants(ctx context.Context, destination Team, selected, destinationDire
 		return nil, err
 	}
 
-	permissionPlan := gh.PlanTeamRepoPermissionChanges(selected, destinationDirect, nil, true, false)
 	plan := &CopyPlan{destination: destination, warnings: warnings, skipped: make(map[string]struct{})}
+	var eligible []*github.Repository
+	for _, repo := range selected {
+		key := strings.ToLower(repo.GetName())
+		current := directByName[key]
+		direct := current != nil
+		if !direct {
+			current = effectiveByName[key]
+		}
+		if current != nil && !force {
+			permission := gh.GetRepositoryPermissions(repo)
+			currentPermission := gh.GetRepositoryPermissions(current)
+			comparison, comparable := comparePermissions(permission, currentPermission, sameOrg)
+			kind := "effective"
+			if direct {
+				kind = "direct"
+			}
+			if !comparable {
+				plan.skipped[key] = struct{}{}
+				plan.warnings = append(plan.warnings, incomparablePermissionSkipWarning(repo.GetName(), permission, currentPermission, kind))
+				continue
+			}
+			if direct && comparison < 0 {
+				plan.skipped[key] = struct{}{}
+				plan.warnings = append(plan.warnings, fmt.Sprintf(
+					"repository %s would downgrade direct permission from %s to %s; skipped; use --force to override",
+					repo.GetName(), currentPermission, permission,
+				))
+				continue
+			}
+		}
+		eligible = append(eligible, repo)
+	}
+
+	permissionPlan := gh.PlanTeamRepoPermissionChanges(eligible, destinationDirect, nil, true, false)
 	for _, grant := range permissionPlan.Grant {
 		repoName := grant.Repository.GetName()
 		repo := destination.Repository
@@ -190,14 +224,14 @@ func listParentRepositories(ctx context.Context, team Team) ([]*github.Repositor
 }
 
 func selectCopyRepositories(
-	mode CopyMode, sameOrg bool,
+	mode CopyMode, sameOrg, force bool,
 	sourceDirect, sourceEffective, destinationDirect, destinationEffective, destinationParent []*github.Repository,
 ) ([]*github.Repository, []string, error) {
-	return selectCopyRepositoriesWithSkipped(mode, sameOrg, sourceDirect, sourceEffective, destinationDirect, destinationEffective, destinationParent, nil)
+	return selectCopyRepositoriesWithSkipped(mode, sameOrg, force, sourceDirect, sourceEffective, destinationDirect, destinationEffective, destinationParent, nil)
 }
 
 func selectCopyRepositoriesWithSkipped(
-	mode CopyMode, sameOrg bool,
+	mode CopyMode, sameOrg, force bool,
 	sourceDirect, sourceEffective, destinationDirect, destinationEffective, destinationParent []*github.Repository,
 	skipped map[string]struct{},
 ) ([]*github.Repository, []string, error) {
@@ -258,31 +292,25 @@ func selectCopyRepositoriesWithSkipped(
 		if !direct {
 			if current := destinationDirectByName[key]; current != nil {
 				currentPermission := gh.GetRepositoryPermissions(current)
-				if _, comparable := comparePermissions(permission, currentPermission, sameOrg); !comparable {
+				if _, comparable := comparePermissions(permission, currentPermission, sameOrg); !comparable && !force {
 					if skipped != nil {
 						skipped[key] = struct{}{}
 					}
-					warnings = append(warnings, fmt.Sprintf(
-						"repository %s has incomparable source permission %s and destination direct permission %s; skipped",
-						name, permission, currentPermission,
-					))
+					warnings = append(warnings, incomparablePermissionSkipWarning(name, permission, currentPermission, "direct"))
 					continue
 				}
 			}
 			if current := destinationByName[key]; current != nil {
 				currentPermission := gh.GetRepositoryPermissions(current)
 				comparison, comparable := comparePermissions(permission, currentPermission, sameOrg)
-				if !comparable {
+				if !comparable && !force {
 					if skipped != nil {
 						skipped[key] = struct{}{}
 					}
-					warnings = append(warnings, fmt.Sprintf(
-						"repository %s has incomparable source permission %s and destination permission %s; skipped",
-						name, permission, currentPermission,
-					))
+					warnings = append(warnings, incomparablePermissionSkipWarning(name, permission, currentPermission, ""))
 					continue
 				}
-				if (mode == CopyWithInherited && comparison <= 0) || (mode == CopyEffective && comparison == 0) {
+				if comparable && ((mode == CopyWithInherited && comparison <= 0) || (mode == CopyEffective && comparison == 0)) {
 					continue
 				}
 			}
@@ -293,14 +321,11 @@ func selectCopyRepositoriesWithSkipped(
 				parentPermission := gh.GetRepositoryPermissions(parent)
 				comparison, comparable := comparePermissions(permission, parentPermission, sameOrg)
 				if !comparable {
-					if !direct {
+					if !direct && !force {
 						if skipped != nil {
 							skipped[key] = struct{}{}
 						}
-						warnings = append(warnings, fmt.Sprintf(
-							"repository %s has incomparable source permission %s and destination parent permission %s; skipped",
-							name, permission, parentPermission,
-						))
+						warnings = append(warnings, incomparablePermissionSkipWarning(name, permission, parentPermission, "parent"))
 						continue
 					}
 					warnings = append(warnings, fmt.Sprintf(
@@ -331,6 +356,16 @@ func customRoleCopyWarning(repo, permission string) string {
 	return fmt.Sprintf(
 		"repository %s uses custom role %s; definitions may differ in the destination organization",
 		repo, permission,
+	)
+}
+
+func incomparablePermissionSkipWarning(repo, source, destination, kind string) string {
+	if kind != "" {
+		kind += " "
+	}
+	return fmt.Sprintf(
+		"repository %s has incomparable source permission %s and destination %spermission %s; skipped; use --force to override",
+		repo, source, kind, destination,
 	)
 }
 

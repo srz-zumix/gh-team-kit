@@ -17,12 +17,14 @@ func NewCopyCmd() *cobra.Command {
 	var includeInherited bool
 	var effective bool
 	var dryrun bool
+	var force bool
 	var exporter cmdutil.Exporter
 
 	cmd := &cobra.Command{
 		Use:   "copy <[[host/]owner/]src-team-slug> <[[host/]owner/]dst-team-slug>",
 		Short: "Copy repository access from one team to another",
-		Long: `Copy the source team's direct repository permissions, overwriting conflicting direct permissions without removing other destination grants.
+		Long: `Copy the source team's direct repository permissions without removing other destination grants.
+Permission downgrades and incomparable custom roles are skipped with a warning unless --force is set.
 Use --include-inherited to add inherited-only access that is missing or weaker at the destination, or --effective to copy source effective permissions.`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -46,7 +48,7 @@ Use --include-inherited to add inherited-only access that is missing or weaker a
 			}
 			source := teamaccess.Team{Client: srcClient, Repository: srcRepo, Slug: srcTeamSlug}
 			destination := teamaccess.Team{Client: dstClient, Repository: dstRepo, Slug: dstTeamSlug}
-			plan, planErr := teamaccess.PlanCopy(cmd.Context(), source, destination, mode)
+			plan, planErr := teamaccess.PlanCopy(cmd.Context(), source, destination, mode, force)
 			if plan != nil {
 				for _, warning := range plan.Warnings() {
 					logger.Warn(warning, "from", args[0], "to", args[1])
@@ -78,6 +80,7 @@ Use --include-inherited to add inherited-only access that is missing or weaker a
 	f.BoolVar(&includeInherited, "include-inherited", false, "Also copy source inherited permissions missing from the destination")
 	f.BoolVar(&effective, "effective", false, "Copy source effective permissions, including direct-backed access")
 	f.BoolVarP(&dryrun, "dryrun", "n", false, "Dry run: show planned changes without applying them")
+	f.BoolVarP(&force, "force", "f", false, "Allow direct permission downgrades and incomparable custom roles")
 	cmd.MarkFlagsMutuallyExclusive("include-inherited", "effective")
 	cmdutil.AddFormatFlags(cmd, &exporter)
 	return cmd

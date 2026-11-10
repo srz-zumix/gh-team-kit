@@ -63,7 +63,7 @@ func runAccessSync(t *testing.T, args ...string) (string, string, int) {
 	return "", "", -1
 }
 
-func TestAccessSyncInheritedModesDryRun(t *testing.T) {
+func TestAccessSyncModesDryRun(t *testing.T) {
 	const destination = "example-org/destination-team"
 	add := func(name, permission, current string) gh.SyncChange {
 		return gh.SyncChange{Destination: destination, Action: gh.SyncChangeAdd, Target: name, Permission: permission, Current: current}
@@ -73,39 +73,78 @@ func TestAccessSyncInheritedModesDryRun(t *testing.T) {
 	}
 	remove := gh.SyncChange{Destination: destination, Action: gh.SyncChangeRemove, Target: "destination-only", Current: "push"}
 	tests := []struct {
+		name         string
 		flag         string
+		force        string
 		want         []gh.SyncChange
 		wantWarnings []string
 	}{
 		{
+			name: "direct",
 			flag: "default",
+			want: []gh.SyncChange{
+				add("direct-only", "pull", ""), add("direct-equal", "pull", "pull"),
+				add("masked", "pull", "admin"),
+			},
+			wantWarnings: []string{"repository conflict would downgrade", "repository destination-only cannot safely remove"},
+		},
+		{
+			name:  "direct with short force flag",
+			flag:  "default",
+			force: "-f",
 			want: []gh.SyncChange{
 				add("direct-only", "pull", ""), add("direct-equal", "pull", "pull"),
 				add("masked", "pull", "admin"), update("conflict", "pull", "push"), remove,
 			},
 		},
 		{
+			name: "include inherited",
 			flag: "--include-inherited",
 			want: []gh.SyncChange{
 				add("direct-only", "pull", ""), add("direct-equal", "pull", "pull"),
-				add("masked", "pull", "admin"), update("conflict", "pull", "push"),
-				add("inherited-weaker", "push", "pull"), add("custom", "custom-reader", ""), remove,
+				add("masked", "pull", "admin"),
+				add("inherited-weaker", "push", "pull"), add("custom", "custom-reader", ""),
 			},
-			wantWarnings: []string{"repository custom-conflict has incomparable", "repository missing is unavailable"},
+			wantWarnings: []string{"repository conflict would downgrade", "repository custom-conflict has incomparable", "repository destination-only cannot safely remove", "repository missing is unavailable"},
 		},
 		{
+			name:  "include inherited with force",
+			flag:  "--include-inherited",
+			force: "--force",
+			want: []gh.SyncChange{
+				add("direct-only", "pull", ""), add("direct-equal", "pull", "pull"),
+				add("masked", "pull", "admin"), update("conflict", "pull", "push"),
+				add("inherited-weaker", "push", "pull"), add("custom", "custom-reader", ""),
+				add("custom-conflict", "custom-reader", "custom-writer"), remove,
+			},
+			wantWarnings: []string{"repository custom-conflict has incomparable", "effective access may differ", "repository missing is unavailable"},
+		},
+		{
+			name: "effective",
 			flag: "--effective",
+			want: []gh.SyncChange{
+				add("direct-only", "pull", ""), add("direct-equal", "pull", "pull"),
+				add("masked", "admin", "admin"),
+				add("inherited-stronger", "pull", "admin"), add("inherited-weaker", "push", "pull"),
+				add("custom", "custom-reader", ""),
+			},
+			wantWarnings: []string{"repository conflict would downgrade", "repository inherited-stronger inherits destination parent permission admin", "repository custom-conflict has incomparable", "repository destination-only cannot safely remove", "repository missing is unavailable"},
+		},
+		{
+			name:  "effective with force",
+			flag:  "--effective",
+			force: "--force",
 			want: []gh.SyncChange{
 				add("direct-only", "pull", ""), add("direct-equal", "pull", "pull"),
 				add("masked", "admin", "admin"), update("conflict", "pull", "push"),
 				add("inherited-stronger", "pull", "admin"), add("inherited-weaker", "push", "pull"),
-				add("custom", "custom-reader", ""), remove,
+				add("custom", "custom-reader", ""), add("custom-conflict", "custom-reader", "custom-writer"), remove,
 			},
-			wantWarnings: []string{"repository inherited-stronger inherits destination parent permission admin", "repository custom-conflict has incomparable", "repository missing is unavailable"},
+			wantWarnings: []string{"repository inherited-stronger inherits destination parent permission admin", "repository custom-conflict has incomparable", "effective access may differ", "repository missing is unavailable"},
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.flag, func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			server, fixture := newAccessCopyFixtureServer(t)
 			defer server.Close()
 			t.Setenv("GH_CONFIG_DIR", t.TempDir())
@@ -115,6 +154,9 @@ func TestAccessSyncInheritedModesDryRun(t *testing.T) {
 			args := []string{"example-org/source-team", destination}
 			if tt.flag != "default" {
 				args = append(args, tt.flag)
+			}
+			if tt.force != "" {
+				args = append(args, tt.force)
 			}
 			stdout, stderr, status := runAccessSync(t, append(args, "--dryrun", "--format", "json")...)
 			if status != 0 {
@@ -155,84 +197,149 @@ func TestAccessSyncRejectsConflictingModes(t *testing.T) {
 }
 
 func TestAccessSyncApplyMatchesDryRun(t *testing.T) {
-	for _, mode := range []string{"--include-inherited", "--effective"} {
-		t.Run(mode, func(t *testing.T) {
-			fixture := &copyFixture{}
-			destination := map[string]string{"extra": "push"}
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fixture.mu.Lock()
-				defer fixture.mu.Unlock()
-				request := copyRequest{method: r.Method, path: r.URL.Path}
-				if r.Method == http.MethodPut {
-					var body struct {
-						Permission string `json:"permission"`
+	for _, mode := range []string{"", "--include-inherited", "--effective"} {
+		for _, force := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/force=%t", mode, force), func(t *testing.T) {
+				fixture := &copyFixture{}
+				destination := map[string]string{"extra": "push"}
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					fixture.mu.Lock()
+					defer fixture.mu.Unlock()
+					request := copyRequest{method: r.Method, path: r.URL.Path}
+					if r.Method == http.MethodPut {
+						var body struct {
+							Permission string `json:"permission"`
+						}
+						if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+							t.Errorf("decode grant: %v", err)
+							http.Error(w, "bad grant", http.StatusBadRequest)
+							return
+						}
+						request.permission = body.Permission
+						destination["alpha"] = body.Permission
+					} else if r.Method == http.MethodDelete {
+						delete(destination, "extra")
 					}
-					if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-						t.Errorf("decode grant: %v", err)
-						http.Error(w, "bad grant", http.StatusBadRequest)
+					fixture.requests = append(fixture.requests, request)
+					if r.Method == http.MethodPut || r.Method == http.MethodDelete {
+						w.WriteHeader(http.StatusNoContent)
 						return
 					}
-					request.permission = body.Permission
-					destination["alpha"] = body.Permission
-				} else if r.Method == http.MethodDelete {
-					delete(destination, "extra")
-				}
-				fixture.requests = append(fixture.requests, request)
-				if r.Method == http.MethodPut || r.Method == http.MethodDelete {
-					w.WriteHeader(http.StatusNoContent)
-					return
-				}
-				w.Header().Set("Content-Type", "application/json")
-				var response any
-				switch r.URL.Path {
-				case "/orgs/example-org/teams/source/repos":
-					response = []any{copyFixtureRepository(1, "alpha", "pull")}
-				case "/orgs/example-org/teams/source":
-					response = map[string]string{"slug": "source"}
-				case "/orgs/example-org/teams/destination":
-					response = map[string]string{"slug": "destination"}
-				case "/orgs/example-org/teams/destination/repos":
-					repos := []any{}
-					for name, permission := range destination {
-						repos = append(repos, copyFixtureRepository(2, name, permission))
+					w.Header().Set("Content-Type", "application/json")
+					var response any
+					switch r.URL.Path {
+					case "/orgs/example-org/teams/source/repos":
+						response = []any{copyFixtureRepository(1, "alpha", "pull")}
+					case "/orgs/example-org/teams/source":
+						response = map[string]string{"slug": "source"}
+					case "/orgs/example-org/teams/destination":
+						response = map[string]string{"slug": "destination"}
+					case "/orgs/example-org/teams/destination/repos":
+						repos := []any{}
+						for name, permission := range destination {
+							repos = append(repos, copyFixtureRepository(2, name, permission))
+						}
+						response = repos
+					case "/repos/example-org/alpha":
+						response = map[string]string{"name": "alpha"}
+					default:
+						t.Errorf("unexpected API request: %s %s", r.Method, r.URL.Path)
+						http.NotFound(w, r)
+						return
 					}
-					response = repos
-				case "/repos/example-org/alpha":
-					response = map[string]string{"name": "alpha"}
-				default:
-					t.Errorf("unexpected API request: %s %s", r.Method, r.URL.Path)
-					http.NotFound(w, r)
-					return
+					if err := json.NewEncoder(w).Encode(response); err != nil {
+						t.Errorf("encode response: %v", err)
+					}
+				}))
+				defer server.Close()
+				t.Setenv("GH_CONFIG_DIR", t.TempDir())
+				t.Setenv("GH_HOST", "github.com")
+				t.Setenv("GH_TOKEN", "test-token")
+				t.Setenv("GITHUB_API_URL", server.URL)
+				args := []string{"example-org/source", "example-org/destination"}
+				if mode != "" {
+					args = append(args, mode)
 				}
-				if err := json.NewEncoder(w).Encode(response); err != nil {
-					t.Errorf("encode response: %v", err)
+				if force {
+					args = append(args, "--force")
 				}
-			}))
+				stdout, stderr, status := runAccessSync(t, append(slices.Clone(args), "--dryrun", "--format", "json")...)
+				if status != 0 {
+					t.Fatalf("dry run failed (%d): %s", status, stderr)
+				}
+				var changes []gh.SyncChange
+				if err := json.Unmarshal([]byte(stdout), &changes); err != nil {
+					t.Fatal(err)
+				}
+				want := []gh.SyncChange{
+					{Destination: "example-org/destination", Action: gh.SyncChangeAdd, Target: "alpha", Permission: "pull"},
+				}
+				if force {
+					want = append(want, gh.SyncChange{Destination: "example-org/destination", Action: gh.SyncChangeRemove, Target: "extra", Current: "push"})
+				} else if !strings.Contains(stderr, "repository extra cannot safely remove") {
+					t.Errorf("dry-run warning missing: %q", stderr)
+				}
+				if !reflect.DeepEqual(changes, want) {
+					t.Fatalf("dry-run changes = %#v, want %#v", changes, want)
+				}
+				fixture.reset()
+				_, stderr, status = runAccessSync(t, args...)
+				if status != 0 {
+					t.Fatalf("sync failed (%d): %s", status, stderr)
+				}
+				if !force && (!strings.Contains(stderr, "repository extra cannot safely remove") ||
+					strings.Contains(stderr, "repository extra remains accessible after synchronization")) {
+					t.Errorf("unexpected skipped-repository warnings: %q", stderr)
+				}
+				var mutations []copyRequest
+				for _, request := range fixture.snapshot() {
+					if request.method != http.MethodGet {
+						mutations = append(mutations, request)
+					}
+				}
+
+				wantMutations := []copyRequest{
+					{method: http.MethodPut, path: "/orgs/example-org/teams/destination/repos/example-org/alpha", permission: "pull"},
+				}
+				if force {
+					wantMutations = append(wantMutations, copyRequest{method: http.MethodDelete, path: "/orgs/example-org/teams/destination/repos/example-org/extra"})
+				}
+				if !reflect.DeepEqual(mutations, wantMutations) {
+					t.Errorf("mutations = %#v, want %#v", mutations, wantMutations)
+				}
+			})
+		}
+	}
+}
+
+func TestAccessSyncAppliesOnlyValidatedGrantsOnLookupError(t *testing.T) {
+	for _, mode := range []string{"", "--include-inherited", "--effective"} {
+		t.Run(mode, func(t *testing.T) {
+			server, fixture := newAccessCopyFixtureServer(t)
 			defer server.Close()
 			t.Setenv("GH_CONFIG_DIR", t.TempDir())
 			t.Setenv("GH_HOST", "github.com")
 			t.Setenv("GH_TOKEN", "test-token")
 			t.Setenv("GITHUB_API_URL", server.URL)
-			args := []string{"example-org/source", "example-org/destination", mode}
-			stdout, stderr, status := runAccessSync(t, append(slices.Clone(args), "--dryrun", "--format", "json")...)
-			if status != 0 {
-				t.Fatalf("dry run failed (%d): %s", status, stderr)
+
+			args := []string{"example-org/source-failure", "example-org/error-destination-sync"}
+			if mode != "" {
+				args = append(args, mode)
 			}
-			var changes []gh.SyncChange
-			if err := json.Unmarshal([]byte(stdout), &changes); err != nil {
-				t.Fatal(err)
+			_, stderr, status := runAccessSync(t, append(slices.Clone(args), "--dryrun")...)
+			if status == 0 || !strings.Contains(stderr, "repository missing is unavailable") ||
+				!strings.Contains(stderr, "failed to check destination repository example-org/failure") {
+				t.Fatalf("dry-run error = %q, status %d", stderr, status)
 			}
-			want := []gh.SyncChange{
-				{Destination: "example-org/destination", Action: gh.SyncChangeAdd, Target: "alpha", Permission: "pull"},
-				{Destination: "example-org/destination", Action: gh.SyncChangeRemove, Target: "extra", Current: "push"},
-			}
-			if !reflect.DeepEqual(changes, want) {
-				t.Fatalf("dry-run changes = %#v, want %#v", changes, want)
+			for _, request := range fixture.snapshot() {
+				if request.method != http.MethodGet {
+					t.Fatalf("failed dry run mutated access: %#v", request)
+				}
 			}
 			fixture.reset()
 			_, stderr, status = runAccessSync(t, args...)
-			if status != 0 {
-				t.Fatalf("sync failed (%d): %s", status, stderr)
+			if status == 0 || !strings.Contains(stderr, "failed to check destination repository example-org/failure") {
+				t.Fatalf("sync error = %q, status %d", stderr, status)
 			}
 			var mutations []copyRequest
 			for _, request := range fixture.snapshot() {
@@ -240,54 +347,14 @@ func TestAccessSyncApplyMatchesDryRun(t *testing.T) {
 					mutations = append(mutations, request)
 				}
 			}
-
-			wantMutations := []copyRequest{
-				{method: http.MethodPut, path: "/orgs/example-org/teams/destination/repos/example-org/alpha", permission: "pull"},
-				{method: http.MethodDelete, path: "/orgs/example-org/teams/destination/repos/example-org/extra"},
-			}
-			if !reflect.DeepEqual(mutations, wantMutations) {
-				t.Errorf("mutations = %#v, want %#v", mutations, wantMutations)
+			want := []copyRequest{{
+				method:     http.MethodPut,
+				path:       "/orgs/example-org/teams/error-destination-sync/repos/example-org/alpha",
+				permission: "pull",
+			}}
+			if !reflect.DeepEqual(mutations, want) {
+				t.Errorf("mutations = %#v, want %#v", mutations, want)
 			}
 		})
-	}
-}
-
-func TestAccessSyncAppliesOnlyValidatedGrantsOnLookupError(t *testing.T) {
-	server, fixture := newAccessCopyFixtureServer(t)
-	defer server.Close()
-	t.Setenv("GH_CONFIG_DIR", t.TempDir())
-	t.Setenv("GH_HOST", "github.com")
-	t.Setenv("GH_TOKEN", "test-token")
-	t.Setenv("GITHUB_API_URL", server.URL)
-
-	args := []string{"example-org/source-failure", "example-org/error-destination-sync", "--include-inherited"}
-	_, stderr, status := runAccessSync(t, append(slices.Clone(args), "--dryrun")...)
-	if status == 0 || !strings.Contains(stderr, "repository missing is unavailable") ||
-		!strings.Contains(stderr, "failed to check destination repository example-org/failure") {
-		t.Fatalf("dry-run error = %q, status %d", stderr, status)
-	}
-	for _, request := range fixture.snapshot() {
-		if request.method != http.MethodGet {
-			t.Fatalf("failed dry run mutated access: %#v", request)
-		}
-	}
-	fixture.reset()
-	_, stderr, status = runAccessSync(t, args...)
-	if status == 0 || !strings.Contains(stderr, "failed to check destination repository example-org/failure") {
-		t.Fatalf("sync error = %q, status %d", stderr, status)
-	}
-	var mutations []copyRequest
-	for _, request := range fixture.snapshot() {
-		if request.method != http.MethodGet {
-			mutations = append(mutations, request)
-		}
-	}
-	want := []copyRequest{{
-		method:     http.MethodPut,
-		path:       "/orgs/example-org/teams/error-destination-sync/repos/example-org/alpha",
-		permission: "pull",
-	}}
-	if !reflect.DeepEqual(mutations, want) {
-		t.Errorf("mutations = %#v, want %#v", mutations, want)
 	}
 }

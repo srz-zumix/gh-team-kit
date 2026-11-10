@@ -20,6 +20,7 @@ func TestCopyRepositorySelection(t *testing.T) {
 		name                 string
 		mode                 CopyMode
 		sameOrg              bool
+		force                bool
 		sourceDirect         []*github.Repository
 		sourceEffective      []*github.Repository
 		destinationDirect    []*github.Repository
@@ -29,7 +30,7 @@ func TestCopyRepositorySelection(t *testing.T) {
 		wantWarnings         []string
 	}{
 		{
-			name:    "direct grants overwrite conflicts and materialize equal inherited access",
+			name:    "direct selection retains conflicts and equal inherited access",
 			mode:    CopyDirect,
 			sameOrg: true,
 			sourceDirect: []*github.Repository{
@@ -134,9 +135,9 @@ func TestCopyRepositorySelection(t *testing.T) {
 			},
 			wantGrants: []string{"missing:custom-reader"},
 			wantWarnings: []string{
-				"repository different has incomparable source permission custom-reader and destination permission custom-writer; skipped",
-				"repository standard has incomparable source permission custom-reader and destination permission admin; skipped",
-				"repository reverse has incomparable source permission pull and destination permission custom-reader; skipped",
+				"repository different has incomparable source permission custom-reader and destination permission custom-writer; skipped; use --force to override",
+				"repository standard has incomparable source permission custom-reader and destination permission admin; skipped; use --force to override",
+				"repository reverse has incomparable source permission pull and destination permission custom-reader; skipped; use --force to override",
 			},
 		},
 		{
@@ -144,10 +145,10 @@ func TestCopyRepositorySelection(t *testing.T) {
 			mode:                 CopyEffective,
 			sourceEffective:      []*github.Repository{testRepository("custom", "custom-reader")},
 			destinationEffective: []*github.Repository{testRepository("custom", "custom-reader")},
-			wantWarnings:         []string{"repository custom has incomparable source permission custom-reader and destination permission custom-reader; skipped"},
+			wantWarnings:         []string{"repository custom has incomparable source permission custom-reader and destination permission custom-reader; skipped; use --force to override"},
 		},
 		{
-			name:                 "custom source direct permission is always copied",
+			name:                 "custom source direct permission is selected before grant safety",
 			mode:                 CopyWithInherited,
 			sourceDirect:         []*github.Repository{testRepository("custom", "custom-reader")},
 			sourceEffective:      []*github.Repository{testRepository("custom", "custom-reader")},
@@ -176,7 +177,7 @@ func TestCopyRepositorySelection(t *testing.T) {
 			wantGrants: []string{"direct:pull"},
 			wantWarnings: []string{
 				"repository direct has incomparable source permission pull and destination parent permission custom-reader; effective access may differ",
-				"repository inherited has incomparable source permission pull and destination parent permission custom-reader; skipped",
+				"repository inherited has incomparable source permission pull and destination parent permission custom-reader; skipped; use --force to override",
 			},
 		},
 		{
@@ -197,7 +198,21 @@ func TestCopyRepositorySelection(t *testing.T) {
 			destinationDirect:    []*github.Repository{testRepository("sample", "custom-reader")},
 			destinationParent:    []*github.Repository{testRepository("sample", "admin")},
 			wantWarnings: []string{
-				"repository sample has incomparable source permission pull and destination direct permission custom-reader; skipped",
+				"repository sample has incomparable source permission pull and destination direct permission custom-reader; skipped; use --force to override",
+			},
+		},
+		{
+			name:                 "force overwrites incomparable destination direct custom role masked by parent",
+			mode:                 CopyEffective,
+			sameOrg:              true,
+			force:                true,
+			sourceEffective:      []*github.Repository{testRepository("sample", "pull")},
+			destinationEffective: []*github.Repository{testRepository("sample", "admin")},
+			destinationDirect:    []*github.Repository{testRepository("sample", "custom-reader")},
+			destinationParent:    []*github.Repository{testRepository("sample", "admin")},
+			wantGrants:           []string{"sample:pull"},
+			wantWarnings: []string{
+				"repository sample inherits destination parent permission admin, which is stronger than pull; effective access will remain stronger",
 			},
 		},
 	}
@@ -205,7 +220,7 @@ func TestCopyRepositorySelection(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			selected, warnings, err := selectCopyRepositories(
-				tt.mode, tt.sameOrg, tt.sourceDirect, tt.sourceEffective, tt.destinationDirect, tt.destinationEffective, tt.destinationParent,
+				tt.mode, tt.sameOrg, tt.force, tt.sourceDirect, tt.sourceEffective, tt.destinationDirect, tt.destinationEffective, tt.destinationParent,
 			)
 			if err != nil {
 				t.Fatalf("selectCopyRepositories() error = %v", err)
@@ -230,7 +245,7 @@ func TestIncludeInheritedStandardPermissionHierarchy(t *testing.T) {
 		for destinationRank, destination := range gh.PermissionsList {
 			t.Run(source+"-to-"+destination, func(t *testing.T) {
 				selected, warnings, err := selectCopyRepositories(
-					CopyWithInherited, true, nil,
+					CopyWithInherited, true, false, nil,
 					[]*github.Repository{testRepository("sample", source)}, nil,
 					[]*github.Repository{testRepository("sample", destination)}, nil,
 				)
@@ -264,7 +279,7 @@ func TestCopyRepositorySelectionRejectsInvalidData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, _, err := selectCopyRepositories(CopyEffective, true, tt.sourceDirect, tt.sourceEffective, nil, nil, nil)
+			_, _, err := selectCopyRepositories(CopyEffective, true, false, tt.sourceDirect, tt.sourceEffective, nil, nil, nil)
 			if err == nil || !strings.Contains(err.Error(), tt.want) {
 				t.Errorf("error = %v, want %q", err, tt.want)
 			}

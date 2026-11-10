@@ -34,7 +34,7 @@ func TestSelectInheritedSync(t *testing.T) {
 	skipped := make(map[string]struct{})
 	redundant := make(map[string]string)
 	selected, warnings, err := selectInheritedSync(
-		[]*github.Repository{direct["direct"]}, nil, source, direct, destination, parent, true, skipped, redundant,
+		[]*github.Repository{direct["direct"]}, nil, source, direct, destination, parent, true, false, skipped, redundant,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -63,10 +63,10 @@ func TestSyncVerificationChecksDirectAndEffectivePermissions(t *testing.T) {
 		},
 		sourceDirect:   map[string]*github.Repository{"source": testRepository("source", "pull")},
 		expectedDirect: map[string]string{"source": "pull"},
-		expectedAbsent: map[string]string{"inherited": "inherited"},
+		expectedAbsent: map[string]string{"inherited": "inherited", "skipped": "skipped"},
 		skipped:        map[string]struct{}{"skipped": {}},
 	}
-	direct := []*github.Repository{testRepository("inherited", "pull")}
+	direct := []*github.Repository{testRepository("inherited", "pull"), testRepository("skipped", "custom-writer")}
 	effective := []*github.Repository{
 		testRepository("source", "admin"), testRepository("inherited", "admin"),
 		testRepository("skipped", "custom-writer"), testRepository("extra", "push"),
@@ -102,7 +102,7 @@ func TestPlanSyncRejectsInconsistentSourceSnapshot(t *testing.T) {
 	}
 	g, transport := newCopyFixtureClient(t, responses)
 	source, destination := fixtureTeams(g)
-	plan, err := PlanSync(context.Background(), source, destination, CopyWithInherited)
+	plan, err := PlanSync(context.Background(), source, destination, CopyWithInherited, false)
 	if plan != nil || err == nil || !strings.Contains(err.Error(), "missing from effective permissions") {
 		t.Fatalf("PlanSync() = %#v, %v; want inconsistent source error", plan, err)
 	}
@@ -129,7 +129,7 @@ func TestPlanSyncPartialValidationCannotRevoke(t *testing.T) {
 	}
 	g, transport := newCopyFixtureClient(t, responses)
 	source, destination := fixtureTeams(g)
-	plan, err := PlanSync(context.Background(), source, destination, CopyWithInherited)
+	plan, err := PlanSync(context.Background(), source, destination, CopyWithInherited, false)
 	if err == nil || plan == nil || plan.complete {
 		t.Fatalf("PlanSync() = %#v, %v; want partial plan", plan, err)
 	}
@@ -174,7 +174,7 @@ func TestSyncInheritedParentRemovesRedundantDirectGrant(t *testing.T) {
 	}
 	g, transport := newCopyFixtureClient(t, responses)
 	source, destination := fixtureTeams(g)
-	plan, err := PlanSync(context.Background(), source, destination, CopyWithInherited)
+	plan, err := PlanSync(context.Background(), source, destination, CopyWithInherited, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,7 +222,7 @@ func TestSyncEmptySourceRemovesDirectGrantsButWarnsOnInheritedAccess(t *testing.
 	}
 	g, _ := newCopyFixtureClient(t, responses)
 	source, destination := fixtureTeams(g)
-	plan, err := PlanSync(context.Background(), source, destination, CopyWithInherited)
+	plan, err := PlanSync(context.Background(), source, destination, CopyWithInherited, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +254,7 @@ func TestSyncMissingRepositoryDoesNotRevokeExistingDirectGrant(t *testing.T) {
 	}
 	g, transport := newCopyFixtureClient(t, responses)
 	source, destination := fixtureTeams(g)
-	plan, err := PlanSync(context.Background(), source, destination, CopyWithInherited)
+	plan, err := PlanSync(context.Background(), source, destination, CopyWithInherited, true)
 	if err != nil {
 		t.Fatal(err)
 	}
