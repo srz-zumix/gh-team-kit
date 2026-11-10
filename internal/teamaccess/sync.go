@@ -75,10 +75,10 @@ func PlanSync(ctx context.Context, source, destination Team, mode CopyMode) (*Sy
 	if mode == CopyEffective {
 		selected, warnings, err = selectCopyRepositoriesWithSkipped(
 			mode, sameOrg, state.sourceDirect, state.sourceEffective,
-			state.destinationEffective, state.destinationParent, skipped,
+			state.destinationDirect, state.destinationEffective, state.destinationParent, skipped,
 		)
 	} else {
-		selected, warnings, err = selectCopyRepositories(CopyDirect, sameOrg, state.sourceDirect, nil, nil, nil)
+		selected, warnings, err = selectCopyRepositories(CopyDirect, sameOrg, state.sourceDirect, nil, nil, nil, nil)
 		if err == nil {
 			selected, warnings, err = selectInheritedSync(
 				selected, warnings, state.sourceEffective, sourceDirect, destinationDirect, parent,

@@ -63,7 +63,7 @@ func PlanCopy(ctx context.Context, source, destination Team, mode CopyMode) (*Co
 	}
 	selected, warnings, err := selectCopyRepositories(
 		mode, sameOrganization(source.Repository, destination.Repository),
-		state.sourceDirect, state.sourceEffective, state.destinationEffective, state.destinationParent,
+		state.sourceDirect, state.sourceEffective, state.destinationDirect, state.destinationEffective, state.destinationParent,
 	)
 	if err != nil {
 		return nil, err
@@ -191,14 +191,14 @@ func listParentRepositories(ctx context.Context, team Team) ([]*github.Repositor
 
 func selectCopyRepositories(
 	mode CopyMode, sameOrg bool,
-	sourceDirect, sourceEffective, destinationEffective, destinationParent []*github.Repository,
+	sourceDirect, sourceEffective, destinationDirect, destinationEffective, destinationParent []*github.Repository,
 ) ([]*github.Repository, []string, error) {
-	return selectCopyRepositoriesWithSkipped(mode, sameOrg, sourceDirect, sourceEffective, destinationEffective, destinationParent, nil)
+	return selectCopyRepositoriesWithSkipped(mode, sameOrg, sourceDirect, sourceEffective, destinationDirect, destinationEffective, destinationParent, nil)
 }
 
 func selectCopyRepositoriesWithSkipped(
 	mode CopyMode, sameOrg bool,
-	sourceDirect, sourceEffective, destinationEffective, destinationParent []*github.Repository,
+	sourceDirect, sourceEffective, destinationDirect, destinationEffective, destinationParent []*github.Repository,
 	skipped map[string]struct{},
 ) ([]*github.Repository, []string, error) {
 	directByName, err := repositoriesByName("source direct", sourceDirect)
@@ -206,6 +206,10 @@ func selectCopyRepositoriesWithSkipped(
 		return nil, nil, err
 	}
 	effectiveByName, err := repositoriesByName("source effective", sourceEffective)
+	if err != nil {
+		return nil, nil, err
+	}
+	destinationDirectByName, err := repositoriesByName("destination direct", destinationDirect)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -252,6 +256,19 @@ func selectCopyRepositoriesWithSkipped(
 		}
 
 		if !direct {
+			if current := destinationDirectByName[key]; current != nil {
+				currentPermission := gh.GetRepositoryPermissions(current)
+				if _, comparable := comparePermissions(permission, currentPermission, sameOrg); !comparable {
+					if skipped != nil {
+						skipped[key] = struct{}{}
+					}
+					warnings = append(warnings, fmt.Sprintf(
+						"repository %s has incomparable source permission %s and destination direct permission %s; skipped",
+						name, permission, currentPermission,
+					))
+					continue
+				}
+			}
 			if current := destinationByName[key]; current != nil {
 				currentPermission := gh.GetRepositoryPermissions(current)
 				comparison, comparable := comparePermissions(permission, currentPermission, sameOrg)

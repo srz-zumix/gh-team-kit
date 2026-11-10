@@ -188,12 +188,24 @@ func TestCopyRepositorySelection(t *testing.T) {
 			destinationDirect:    []*github.Repository{testRepository("SAMPLE", "pull")},
 			wantGrants:           []string{"Sample:push"},
 		},
+		{
+			name:                 "effective skips incomparable destination direct custom role masked by parent",
+			mode:                 CopyEffective,
+			sameOrg:              true,
+			sourceEffective:      []*github.Repository{testRepository("sample", "pull")},
+			destinationEffective: []*github.Repository{testRepository("sample", "admin")},
+			destinationDirect:    []*github.Repository{testRepository("sample", "custom-reader")},
+			destinationParent:    []*github.Repository{testRepository("sample", "admin")},
+			wantWarnings: []string{
+				"repository sample has incomparable source permission pull and destination direct permission custom-reader; skipped",
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			selected, warnings, err := selectCopyRepositories(
-				tt.mode, tt.sameOrg, tt.sourceDirect, tt.sourceEffective, tt.destinationEffective, tt.destinationParent,
+				tt.mode, tt.sameOrg, tt.sourceDirect, tt.sourceEffective, tt.destinationDirect, tt.destinationEffective, tt.destinationParent,
 			)
 			if err != nil {
 				t.Fatalf("selectCopyRepositories() error = %v", err)
@@ -219,7 +231,7 @@ func TestIncludeInheritedStandardPermissionHierarchy(t *testing.T) {
 			t.Run(source+"-to-"+destination, func(t *testing.T) {
 				selected, warnings, err := selectCopyRepositories(
 					CopyWithInherited, true, nil,
-					[]*github.Repository{testRepository("sample", source)},
+					[]*github.Repository{testRepository("sample", source)}, nil,
 					[]*github.Repository{testRepository("sample", destination)}, nil,
 				)
 				if err != nil {
@@ -252,7 +264,7 @@ func TestCopyRepositorySelectionRejectsInvalidData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, _, err := selectCopyRepositories(CopyEffective, true, tt.sourceDirect, tt.sourceEffective, nil, nil)
+			_, _, err := selectCopyRepositories(CopyEffective, true, tt.sourceDirect, tt.sourceEffective, nil, nil, nil)
 			if err == nil || !strings.Contains(err.Error(), tt.want) {
 				t.Errorf("error = %v, want %q", err, tt.want)
 			}
