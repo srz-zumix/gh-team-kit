@@ -3,7 +3,7 @@ module github.com/srz-zumix/gh-team-kit
 go 1.27.3
 
 require (
-	github.com/cli/cli/v2 v2.103.0
+	github.com/cli/cli/v2 v2.103.3
 	github.com/cli/go-gh/v2 v2.17.0
 	github.com/google/go-github/v93 v93.0.0
 	github.com/hmarr/codeowners v1.2.1
