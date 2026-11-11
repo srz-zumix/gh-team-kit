@@ -704,6 +704,10 @@ gh team-kit repo user add <username> push --repo owner/repo
 # Remove a collaborator
 gh team-kit repo user remove <username> --repo owner/repo
 
+# Remove all suspended direct collaborators (preview first with --dryrun)
+gh team-kit repo user remove --suspended --repo owner/repo --dryrun
+gh team-kit repo user remove --suspended --repo owner/repo
+
 # List collaborators
 gh team-kit repo user list --repo owner/repo
 
