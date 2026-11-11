@@ -6,6 +6,7 @@ import (
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
+	"github.com/srz-zumix/gh-team-kit/internal/repocollab"
 	"github.com/srz-zumix/go-gh-extension/pkg/gh"
 	"github.com/srz-zumix/go-gh-extension/pkg/logger"
 	"github.com/srz-zumix/go-gh-extension/pkg/parser"
@@ -50,21 +51,9 @@ With --dryrun, display the planned removals without applying them.`,
 			destination := parser.GetRepositoryFullNameWithHost(repository)
 			var changes []gh.SyncChange
 			if suspended {
-				collaborators, err := gh.ListRepositoryCollaborators(ctx, client, repository, []string{"direct"}, nil)
+				changes, err = repocollab.PlanRemoveSuspendedCollaborators(ctx, client, repository)
 				if err != nil {
-					return fmt.Errorf("failed to list direct collaborators to find suspended users: %w", err)
-				}
-				collaborators, err = gh.UpdateUsersForSuspension(ctx, client, collaborators)
-				if err != nil {
-					return fmt.Errorf("failed to resolve suspension state of collaborators: %w", err)
-				}
-				for _, u := range gh.CollectSuspendedUsers(collaborators) {
-					changes = append(changes, gh.SyncChange{
-						Destination: destination,
-						Action:      gh.SyncChangeRemove,
-						Target:      u.GetLogin(),
-						Current:     gh.GetPermissionName(u.Permissions),
-					})
+					return err
 				}
 			} else {
 				changes = append(changes, gh.SyncChange{
