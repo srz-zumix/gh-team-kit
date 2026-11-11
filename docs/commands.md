@@ -237,30 +237,75 @@ repository organization.
 
 ```sh
 gh team-kit access diff <team-slug1> <team-slug2> [repository...] \
-  [--color <auto|always|never>] [--exit-code] [--owner <[HOST/]OWNER>]
+  [--color <auto|always|never>] [--exit-code] [--format json] \
+  [--jq <expression>] [--no-inherit] [--owner <[HOST/]OWNER>] \
+  [--template <string>]
 ```
 
-Compare the repositories and permissions associated with two teams. Repository filters are optional;
-`--color` defaults to `auto`, `--exit-code` defaults to `false`, and `--owner` defaults to the
-current repository organization. Fully qualified team arguments can specify separate organizations
-or hosts. The former top-level `gh team-kit diff` command has moved here.
+Compare the repositories and permissions associated with two teams. By default,
+inherited permissions are included; use `--no-inherit` to compare only direct
+permissions for both teams. `access copy` does not remove destination-only
+grants, so differences can remain after copying. When the selected repositories
+have no differences, plain text output is empty and an info-level message is
+logged to standard error unless suppressed by `--log-level`. JSON output is an
+empty array before applying a jq filter or template. Repository filters are
+optional. `--color` defaults to `auto`, while `--exit-code` and `--no-inherit`
+default to `false`. `--owner` defaults to the current repository organization.
+`--format` defaults to diff text and accepts `json`; `--jq` and `--template`
+default to empty and require `--format json`. Fully qualified team arguments can
+specify separate organizations or hosts. The former top-level `gh team-kit diff`
+command has moved here.
 
 ### Copy repository access between teams
 
 ```sh
-gh team-kit access copy <src-team-slug> <dst-team-slug> [-n|--dryrun] [-f|--force] \
-  [--format json] [--jq <expression>] [--owner <[HOST/]OWNER>] [--template <string>]
+gh team-kit access copy <src-team-slug> <dst-team-slug> [-n|--dryrun] \
+  [--effective | --include-inherited] [-f|--force] [--format json] \
+  [--jq <expression>] [--owner <[HOST/]OWNER>] [--template <string>]
 ```
 
-Add the source team's direct repository permissions to the destination team without removing other
-destination permissions. Existing equal permissions are unchanged; conflicting destination
-permissions are skipped with a warning unless `--force` is specified, in which case they are
-overwritten. Repositories missing from the destination organization are skipped with a warning.
-`--dryrun` and `--force` default to `false`; `--dryrun` displays planned changes without applying
-them. For dry-run output, `--format` defaults to table output and accepts `json`; `--jq` and
-`--template` default to empty and require `--format json`. `--owner` is optional and defaults to the
-current repository organization. Fully qualified team arguments can specify separate organizations
-or hosts. An unavailable custom permission is reported as an error rather than silently changed.
+Copy the source team's direct repository permissions without removing other
+destination grants. Standard permission upgrades are applied. A direct
+permission downgrade is skipped with a warning, even when a stronger parent
+permission masks it. A source direct permission is granted directly even if the
+destination inherits the same standard permission; a matching direct grant is
+unchanged.
+
+Use `--include-inherited` to also grant inherited-only source permissions that
+the destination does not already have at a comparable equal or higher level.
+For a repository with both direct and inherited source permissions, the direct
+permission takes precedence. Standard roles are compared in order from `pull`,
+`triage`, `push`, `maintain` to `admin`; `read` and `write` are treated as `pull`
+and `push`.
+
+Alternatively, use `--effective` to copy the source team's effective
+permissions. If the source has a direct grant, its effective permission is
+granted directly even when the destination inherits the same access. For
+inherited-only source access, an equal destination effective permission is left
+unchanged. A stronger destination parent permission cannot be reduced by a
+direct grant; the command warns when the effective result may remain stronger.
+
+Existing permissions that cannot be compared to the requested role are skipped
+with a warning. This includes differing custom roles and same-named custom roles
+in different organizations or hosts. A custom role can be granted when the
+destination has no existing access. Use `--force` to allow selected direct
+downgrades and incomparable role changes. It does not force an inherited-only
+grant when comparable destination access already satisfies the selected mode,
+remove inherited access, or copy custom role definitions. Matching direct role
+names are not rewritten. Cross-organization or cross-host custom role
+definitions may differ, and the destination must support the requested role.
+Repositories missing or inaccessible in the destination organization are
+skipped with a warning on a 404 response. Other errors stop the operation;
+grants applied earlier are not rolled back, including grants validated before a
+later destination-repository lookup fails.
+
+`--include-inherited` and `--effective` are mutually exclusive and default to
+`false`. `--force` and `--dryrun` default to `false`; `--dryrun` displays
+planned changes without applying them. For dry-run output, `--format` defaults
+to table output and accepts `json`; `--jq` and `--template` default to empty
+and require `--format json`. `--owner` is optional and defaults to the current
+repository organization. Fully qualified team arguments can specify separate
+organizations or hosts.
 
 ### List repositories accessible to a team
 
@@ -287,16 +332,58 @@ organization. `--owner` is optional and defaults to the current repository organ
 
 ```sh
 gh team-kit access sync <src-team-slug> <dst-team-slug> [-n|--dryrun] \
-  [--format json] [--jq <expression>] [--owner <[HOST/]OWNER>] [--template <string>]
+  [--effective | --include-inherited] [-f|--force] [--format json] \
+  [--jq <expression>] [--owner <[HOST/]OWNER>] [--template <string>]
 ```
 
-Make the destination team's direct repository permissions match the source team's direct permissions,
-adding or updating grants and removing direct grants absent from the source. Permissions inherited
-by the destination team are not removed and are reported with a warning. `--owner` is optional and
-defaults to the current repository organization. `--dryrun` defaults to `false`; when enabled, it
-displays planned changes without applying them. For dry-run output, `--format` defaults to table
-output and accepts `json`; `--jq` and `--template` default to empty and require `--format json`. Fully qualified team
-arguments can specify separate organizations or hosts.
+Synchronize the destination team's direct permissions with the source team's
+direct permissions. Standard upgrades and new grants are applied, while direct
+downgrades and incomparable existing roles are skipped with a warning. The
+downgrade check compares direct roles even when the destination inherits
+stronger access. A custom role can be granted when the destination has no
+existing access.
+
+Destination direct grants outside the selected source access are removed only
+when the destination parent provides comparable access at least as strong as
+both the current direct and effective permissions. If removing a grant would
+reduce effective access, or this cannot be established, the removal is skipped
+with a warning. Inherited access cannot be removed.
+
+Use `--include-inherited` to include source inherited access. Source direct
+permissions take precedence over source inherited permissions. For access that
+the source only inherits, consider removing a destination direct grant when its
+parent already grants a comparable equal or stronger permission; skip the
+removal if it is unsafe. When the parent does not provide sufficient access,
+grant the source permission directly, subject to the same downgrade and
+custom-role checks.
+
+Alternatively, use `--effective` to synchronize source effective permissions.
+Source direct-backed access is granted directly using the source effective role.
+For inherited-only source access, leave an equal destination effective permission
+unchanged; otherwise grant the source effective role directly, subject to the
+same checks. A stronger destination parent cannot be reduced and is reported.
+
+With either option, direct grants for repositories absent from source effective
+access are subject to the same removal safety check. Use `--force` to allow
+selected downgrades, incomparable role changes, and removals that may reduce
+access. It does not remove inherited access or copy custom role definitions,
+and does not force inherited-only grants when comparable destination access
+already satisfies the selected mode. Matching direct role names are not
+rewritten. Custom roles with the same name in different organizations or hosts
+are incomparable and may have different definitions. Repositories returning 404
+are warned and skipped.
+Other errors stop the operation without rolling back earlier changes; a
+repository lookup failure can apply a validated grant prefix, but does not
+apply any removals. After applying, direct and effective permissions are checked
+and discrepancies or remaining inherited access are reported.
+
+`--include-inherited` and `--effective` are mutually exclusive and default to
+`false`. `--force` and `--dryrun` default to `false`; `--dryrun` displays
+planned changes without applying them. `--owner` is optional and defaults to
+the current repository organization. For dry-run output, `--format` defaults
+to table output and accepts `json`; `--jq` and `--template` default to empty
+and require `--format json`. Fully qualified team arguments can specify separate
+organizations or hosts.
 
 ## Repository Management
 
