@@ -9,8 +9,8 @@ import (
 
 func TestBuildRemoveChanges(t *testing.T) {
 	users := []*github.User{
-		{Login: github.Ptr("alice"), Permissions: &github.RepositoryPermissions{Pull: github.Ptr(true)}},
-		{Login: github.Ptr("bob")},
+		{Login: new("alice"), Permissions: &github.RepositoryPermissions{Pull: new(true)}},
+		{Login: new("bob")},
 	}
 	changes := BuildRemoveChanges("github.com/o/r", users)
 	if len(changes) != 2 {
