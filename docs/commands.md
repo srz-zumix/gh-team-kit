@@ -636,10 +636,26 @@ List all collaborators for the specified repository. You can filter the results 
 ### Remove a user's access to a repository
 
 ```sh
-gh team-kit repo user remove <username>
+gh team-kit repo user remove [<username>] [-n|--dryrun] [--format json] [--jq <expression>] \
+  [-R|--repo <[HOST/]OWNER/REPO>] [--suspended] [--template <string>]
 ```
 
-Remove a specified user's access to a repository.
+Remove a specified user as a collaborator from a repository.
+`<username>` is required unless `--suspended` is specified, and cannot be combined with it.
+`--suspended` defaults to `false`; when set, all suspended direct collaborators of the repository are
+removed (suspension is detected via `suspended_at` on GitHub Enterprise Server and via obfuscated EMU logins).
+`--dryrun` defaults to `false` and displays the planned removals without applying them; `--repo` is
+optional and defaults to the current repository. For dry-run output, `--format` defaults to table output
+and accepts `json`; `--jq` and `--template` default to empty and require `--format json`.
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--dryrun` / `-n` | `false` | Display planned removals without applying them |
+| `--format <format>` | table | Output format; `json` enables JSON output |
+| `--jq <expression>` / `-q` | empty | Filter JSON output; requires `--format json` |
+| `--repo <[HOST/]OWNER/REPO>` / `-R` | current repository | Target repository |
+| `--suspended` | `false` | Remove all suspended direct collaborators instead of `<username>` |
+| `--template <string>` / `-t` | empty | Format JSON output; requires `--format json` |
 
 ### Sync direct user permissions to multiple destination repos
 
