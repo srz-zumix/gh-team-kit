@@ -53,19 +53,37 @@ func newFixtureClient(t *testing.T, handler http.HandlerFunc) *gh.GitHubClient {
 	return client
 }
 
+// The fixture server is not api.github.com, so the client treats it as GitHub
+// Enterprise Server and resolves suspension through GET /users/{login}.
 func TestPlanRemoveSuspendedCollaborators(t *testing.T) {
 	var affiliation string
+	users := map[string]string{
+		"alice":           `{"login":"alice"}`,
+		"bob":             `{"login":"bob","suspended_at":"2026-01-01T00:00:00Z"}`,
+		suspendedEMULogin: `{"login":"` + suspendedEMULogin + `"}`,
+	}
 	client := newFixtureClient(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || !strings.HasSuffix(r.URL.Path, "/repos/o/r/collaborators") {
+		if r.Method != http.MethodGet {
 			http.Error(w, "unexpected request", http.StatusNotFound)
 			return
 		}
-		affiliation = r.URL.Query().Get("affiliation")
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`[
-			{"login":"alice","permissions":{"push":true}},
-			{"login":"` + suspendedEMULogin + `","permissions":{"pull":true}}
-		]`))
+		if strings.HasSuffix(r.URL.Path, "/repos/o/r/collaborators") {
+			affiliation = r.URL.Query().Get("affiliation")
+			_, _ = w.Write([]byte(`[
+				{"login":"alice","permissions":{"push":true}},
+				{"login":"bob","permissions":{"admin":true}},
+				{"login":"` + suspendedEMULogin + `","permissions":{"pull":true}}
+			]`))
+			return
+		}
+		if _, login, ok := strings.Cut(r.URL.Path, "/users/"); ok {
+			if body, found := users[login]; found {
+				_, _ = w.Write([]byte(body))
+				return
+			}
+		}
+		http.Error(w, "unexpected request", http.StatusNotFound)
 	})
 	repo := repository.Repository{Host: "github.com", Owner: "o", Name: "r"}
 	changes, err := PlanRemoveSuspendedCollaborators(context.Background(), client, repo)
@@ -75,11 +93,17 @@ func TestPlanRemoveSuspendedCollaborators(t *testing.T) {
 	if affiliation != "direct" {
 		t.Errorf("expected affiliation=direct, got %q", affiliation)
 	}
-	if len(changes) != 1 {
-		t.Fatalf("expected 1 change, got %d: %+v", len(changes), changes)
+	want := []struct{ target, current string }{
+		{"bob", "admin"},
+		{suspendedEMULogin, "pull"},
 	}
-	if c := changes[0]; c.Target != suspendedEMULogin || c.Action != gh.SyncChangeRemove {
-		t.Errorf("unexpected change: %+v", c)
+	if len(changes) != len(want) {
+		t.Fatalf("expected %d changes, got %d: %+v", len(want), len(changes), changes)
+	}
+	for i, w := range want {
+		if c := changes[i]; c.Target != w.target || c.Current != w.current || c.Action != gh.SyncChangeRemove {
+			t.Errorf("unexpected change[%d]: %+v", i, c)
+		}
 	}
 }
 
