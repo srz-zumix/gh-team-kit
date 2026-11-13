@@ -49,6 +49,7 @@ With --dryrun, display the planned removals without applying them.`,
 
 			ctx := cmd.Context()
 			destination := parser.GetRepositoryFullNameWithHost(repository)
+			repoName := parser.GetRepositoryFullName(repository)
 			var changes []gh.SyncChange
 			if suspended {
 				changes, err = repocollab.PlanRemoveSuspendedCollaborators(ctx, client, repository)
@@ -71,7 +72,7 @@ With --dryrun, display the planned removals without applying them.`,
 			}
 
 			if suspended && len(changes) == 0 {
-				logger.Info("No suspended collaborators found.", "repository", parser.GetRepositoryFullName(repository))
+				logger.Info("No suspended collaborators found.", "repository", repoName)
 				return nil
 			}
 
@@ -81,7 +82,7 @@ With --dryrun, display the planned removals without applying them.`,
 					errs = append(errs, fmt.Errorf("failed to remove collaborator %s from repository: %w", change.Target, err))
 					continue
 				}
-				logger.Info("User removed from repository successfully.", "username", change.Target, "repository", parser.GetRepositoryFullName(repository))
+				logger.Info("User removed from repository successfully.", "username", change.Target, "repository", repoName)
 			}
 			return errors.Join(errs...)
 		},
