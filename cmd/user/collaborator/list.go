@@ -2,6 +2,7 @@ package collaborator
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/spf13/cobra"
@@ -35,6 +36,16 @@ Use --filter to list only outside collaborators without two-factor authenticatio
 			}
 
 			fetchDetails := details
+			if !nameOnly {
+				// The listing API returns summary users only, so NAME/EMAIL require
+				// full profile details and SUSPENDED requires suspension data.
+				if slices.Contains(fields, "NAME") || slices.Contains(fields, "EMAIL") {
+					fetchDetails = true
+				}
+				if fetchDetails || slices.Contains(fields, "SUSPENDED") {
+					details = true
+				}
+			}
 			if suspended.IsSet() {
 				details = true
 			}
