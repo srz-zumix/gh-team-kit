@@ -1,6 +1,6 @@
 ---
 name: gh-team-kit
-description: gh-team-kit GitHub CLI extension for managing GitHub Organization teams, members, team repository access, repository collaborators, org roles, member privileges, IDP/EMU groups, and Copilot (metrics and CLI canvas extension installation). Use when performing team membership operations, syncing team repository permissions, managing org roles, comparing repository permissions, exporting/importing team configurations, handling Enterprise Managed Users (EMU), or generating pull request activity relationship graphs.
+description: gh-team-kit GitHub CLI extension for managing GitHub Organization teams, members, team repository access, repository collaborators, organization outside collaborators, org roles, member privileges, IDP/EMU groups, and Copilot (metrics and CLI canvas extension installation). Use when performing team membership operations, syncing team repository permissions, managing org roles, comparing repository permissions, exporting/importing team configurations, handling Enterprise Managed Users (EMU), or generating pull request activity relationship graphs.
 license: MIT
 compatibility:
   - Requires gh CLI (https://cli.github.com) with gh-team-kit extension installed (`gh extension install srz-zumix/gh-team-kit`)
@@ -71,6 +71,10 @@ gh team-kit
 ├── user                        # Manage organization members
 │   ├── add
 │   ├── check
+│   ├── collaborator            # Manage outside collaborators
+│   │   ├── convert
+│   │   ├── list
+│   │   └── remove
 │   ├── hovercard
 │   │   ├── get
 │   │   ├── issue
@@ -842,6 +846,26 @@ gh team-kit user check <username>
 
 # Return exit code 1 if not a member
 gh team-kit user check <username> --exit-code
+```
+
+### `user collaborator` — Manage Outside Collaborators
+
+```bash
+# List outside collaborators of the organization
+gh team-kit user collaborator list
+gh team-kit user collaborator list myorg --name-only
+
+# List outside collaborators without two-factor authentication
+gh team-kit user collaborator list --filter 2fa_disabled
+
+# Include detailed information / exclude suspended users
+gh team-kit user collaborator list --details --no-suspended
+
+# Remove outside collaborators from all organization repositories
+gh team-kit user collaborator remove user1 user2 --owner myorg
+
+# Convert organization members to outside collaborators
+gh team-kit user collaborator convert user1 --owner myorg
 ```
 
 ### `user role`

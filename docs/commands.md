@@ -473,6 +473,20 @@ gh team-kit user check <username>
 
 Check the role of a specified user in the organization.
 
+### Convert organization members to outside collaborators
+
+```sh
+gh team-kit user collaborator convert <username>... [--owner <[HOST/]OWNER>]
+```
+
+Convert the specified organization members to outside collaborators.
+The converted users keep access only to the repositories that their current team membership allows, and are no longer members of the organization.
+At least one `<username>` is required.
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--owner <[HOST/]OWNER>` | (current repo owner) | Organization ([HOST/]OWNER) |
+
 ### Import users into the organization
 
 ```sh
@@ -531,6 +545,27 @@ gh team-kit user list
 
 Retrieve and display a list of all users in the organization.
 
+### List outside collaborators of the organization
+
+```sh
+gh team-kit user collaborator list [[HOST/]OWNER] [--filter <all|2fa_disabled|2fa_insecure>] [--details] [--name-only] [--suspended|--no-suspended] [--field <field>...] [--format json]
+```
+
+List all outside collaborators of the specified organization. `[[HOST/]OWNER]` is optional and defaults to the current repository owner.
+Use `--filter` to list only outside collaborators without two-factor authentication (`2fa_disabled`) or with insecure two-factor authentication methods (`2fa_insecure`).
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--details`, `-d` | `false` | Include detailed information about outside collaborators |
+| `--field <field>` | — | Fields to display: `USERNAME`, `LOGIN`, `ROLE`, `EMAIL`, `SUSPENDED`, `URL`, `NAME`, `TEAM` |
+| `--filter <all\|2fa_disabled\|2fa_insecure>` | `all` | Filter outside collaborators by two-factor authentication status |
+| `--format <json>` | — | Output format |
+| `--jq`, `-q` | — | Filter JSON output using a jq expression (requires `--format json`) |
+| `--name-only` | `false` | Output only outside collaborator names |
+| `--no-suspended` | `false` | Exclude suspended outside collaborators |
+| `--suspended` | `false` | Output only suspended outside collaborators |
+| `--template`, `-t` | — | Format JSON output using a Go template (requires `--format json`) |
+
 ### List user repositories
 
 ```sh
@@ -546,6 +581,20 @@ gh team-kit user remove <username>
 ```
 
 Remove a specified user from the organization.
+
+### Remove outside collaborators from the organization
+
+```sh
+gh team-kit user collaborator remove <username>... [--owner <[HOST/]OWNER>]
+```
+
+Remove the specified outside collaborators from all repositories of the organization.
+Organization members cannot be removed with this command; use `user remove` instead.
+At least one `<username>` is required.
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--owner <[HOST/]OWNER>` | (current repo owner) | Organization ([HOST/]OWNER) |
 
 ### Change the role of a user in a orgnization
 

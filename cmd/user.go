@@ -15,6 +15,7 @@ func NewUserCmd() *cobra.Command {
 	// Add subcommands to the user command
 	cmd.AddCommand(user.NewAddCmd())
 	cmd.AddCommand(user.NewCheckCmd())
+	cmd.AddCommand(user.NewCollaboratorCmd())
 	cmd.AddCommand(user.NewHovercardCmd())
 	cmd.AddCommand(user.NewImportCmd())
 	cmd.AddCommand(user.NewListCmd())
